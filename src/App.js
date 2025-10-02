@@ -105,7 +105,7 @@ export default function StreamCalendar() {
                 <div
                   key={index}
                   className={`
-                    min-h-28 p-3 rounded-lg border-2 transition-all duration-200
+                    min-h-44 p-3 rounded-lg border-2 transition-all duration-200
                     ${day 
                       ? streamData
                         ? `${categoryColor.bg} ${categoryColor.border} hover:shadow-lg cursor-pointer hover:scale-105`
@@ -116,19 +116,32 @@ export default function StreamCalendar() {
                 >
                   {day && (
                     <div className="flex flex-col h-full">
-                      <div className="font-bold text-gray-800 text-lg mb-2 border-b border-gray-200 pb-1 flex-shrink-0">
+                      {/* Day Number */}
+                      <div className="font-bold text-gray-800 text-lg mb-2 border-b border-gray-300 pb-1 flex-shrink-0">
                         {day}
                       </div>
+                      
                       {streamData && (
-                        <div className="flex flex-col justify-start flex-grow space-y-1">
-                          <div className={`text-xs font-semibold ${categoryColor.text} leading-snug`}>
-                            {streamData.category}
+                        <div className="flex flex-col justify-start flex-grow">
+                          {/* Category - Fixed height for up to 3 lines */}
+                          <div className={`text-xs font-semibold ${categoryColor.text} leading-tight mb-2`}>
+                            <div className="h-12 overflow-hidden break-words">
+                              {streamData.category}
+                            </div>
                           </div>
-                          <div className="text-xs font-bold text-gray-800 leading-snug">
-                            {streamData.subject}
+                          
+                          {/* Subject - Fixed height for up to 3 lines */}
+                          <div className="text-xs font-bold text-gray-800 leading-tight mb-2">
+                            <div className="h-12 overflow-hidden break-words">
+                              {streamData.subject}
+                            </div>
                           </div>
+                          
+                          {/* Time - Fixed height for up to 3 lines */}
                           <div className="text-xs text-gray-600 leading-tight">
-                            {streamData.time}
+                            <div className="h-12 overflow-hidden break-words">
+                              {streamData.time}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -142,4 +155,4 @@ export default function StreamCalendar() {
       </div>
     </div>
   );
-} 
+}
