@@ -3,6 +3,41 @@ import React, { useState } from 'react';
 export default function StreamCalendar() {
   const [currentDate] = useState(new Date(2025, 9, 1)); // October 2025 (month is 0-indexed)
   
+  // Stream schedule data
+  const streamSchedule = {
+    1: {
+      category: "Software and Game Development",
+      subject: "Exploring SORA 2",
+      time: "8:30am - 9:00am EST"
+    },
+    2: {
+      category: "Software and Game Development",
+      subject: "Integrating Menu into Game Scene",
+      time: "7:00am - 9:00am EST"
+    },
+    3: {
+      category: "Celeste",
+      subject: "Can I finish Celeste today?",
+      time: "5:00pm - 6:30pm EST"
+    }
+  };
+  
+  // Category colors (matching Twitch style)
+  const categoryColors = {
+    "Software and Game Development": {
+      bg: "bg-purple-100",
+      border: "border-purple-400",
+      text: "text-purple-800",
+      dot: "bg-purple-500"
+    },
+    "Celeste": {
+      bg: "bg-pink-100",
+      border: "border-pink-400",
+      text: "text-pink-800",
+      dot: "bg-pink-500"
+    }
+  };
+  
   // Get the first day of the month and total days
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -62,27 +97,49 @@ export default function StreamCalendar() {
           
           {/* Calendar Grid */}
           <div className="grid grid-cols-7 gap-2">
-            {days.map((day, index) => (
-              <div
-                key={index}
-                className={`
-                  min-h-24 p-3 rounded-lg border-2 transition-all
-                  ${day 
-                    ? 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer' 
-                    : 'bg-transparent border-transparent'
-                  }
-                `}
-              >
-                {day && (
-                  <div className="font-semibold text-gray-800 text-lg">
-                    {day}
-                  </div>
-                )}
-              </div>
-            ))}
+            {days.map((day, index) => {
+              const streamData = day ? streamSchedule[day] : null;
+              const categoryColor = streamData ? categoryColors[streamData.category] : null;
+              
+              return (
+                <div
+                  key={index}
+                  className={`
+                    min-h-28 p-3 rounded-lg border-2 transition-all duration-200
+                    ${day 
+                      ? streamData
+                        ? `${categoryColor.bg} ${categoryColor.border} hover:shadow-lg cursor-pointer hover:scale-105`
+                        : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer'
+                      : 'bg-transparent border-transparent'
+                    }
+                  `}
+                >
+                  {day && (
+                    <div className="flex flex-col h-full">
+                      <div className="font-bold text-gray-800 text-lg mb-2 border-b border-gray-200 pb-1 flex-shrink-0">
+                        {day}
+                      </div>
+                      {streamData && (
+                        <div className="flex flex-col justify-start flex-grow space-y-1">
+                          <div className={`text-xs font-semibold ${categoryColor.text} leading-snug`}>
+                            {streamData.category}
+                          </div>
+                          <div className="text-xs font-bold text-gray-800 leading-snug">
+                            {streamData.subject}
+                          </div>
+                          <div className="text-xs text-gray-600 leading-tight">
+                            {streamData.time}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
     </div>
   );
-}
+} 
