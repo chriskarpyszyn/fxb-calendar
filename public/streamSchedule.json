@@ -16,6 +16,11 @@
         "category": "Celeste",
         "subject": "Can I finish Celeste today?",
         "time": "5:00pm - 6:30pm EST"
+      },
+      "5": {
+        "category": "Gaming",
+        "subject": "Playing Steam Sale Games",
+        "time": "11:00am - 1:00pm EST"
       }
     },
     "categories": {
@@ -37,7 +42,7 @@
         "text": "text-blue-800",
         "dot": "bg-blue-500"
       },
-      "Music": {
+      "Gaming": {
         "bg": "bg-green-100",
         "border": "border-green-400",
         "text": "text-green-800",

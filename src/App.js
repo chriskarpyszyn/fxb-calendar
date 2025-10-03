@@ -107,6 +107,7 @@ export default function StreamCalendar() {
               const streamData = day ? streamSchedule[day.toString()] : null;
               const categoryColor = streamData ? categoryColors[streamData.category] : null;
               
+              
               return (
                 <div
                   key={index}
@@ -114,11 +115,25 @@ export default function StreamCalendar() {
                     min-h-44 p-3 rounded-lg border-2 transition-all duration-200
                     ${day 
                       ? streamData
-                        ? `${categoryColor.bg} ${categoryColor.border} hover:shadow-lg cursor-pointer hover:scale-105`
+                        ? categoryColor 
+                          ? `hover:shadow-lg cursor-pointer hover:scale-105`
+                          : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer'
                         : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer'
                       : 'bg-transparent border-transparent'
                     }
                   `}
+                  style={day && streamData && categoryColor ? {
+                    backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
+                                   categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
+                                   categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
+                                   categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
+                                   categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
+                    borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
+                                categoryColor.border === 'border-purple-400' ? '#a855f7' :
+                                categoryColor.border === 'border-pink-400' ? '#f472b6' :
+                                categoryColor.border === 'border-blue-400' ? '#60a5fa' :
+                                categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
+                  } : {}}
                 >
                   {day && (
                     <div className="flex flex-col h-full">
@@ -130,7 +145,7 @@ export default function StreamCalendar() {
                       {streamData && (
                         <div className="flex flex-col justify-start flex-grow">
                           {/* Category - Fixed height for up to 3 lines */}
-                          <div className={`text-xs font-semibold ${categoryColor.text} leading-tight mb-2`}>
+                          <div className={`text-xs font-semibold leading-tight mb-2 ${categoryColor ? categoryColor.text : 'text-gray-800'}`}>
                             <div className="h-12 overflow-hidden break-words">
                               {streamData.category}
                             </div>
