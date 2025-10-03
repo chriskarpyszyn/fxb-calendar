@@ -80,9 +80,24 @@ fxb-calendar/
 ├── json-update-tool.js          # Main tool script
 ├── update-schedule.bat          # Windows batch file
 ├── JSON_UPDATE_TOOL_README.md   # This file
+├── src/__tests__/               # JSON validation tests
 └── public/
     └── streamSchedule.json      # Target JSON file
 ```
+
+## Testing
+
+The tool works with comprehensive JSON validation tests:
+
+```bash
+# Run JSON validation tests
+npm run test:json
+
+# Run all tests
+npm test
+```
+
+Tests automatically run in GitHub Actions on every push/PR to ensure data integrity.
 
 ## Requirements
 
