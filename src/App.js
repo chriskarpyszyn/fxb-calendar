@@ -1,42 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function StreamCalendar() {
-  const [currentDate] = useState(new Date(2025, 9, 1)); // October 2025 (month is 0-indexed)
+  const [scheduleData, setScheduleData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Stream schedule data
-  const streamSchedule = {
-    1: {
-      category: "Software and Game Development",
-      subject: "Exploring SORA 2",
-      time: "8:30am - 9:00am EST"
-    },
-    2: {
-      category: "Software and Game Development",
-      subject: "Integrating Menu into Game Scene",
-      time: "7:00am - 9:00am EST"
-    },
-    3: {
-      category: "Celeste",
-      subject: "Can I finish Celeste today?",
-      time: "5:00pm - 6:30pm EST"
-    }
-  };
+  // Load schedule data from JSON file
+  useEffect(() => {
+    fetch('/streamSchedule.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to load schedule');
+        }
+        return response.json();
+      })
+      .then(data => {
+        setScheduleData(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
   
-  // Category colors (matching Twitch style)
-  const categoryColors = {
-    "Software and Game Development": {
-      bg: "bg-purple-100",
-      border: "border-purple-400",
-      text: "text-purple-800",
-      dot: "bg-purple-500"
-    },
-    "Celeste": {
-      bg: "bg-pink-100",
-      border: "border-pink-400",
-      text: "text-pink-800",
-      dot: "bg-pink-500"
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-2xl">Loading schedule...</div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-2xl">Error: {error}</div>
+      </div>
+    );
+  }
+  
+  const currentDate = new Date(scheduleData.year, scheduleData.month - 1, 1);
+  const streamSchedule = scheduleData.streams;
+  const categoryColors = scheduleData.categories;
   
   // Get the first day of the month and total days
   const year = currentDate.getFullYear();
@@ -98,7 +104,7 @@ export default function StreamCalendar() {
           {/* Calendar Grid */}
           <div className="grid grid-cols-7 gap-2">
             {days.map((day, index) => {
-              const streamData = day ? streamSchedule[day] : null;
+              const streamData = day ? streamSchedule[day.toString()] : null;
               const categoryColor = streamData ? categoryColors[streamData.category] : null;
               
               return (
@@ -150,6 +156,19 @@ export default function StreamCalendar() {
                 </div>
               );
             })}
+          </div>
+        </div>
+        
+        {/* Legend */}
+        <div className="mt-6 bg-white/10 backdrop-blur rounded-lg p-4">
+          <h3 className="text-white font-semibold mb-3">Stream Categories</h3>
+          <div className="flex flex-wrap gap-4">
+            {Object.entries(categoryColors).map(([category, colors]) => (
+              <div key={category} className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${colors.dot}`}></div>
+                <span className="text-purple-100 text-sm">{category}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
