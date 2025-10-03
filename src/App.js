@@ -4,6 +4,13 @@ export default function StreamCalendar() {
   const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    idea: '',
+    username: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', or null
   
   // Load schedule data from JSON file
   useEffect(() => {
@@ -23,6 +30,78 @@ export default function StreamCalendar() {
         setLoading(false);
       });
   }, []);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showModal]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error for this field when user starts typing
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!formData.idea.trim()) {
+      errors.idea = 'Please enter your stream idea';
+    } else if (formData.idea.trim().length < 10) {
+      errors.idea = 'Idea should be at least 10 characters';
+    }
+    
+    if (!formData.username.trim()) {
+      errors.username = 'Please enter your Twitch username';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    // TODO: In Milestone 5, this will send to Discord
+    console.log('Form submitted:', formData);
+    
+    // Show success message
+    setSubmitStatus('success');
+    
+    // Reset form after 2 seconds and close modal
+    setTimeout(() => {
+      setFormData({ idea: '', username: '' });
+      setSubmitStatus(null);
+      setShowModal(false);
+    }, 2000);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setFormData({ idea: '', username: '' });
+    setFormErrors({});
+    setSubmitStatus(null);
+  };
   
   if (loading) {
     return (
@@ -99,6 +178,14 @@ export default function StreamCalendar() {
           <p className="text-purple-200 text-sm sm:text-base md:text-lg">
             {monthNames[month]} {year}
           </p>
+          
+          {/* Suggest Idea Button */}
+          <button
+            onClick={() => setShowModal(true)}
+            className="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
+          >
+            💡 Suggest a Stream Idea
+          </button>
         </div>
         
         {/* Mobile List View - Show on small screens */}
@@ -242,6 +329,113 @@ export default function StreamCalendar() {
           </div>
         </div>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={closeModal}
+          ></div>
+          
+          {/* Modal Content */}
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform transition-all">
+              {/* Close Button */}
+              <button
+                onClick={closeModal}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
+              >
+                ×
+              </button>
+              
+              {/* Modal Header */}
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                💡 Suggest a Stream Idea
+              </h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Have an idea for a stream? Let me know!
+              </p>
+
+              {submitStatus === 'success' ? (
+                // Success Message
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">✅</div>
+                  <h3 className="text-xl font-bold text-green-600 mb-2">
+                    Idea Submitted!
+                  </h3>
+                  <p className="text-gray-600">
+                    Thanks for your suggestion!
+                  </p>
+                </div>
+              ) : (
+                // Form
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Idea Field */}
+                  <div>
+                    <label htmlFor="idea" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Your Stream Idea *
+                    </label>
+                    <textarea
+                      id="idea"
+                      name="idea"
+                      value={formData.idea}
+                      onChange={handleInputChange}
+                      rows="4"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none ${
+                        formErrors.idea ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Example: Play through Hollow Knight or Build a weather app with React"
+                    ></textarea>
+                    {formErrors.idea && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.idea}</p>
+                    )}
+                  </div>
+
+                  {/* Username Field */}
+                  <div>
+                    <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Your Twitch Username *
+                    </label>
+                    <input
+                      id="username"
+                      name="username"
+                      type="text"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                        formErrors.username ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="your_username"
+                    />
+                    {formErrors.username && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.username}</p>
+                    )}
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={closeModal}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors touch-manipulation"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
+                    >
+                      Submit Idea
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
