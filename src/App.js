@@ -80,7 +80,8 @@ export default function StreamCalendar() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            itsFlannelBeard's 31 Days of Streams Schedule
+            itsFlannelBeard's<br />
+            31 Days of Streams Schedule
           </h1>
           <p className="text-purple-200 text-lg">
             {monthNames[month]} {year}
@@ -171,19 +172,6 @@ export default function StreamCalendar() {
                 </div>
               );
             })}
-          </div>
-        </div>
-        
-        {/* Legend */}
-        <div className="mt-6 bg-white/10 backdrop-blur rounded-lg p-4">
-          <h3 className="text-white font-semibold mb-3">Stream Categories</h3>
-          <div className="flex flex-wrap gap-4">
-            {Object.entries(categoryColors).map(([category, colors]) => (
-              <div key={category} className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${colors.dot}`}></div>
-                <span className="text-purple-100 text-sm">{category}</span>
-              </div>
-            ))}
           </div>
         </div>
       </div>
