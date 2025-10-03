@@ -1,0 +1,43 @@
+name: JSON Validation Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'public/streamSchedule.json'
+      - 'src/__tests__/streamSchedule.test.js'
+      - 'package.json'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'public/streamSchedule.json'
+      - 'src/__tests__/streamSchedule.test.js'
+      - 'package.json'
+
+jobs:
+  test-json:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run JSON validation tests
+      run: npm run test:json
+      
+    - name: Run all tests with coverage
+      run: npm run test:ci
+
