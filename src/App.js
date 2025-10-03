@@ -75,27 +75,27 @@ export default function StreamCalendar() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-2 sm:p-4 md:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto overflow-x-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
+        <div className="text-center mb-4 sm:mb-6 md:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">
             itsFlannelBeard's<br />
             31 Days of Streams Schedule
           </h1>
-          <p className="text-purple-200 text-lg">
+          <p className="text-purple-200 text-sm sm:text-base md:text-lg">
             {monthNames[month]} {year}
           </p>
         </div>
         
         {/* Calendar Container */}
-        <div className="bg-white rounded-lg shadow-2xl p-6">
+        <div className="bg-white rounded-lg shadow-2xl p-2 sm:p-4 md:p-6 min-w-80">
           {/* Day Names Header */}
-          <div className="grid grid-cols-7 gap-2 mb-4">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 sm:mb-4">
             {dayNames.map(day => (
               <div
                 key={day}
-                className="text-center font-bold text-gray-700 py-2"
+                className="text-center font-bold text-gray-700 py-1 sm:py-2 text-xs sm:text-sm"
               >
                 {day}
               </div>
@@ -103,7 +103,7 @@ export default function StreamCalendar() {
           </div>
           
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {days.map((day, index) => {
               const streamData = day ? streamSchedule[day.toString()] : null;
               const categoryColor = streamData ? categoryColors[streamData.category] : null;
@@ -112,14 +112,14 @@ export default function StreamCalendar() {
               return (
                 <div
                   key={index}
-                  className={`
-                    min-h-44 p-3 rounded-lg border-2 transition-all duration-200
+                    className={`
+                    min-h-16 sm:min-h-24 md:min-h-32 lg:min-h-44 p-1 sm:p-2 md:p-3 rounded-lg border-2 transition-all duration-200
                     ${day 
                       ? streamData
                         ? categoryColor 
-                          ? `hover:shadow-lg cursor-pointer hover:scale-105`
-                          : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer'
-                        : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer'
+                          ? `hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95`
+                          : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
+                        : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
                       : 'bg-transparent border-transparent'
                     }
                   `}
@@ -139,29 +139,29 @@ export default function StreamCalendar() {
                   {day && (
                     <div className="flex flex-col h-full">
                       {/* Day Number */}
-                      <div className="font-bold text-gray-800 text-lg mb-2 border-b border-gray-300 pb-1 flex-shrink-0">
+                      <div className="font-bold text-gray-800 text-xs sm:text-sm md:text-base lg:text-lg mb-1 sm:mb-2 border-b border-gray-300 pb-1 flex-shrink-0">
                         {day}
                       </div>
                       
                       {streamData && (
                         <div className="flex flex-col justify-start flex-grow">
-                          {/* Category - Fixed height for up to 3 lines */}
-                          <div className={`text-xs font-semibold leading-tight mb-2 ${categoryColor ? categoryColor.text : 'text-gray-800'}`}>
-                            <div className="h-12 overflow-hidden break-words">
+                          {/* Category - Responsive height */}
+                          <div className={`text-xs font-semibold leading-tight mb-1 sm:mb-2 ${categoryColor ? categoryColor.text : 'text-gray-800'}`}>
+                            <div className="h-6 sm:h-8 md:h-10 lg:h-12 overflow-hidden break-words">
                               {streamData.category}
                             </div>
                           </div>
                           
-                          {/* Subject - Fixed height for up to 3 lines */}
-                          <div className="text-xs font-bold text-gray-800 leading-tight mb-2">
-                            <div className="h-12 overflow-hidden break-words">
+                          {/* Subject - Responsive height */}
+                          <div className="text-xs font-bold text-gray-800 leading-tight mb-1 sm:mb-2">
+                            <div className="h-6 sm:h-8 md:h-10 lg:h-12 overflow-hidden break-words">
                               {streamData.subject}
                             </div>
                           </div>
                           
-                          {/* Time - Fixed height for up to 3 lines */}
+                          {/* Time - Responsive height */}
                           <div className="text-xs text-gray-600 leading-tight">
-                            <div className="h-12 overflow-hidden break-words">
+                            <div className="h-6 sm:h-8 md:h-10 lg:h-12 overflow-hidden break-words">
                               {streamData.time}
                             </div>
                           </div>
