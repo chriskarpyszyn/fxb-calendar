@@ -80,7 +80,7 @@ export default function StreamCalendar() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            Stream Schedule
+            itsFlannelBeard's 31 Days of Streams Schedule
           </h1>
           <p className="text-purple-200 text-lg">
             {monthNames[month]} {year}
