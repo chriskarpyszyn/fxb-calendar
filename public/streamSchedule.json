@@ -1,57 +1,66 @@
 {
-    "month": 10,
-    "year": 2025,
-    "streams": {
-      "1": {
-        "category": "Software and Game Development",
-        "subject": "Exploring SORA 2",
-        "time": "8:30am - 9:00am EST"
-      },
-      "2": {
-        "category": "Software and Game Development",
-        "subject": "Integrating Menu into Game Scene",
-        "time": "7:00am - 9:00am EST"
-      },
-      "3": {
-        "category": "Celeste",
-        "subject": "Can I finish Celeste today?",
-        "time": "7:30pm - 9:00pm EST"
-      },
-      "5": {
-        "category": "Gaming",
-        "subject": "Playing Steam Sale Games",
-        "time": "11:00am - 1:00pm EST"
-      }
+  "month": 10,
+  "year": 2025,
+  "streams": {
+    "1": {
+      "category": "Software and Game Development",
+      "subject": "Exploring SORA 2",
+      "time": "8:30am - 9:00am EST"
     },
-    "categories": {
-      "Software and Game Development": {
-        "bg": "bg-purple-100",
-        "border": "border-purple-400",
-        "text": "text-purple-800",
-        "dot": "bg-purple-500"
-      },
-      "Celeste": {
-        "bg": "bg-pink-100",
-        "border": "border-pink-400",
-        "text": "text-pink-800",
-        "dot": "bg-pink-500"
-      },
-      "Just Chatting": {
-        "bg": "bg-blue-100",
-        "border": "border-blue-400",
-        "text": "text-blue-800",
-        "dot": "bg-blue-500"
-      },
-      "Gaming": {
-        "bg": "bg-green-100",
-        "border": "border-green-400",
-        "text": "text-green-800",
-        "dot": "bg-green-500"
-      },
-      "Art": {
-        "bg": "bg-orange-100",
-        "border": "border-orange-400",
-        "text": "text-orange-800",
+    "2": {
+      "category": "Software and Game Development",
+      "subject": "Integrating Menu into Game Scene",
+      "time": "7:00am - 9:00am EST"
+    },
+    "3": {
+      "category": "Celeste",
+      "subject": "Can I finish Celeste today?",
+      "time": "7:30pm - 9:00pm EST"
+    },
+    "4": {
+      "category": "Gaming",
+      "subject": "Playing Steam Sale Games",
+      "time": "10:30am - 11:30am EST"
+    },
+    "5": {
+      "category": "Gaming",
+      "subject": "Playing Steam Sale Games",
+      "time": "11:00am - 1:00pm EST"
+    }
+  },
+  "categories": {
+    "Software and Game Development": {
+      "bg": "bg-purple-100",
+      "border": "border-purple-400",
+      "text": "text-purple-800",
+      "dot": "bg-purple-500"
+    },
+    "Celeste": {
+      "bg": "bg-pink-100",
+      "border": "border-pink-400",
+      "text": "text-pink-800",
+      "dot": "bg-pink-500"
+    },
+    "Just Chatting": {
+      "bg": "bg-blue-100",
+      "border": "border-blue-400",
+      "text": "text-blue-800",
+      "dot": "bg-blue-500"
+    },
+    "Gaming": {
+      "bg": "bg-green-100",
+      "border": "border-green-400",
+      "text": "text-green-800",
+      "dot": "bg-green-500"
+    },
+    "Art": {
+      "bg": "bg-orange-100",
+      "border": "border-orange-400",
+      "text": "text-orange-800",
+      "dot": "bg-orange-500"
+    }
+  }
+}00",
         "dot": "bg-orange-500"
       }
     }
