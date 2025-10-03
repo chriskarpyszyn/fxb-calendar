@@ -1,68 +1,156 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background gradient -->
   <defs>
+    <!-- Enhanced background gradient -->
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#581c87;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#1e3a8a;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#312e81;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#1a0b2e;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#16213e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0f3460;stop-opacity:1" />
+      <stop offset="75%" style="stop-color:#533483;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7209b7;stop-opacity:1" />
     </linearGradient>
+    
+    <!-- Glass morphism effect -->
+    <linearGradient id="glass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(255,255,255,0.25);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Card shadow -->
+    <filter id="cardShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="rgba(0,0,0,0.3)"/>
+    </filter>
+    
+    <!-- Glow effect -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Text shadow -->
+    <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="2" dy="2" stdDeviation="4" flood-color="rgba(0,0,0,0.5)"/>
+    </filter>
   </defs>
   
   <!-- Background -->
   <rect width="1200" height="630" fill="url(#bg)"/>
   
-  <!-- Calendar grid background -->
-  <rect x="100" y="200" width="1000" height="350" rx="20" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+  <!-- Decorative elements -->
+  <circle cx="100" cy="100" r="60" fill="rgba(255,255,255,0.05)" />
+  <circle cx="1100" cy="530" r="80" fill="rgba(255,255,255,0.03)" />
+  <circle cx="200" cy="500" r="40" fill="rgba(255,255,255,0.08)" />
+  
+  <!-- Main title with enhanced typography -->
+  <text x="600" y="80" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="52" font-weight="800" fill="white" text-anchor="middle" filter="url(#textShadow)">itsFlannelBeard's</text>
+  <text x="600" y="130" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="42" font-weight="700" fill="#e0e7ff" text-anchor="middle" filter="url(#textShadow)">31 Days of Streaming</text>
+  
+  <!-- Subtitle with accent -->
+  <text x="600" y="160" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="24" font-weight="500" fill="#a78bfa" text-anchor="middle">Join the 31-day streaming journey! 🎮</text>
+  
+  <!-- Calendar container with glass morphism -->
+  <rect x="80" y="200" width="1040" height="380" rx="24" fill="url(#glass)" stroke="rgba(255,255,255,0.2)" stroke-width="1" filter="url(#cardShadow)"/>
   
   <!-- Calendar header -->
-  <rect x="100" y="200" width="1000" height="60" rx="20" fill="rgba(255,255,255,0.15)"/>
+  <rect x="80" y="200" width="1040" height="70" rx="24" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
   
-  <!-- Day headers -->
-  <text x="150" y="240" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">SUN</text>
-  <text x="300" y="240" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">MON</text>
-  <text x="450" y="240" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">TUE</text>
-  <text x="600" y="240" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">WED</text>
-  <text x="750" y="240" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">THU</text>
-  <text x="900" y="240" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">FRI</text>
-  <text x="1050" y="240" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">SAT</text>
+  <!-- Day headers with better typography -->
+  <text x="150" y="245" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="700" fill="white" text-anchor="middle">SUN</text>
+  <text x="300" y="245" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="700" fill="white" text-anchor="middle">MON</text>
+  <text x="450" y="245" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="700" fill="white" text-anchor="middle">TUE</text>
+  <text x="600" y="245" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="700" fill="white" text-anchor="middle">WED</text>
+  <text x="750" y="245" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="700" fill="white" text-anchor="middle">THU</text>
+  <text x="900" y="245" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="700" fill="white" text-anchor="middle">FRI</text>
+  <text x="1050" y="245" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="700" fill="white" text-anchor="middle">SAT</text>
   
-  <!-- Sample calendar days with different colors -->
-  <rect x="120" y="280" width="120" height="60" rx="8" fill="#dcfce7" stroke="#4ade80" stroke-width="2"/>
-  <text x="180" y="310" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#166534" text-anchor="middle">1</text>
-  <text x="180" y="325" font-family="Arial, sans-serif" font-size="10" fill="#166534" text-anchor="middle">Dev</text>
+  <!-- Enhanced calendar days with modern design -->
+  <!-- Day 1 - Software Development -->
+  <rect x="100" y="290" width="130" height="70" rx="12" fill="#dcfce7" stroke="#4ade80" stroke-width="2" filter="url(#cardShadow)"/>
+  <text x="165" y="315" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="800" fill="#166534" text-anchor="middle">1</text>
+  <text x="165" y="335" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#166534" text-anchor="middle">Dev</text>
+  <text x="165" y="350" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#166534" text-anchor="middle">8:30-9:00</text>
   
-  <rect x="270" y="280" width="120" height="60" rx="8" fill="#f3e8ff" stroke="#a855f7" stroke-width="2"/>
-  <text x="330" y="310" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#6b21a8" text-anchor="middle">2</text>
-  <text x="330" y="325" font-family="Arial, sans-serif" font-size="10" fill="#6b21a8" text-anchor="middle">Gaming</text>
+  <!-- Day 2 - Gaming -->
+  <rect x="250" y="290" width="130" height="70" rx="12" fill="#f3e8ff" stroke="#a855f7" stroke-width="2" filter="url(#cardShadow)"/>
+  <text x="315" y="315" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="800" fill="#6b21a8" text-anchor="middle">2</text>
+  <text x="315" y="335" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#6b21a8" text-anchor="middle">Gaming</text>
+  <text x="315" y="350" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#6b21a8" text-anchor="middle">7:00-9:00</text>
   
-  <rect x="420" y="280" width="120" height="60" rx="8" fill="#fce7f3" stroke="#f472b6" stroke-width="2"/>
-  <text x="480" y="310" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#be185d" text-anchor="middle">3</text>
-  <text x="480" y="325" font-family="Arial, sans-serif" font-size="10" fill="#be185d" text-anchor="middle">Art</text>
+  <!-- Day 3 - Celeste -->
+  <rect x="400" y="290" width="130" height="70" rx="12" fill="#fce7f3" stroke="#f472b6" stroke-width="2" filter="url(#cardShadow)"/>
+  <text x="465" y="315" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="800" fill="#be185d" text-anchor="middle">3</text>
+  <text x="465" y="335" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#be185d" text-anchor="middle">Celeste</text>
+  <text x="465" y="350" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#be185d" text-anchor="middle">5:00-6:30</text>
   
-  <rect x="570" y="280" width="120" height="60" rx="8" fill="#dbeafe" stroke="#60a5fa" stroke-width="2"/>
-  <text x="630" y="310" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1e40af" text-anchor="middle">4</text>
-  <text x="630" y="325" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">Chat</text>
+  <!-- Day 4 - Just Chatting -->
+  <rect x="550" y="290" width="130" height="70" rx="12" fill="#dbeafe" stroke="#60a5fa" stroke-width="2" filter="url(#cardShadow)"/>
+  <text x="615" y="315" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="800" fill="#1e40af" text-anchor="middle">4</text>
+  <text x="615" y="335" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#1e40af" text-anchor="middle">Chat</text>
+  <text x="615" y="350" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#1e40af" text-anchor="middle">TBD</text>
   
-  <rect x="720" y="280" width="120" height="60" rx="8" fill="#fed7aa" stroke="#fb923c" stroke-width="2"/>
-  <text x="780" y="310" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#c2410c" text-anchor="middle">5</text>
-  <text x="780" y="325" font-family="Arial, sans-serif" font-size="10" fill="#c2410c" text-anchor="middle">Celeste</text>
+  <!-- Day 5 - Gaming -->
+  <rect x="700" y="290" width="130" height="70" rx="12" fill="#fed7aa" stroke="#fb923c" stroke-width="2" filter="url(#cardShadow)"/>
+  <text x="765" y="315" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="800" fill="#c2410c" text-anchor="middle">5</text>
+  <text x="765" y="335" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#c2410c" text-anchor="middle">Gaming</text>
+  <text x="765" y="350" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#c2410c" text-anchor="middle">11:00-1:00</text>
   
-  <!-- More sample days -->
-  <rect x="120" y="360" width="120" height="60" rx="8" fill="#f3e8ff" stroke="#a855f7" stroke-width="2"/>
-  <text x="180" y="390" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#6b21a8" text-anchor="middle">6</text>
-  <text x="180" y="405" font-family="Arial, sans-serif" font-size="10" fill="#6b21a8" text-anchor="middle">Gaming</text>
+  <!-- Second row -->
+  <rect x="100" y="380" width="130" height="70" rx="12" fill="#f3e8ff" stroke="#a855f7" stroke-width="2" filter="url(#cardShadow)"/>
+  <text x="165" y="405" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="800" fill="#6b21a8" text-anchor="middle">6</text>
+  <text x="165" y="425" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#6b21a8" text-anchor="middle">Dev</text>
+  <text x="165" y="440" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#6b21a8" text-anchor="middle">TBD</text>
   
-  <rect x="270" y="360" width="120" height="60" rx="8" fill="#dcfce7" stroke="#4ade80" stroke-width="2"/>
-  <text x="330" y="390" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#166534" text-anchor="middle">7</text>
-  <text x="330" y="405" font-family="Arial, sans-serif" font-size="10" fill="#166534" text-anchor="middle">Dev</text>
+  <rect x="250" y="380" width="130" height="70" rx="12" fill="#dcfce7" stroke="#4ade80" stroke-width="2" filter="url(#cardShadow)"/>
+  <text x="315" y="405" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="800" fill="#166534" text-anchor="middle">7</text>
+  <text x="315" y="425" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600" fill="#166534" text-anchor="middle">Gaming</text>
+  <text x="315" y="440" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="9" fill="#166534" text-anchor="middle">TBD</text>
   
-  <!-- Main title -->
-  <text x="600" y="100" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">itsFlannelBeard's</text>
-  <text x="600" y="150" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">31 Days of Streaming Calendar</text>
+  <!-- Enhanced streaming platform icons -->
+  <!-- Twitch -->
+  <circle cx="200" y="520" r="16" fill="#9146ff" filter="url(#cardShadow)"/>
+  <text x="200" y="528" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">T</text>
   
-  <!-- Subtitle -->
-  <text x="600" y="180" font-family="Arial, sans-serif" font-size="24" fill="#c084fc" text-anchor="middle">Join the 31-day streaming journey!</text>
+  <!-- YouTube -->
+  <circle cx="250" y="520" r="16" fill="#ff0000" filter="url(#cardShadow)"/>
+  <text x="250" y="528" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Y</text>
   
-  <!-- Streaming categories -->
-  <text x="600" y="500" font-family="Arial, sans-serif" font-size="20" fill="white" text-anchor="middle">Software Development • Gaming • Art • Just Chatting • Celeste</text>
+  <!-- Kick -->
+  <circle cx="300" y="520" r="16" fill="#00d4aa" filter="url(#cardShadow)"/>
+  <text x="300" y="528" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">K</text>
+  
+  <!-- Discord -->
+  <circle cx="350" y="520" r="16" fill="#5865f2" filter="url(#cardShadow)"/>
+  <text x="350" y="528" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">D</text>
+  
+  <!-- Streaming status indicator -->
+  <circle cx="100" y="520" r="8" fill="#ef4444" filter="url(#glow)"/>
+  <text x="100" y="525" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">●</text>
+  <text x="120" y="525" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="600" fill="white">LIVE</text>
+  
+  <!-- Enhanced streaming categories -->
+  <text x="600" y="520" font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="white" text-anchor="middle">Software Development • Gaming • Art • Just Chatting • Celeste</text>
+  
+  <!-- Decorative streaming elements -->
+  <rect x="50" y="50" width="4" height="4" rx="2" fill="#a78bfa" opacity="0.6"/>
+  <rect x="60" y="60" width="3" height="3" rx="1.5" fill="#a78bfa" opacity="0.4"/>
+  <rect x="70" y="45" width="2" height="2" rx="1" fill="#a78bfa" opacity="0.5"/>
+  
+  <rect x="1100" y="100" width="4" height="4" rx="2" fill="#a78bfa" opacity="0.6"/>
+  <rect x="1110" y="90" width="3" height="3" rx="1.5" fill="#a78bfa" opacity="0.4"/>
+  <rect x="1120" y="105" width="2" height="2" rx="1" fill="#a78bfa" opacity="0.5"/>
+  
+  <!-- Additional decorative elements -->
+  <circle cx="150" y="80" r="2" fill="#fbbf24" opacity="0.8"/>
+  <circle cx="1050" y="80" r="2" fill="#fbbf24" opacity="0.8"/>
+  <circle cx="200" y="70" r="1.5" fill="#f59e0b" opacity="0.6"/>
+  <circle cx="1000" y="70" r="1.5" fill="#f59e0b" opacity="0.6"/>
+  
+  <!-- Streaming wave elements -->
+  <path d="M 50 150 Q 100 140 150 150 T 250 150" stroke="#a78bfa" stroke-width="2" fill="none" opacity="0.3"/>
+  <path d="M 950 150 Q 1000 140 1050 150 T 1150 150" stroke="#a78bfa" stroke-width="2" fill="none" opacity="0.3"/>
+  
+  <!-- Calendar highlight -->
+  <rect x="75" y="195" width="1050" height="390" rx="26" fill="none" stroke="rgba(167, 139, 250, 0.3)" stroke-width="2" stroke-dasharray="5,5"/>
 </svg>
