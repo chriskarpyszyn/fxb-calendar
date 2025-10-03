@@ -36,3 +36,30 @@
     transform: rotate(360deg);
   }
 }
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  /* Improve text rendering on mobile */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Better touch targets */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  
+  /* Prevent text selection on mobile for better UX */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Improve scrolling performance */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+}
