@@ -26,16 +26,20 @@ export default function StreamCalendar() {
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-2xl">Loading schedule...</div>
+      <div className="min-h-screen bg-retro-bg retro-grid scanline flex items-center justify-center">
+        <div className="retro-container p-8 retro-glow">
+          <div className="retro-title text-lg retro-flicker">LOADING SCHEDULE...</div>
+        </div>
       </div>
     );
   }
   
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-2xl">Error: {error}</div>
+      <div className="min-h-screen bg-retro-bg retro-grid scanline flex items-center justify-center">
+        <div className="retro-container p-8 retro-glow">
+          <div className="retro-title text-lg text-retro-pink">ERROR: {error}</div>
+        </div>
       </div>
     );
   }
@@ -88,67 +92,70 @@ export default function StreamCalendar() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-2 sm:p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-retro-bg retro-grid scanline p-2 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-4 sm:mb-6 md:mb-8">
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">
-            itsFlannelBeard's<br />
-            31 Days of Streams Schedule
-          </h1>
-          <p className="text-purple-200 text-sm sm:text-base md:text-lg">
-            {monthNames[month]} {year}
-          </p>
+          <div className="retro-container p-6 retro-glow mb-4">
+            <h1 className="retro-title text-lg sm:text-xl md:text-2xl lg:text-3xl mb-2 leading-tight">
+              ITSFLANNELBEARD'S<br />
+              31 DAYS OF STREAMS<br />
+              SCHEDULE
+            </h1>
+            <p className="retro-text text-retro-muted text-sm sm:text-base md:text-lg font-mono">
+              {monthNames[month].toUpperCase()} {year}
+            </p>
+          </div>
         </div>
         
         {/* Mobile List View - Show on small screens */}
         <div className="block md:hidden">
-          <div className="bg-white rounded-lg shadow-2xl p-4">
-            <h2 className="text-lg font-bold text-gray-800 mb-4 text-center">
-              Upcoming Streams
+          <div className="retro-container p-4 retro-glow">
+            <h2 className="retro-title text-base mb-4 text-center">
+              UPCOMING STREAMS
             </h2>
             {daysWithEvents.length > 0 ? (
               <div className="space-y-3">
                 {daysWithEvents.map(({ day, streamData, categoryColor }) => (
                   <div
                     key={day}
-                    className="p-4 rounded-lg border-2 transition-all duration-200 hover:shadow-lg cursor-pointer active:scale-95 touch-manipulation"
+                    className="retro-card p-4 cursor-pointer active:scale-95 touch-manipulation"
                     style={categoryColor ? {
-                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
-                                     categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
-                                     categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
-                                     categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
-                                     categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
-                      borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
-                                  categoryColor.border === 'border-purple-400' ? '#a855f7' :
+                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#1a2e1a' : 
+                                     categoryColor.bg === 'bg-purple-100' ? '#2e1a2e' :
+                                     categoryColor.bg === 'bg-pink-100' ? '#2e1a2a' :
+                                     categoryColor.bg === 'bg-blue-100' ? '#1a2a2e' :
+                                     categoryColor.bg === 'bg-orange-100' ? '#2e2a1a' : '#1a1a2e',
+                      borderColor: categoryColor.border === 'border-green-400' ? '#34d399' :
+                                  categoryColor.border === 'border-purple-400' ? '#a78bfa' :
                                   categoryColor.border === 'border-pink-400' ? '#f472b6' :
                                   categoryColor.border === 'border-blue-400' ? '#60a5fa' :
-                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
+                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#2d3748'
                     } : {
-                      backgroundColor: '#f9fafb',
-                      borderColor: '#e5e7eb'
+                      backgroundColor: '#1a1a2e',
+                      borderColor: '#2d3748'
                     }}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-lg font-bold text-gray-800">
-                        Day {day}
+                      <div className="retro-text text-lg font-bold text-retro-cyan">
+                        DAY {day}
                       </div>
-                      <div className="text-sm text-gray-600 font-medium">
+                      <div className="retro-text text-sm text-retro-muted font-mono">
                         {streamData.time}
                       </div>
                     </div>
-                    <div className={`text-sm font-semibold mb-2 ${categoryColor ? categoryColor.text : 'text-gray-800'}`}>
-                      {streamData.category}
+                    <div className={`retro-text text-sm font-semibold mb-2 ${categoryColor ? categoryColor.text : 'text-retro-text'}`}>
+                      {streamData.category.toUpperCase()}
                     </div>
-                    <div className="text-base font-bold text-gray-800 leading-tight">
-                      {streamData.subject}
+                    <div className="retro-text text-base font-bold leading-tight">
+                      {streamData.subject.toUpperCase()}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p className="text-lg">No streams scheduled for this month</p>
+              <div className="text-center py-8">
+                <p className="retro-text text-lg text-retro-muted">NO STREAMS SCHEDULED FOR THIS MONTH</p>
               </div>
             )}
           </div>
@@ -156,13 +163,13 @@ export default function StreamCalendar() {
 
         {/* Desktop Calendar Grid - Show on medium screens and up */}
         <div className="hidden md:block overflow-x-auto">
-          <div className="bg-white rounded-lg shadow-2xl p-4 md:p-6 min-w-80">
+          <div className="retro-container p-4 md:p-6 min-w-80 retro-glow">
             {/* Day Names Header */}
             <div className="grid grid-cols-7 gap-2 mb-4">
               {dayNames.map(day => (
                 <div
                   key={day}
-                  className="text-center font-bold text-gray-700 py-2 text-sm"
+                  className="text-center font-bold text-retro-cyan py-2 text-sm font-pixel"
                 >
                   {day}
                 </div>
@@ -179,54 +186,57 @@ export default function StreamCalendar() {
                   <div
                     key={index}
                     className={`
-                      min-h-32 lg:min-h-44 p-2 md:p-3 rounded-lg border-2 transition-all duration-200
+                      min-h-32 lg:min-h-44 p-2 md:p-3 retro-card transition-all duration-200
                       ${day 
                         ? streamData
                           ? categoryColor 
-                            ? `hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95`
-                            : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
-                          : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
+                            ? `cursor-pointer hover:scale-105 active:scale-95`
+                            : 'cursor-pointer active:scale-95'
+                          : 'cursor-pointer active:scale-95'
                         : 'bg-transparent border-transparent'
                       }
                     `}
                     style={day && streamData && categoryColor ? {
-                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
-                                     categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
-                                     categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
-                                     categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
-                                     categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
-                      borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
-                                  categoryColor.border === 'border-purple-400' ? '#a855f7' :
+                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#1a2e1a' : 
+                                     categoryColor.bg === 'bg-purple-100' ? '#2e1a2e' :
+                                     categoryColor.bg === 'bg-pink-100' ? '#2e1a2a' :
+                                     categoryColor.bg === 'bg-blue-100' ? '#1a2a2e' :
+                                     categoryColor.bg === 'bg-orange-100' ? '#2e2a1a' : '#1a1a2e',
+                      borderColor: categoryColor.border === 'border-green-400' ? '#34d399' :
+                                  categoryColor.border === 'border-purple-400' ? '#a78bfa' :
                                   categoryColor.border === 'border-pink-400' ? '#f472b6' :
                                   categoryColor.border === 'border-blue-400' ? '#60a5fa' :
-                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
+                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#2d3748'
+                    } : day ? {
+                      backgroundColor: '#1a1a2e',
+                      borderColor: '#2d3748'
                     } : {}}
                   >
                     {day && (
                       <div className="flex flex-col h-full">
                         {/* Day Number */}
-                        <div className="font-bold text-gray-800 text-sm md:text-base lg:text-lg mb-2 border-b border-gray-300 pb-1 flex-shrink-0">
+                        <div className="retro-text font-bold text-retro-cyan text-sm md:text-base lg:text-lg mb-2 border-b border-retro-border pb-1 flex-shrink-0 font-pixel">
                           {day}
                         </div>
                         
                         {streamData && (
                           <div className="flex flex-col justify-start flex-grow">
                             {/* Category */}
-                            <div className={`text-xs font-semibold leading-tight mb-1 ${categoryColor ? categoryColor.text : 'text-gray-800'}`}>
+                            <div className={`retro-text text-xs font-semibold leading-tight mb-1 ${categoryColor ? categoryColor.text : 'text-retro-text'}`}>
                               <div className="h-8 md:h-10 lg:h-12 overflow-hidden">
-                                {streamData.category}
+                                {streamData.category.toUpperCase()}
                               </div>
                             </div>
                             
                             {/* Subject */}
-                            <div className="text-xs font-bold text-gray-800 leading-tight mb-1">
+                            <div className="retro-text text-xs font-bold leading-tight mb-1">
                               <div className="h-8 md:h-10 lg:h-12 overflow-hidden">
-                                {streamData.subject}
+                                {streamData.subject.toUpperCase()}
                               </div>
                             </div>
                             
                             {/* Time */}
-                            <div className="text-xs text-gray-600 leading-tight">
+                            <div className="retro-text text-xs text-retro-muted leading-tight font-mono">
                               <div className="h-8 md:h-10 lg:h-12 overflow-hidden">
                                 {streamData.time}
                               </div>
