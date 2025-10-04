@@ -312,7 +312,7 @@ class StreamScheduleUpdater {
     console.log('\nAvailable color options:');
     console.log(validColors.join(', '));
     
-    const color = await this.askQuestion('Enter base color: ').toLowerCase().trim();
+    const color = (await this.askQuestion('Enter base color: ')).toLowerCase().trim();
     
     if (!validColors.includes(color)) {
       console.log(`❌ Invalid color. Please choose from: ${validColors.join(', ')}\n`);
@@ -346,7 +346,7 @@ class StreamScheduleUpdater {
     console.log('\nAvailable color options:');
     console.log(validColors.join(', '));
     
-    const color = await this.askQuestion('Enter new base color: ').toLowerCase().trim();
+    const color = (await this.askQuestion('Enter new base color: ')).toLowerCase().trim();
     
     if (!validColors.includes(color)) {
       console.log(`❌ Invalid color. Please choose from: ${validColors.join(', ')}\n`);

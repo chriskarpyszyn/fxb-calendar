@@ -18,8 +18,8 @@
       "time": "7:30pm - 9:00pm EST"
     },
     "4": {
-      "category": "Gaming",
-      "subject": "Playing Steam Sale Games",
+      "category": "Frog Fractions",
+      "subject": "Playing Frog Fractions",
       "time": "10:30am - 11:30am EST"
     },
     "5": {
@@ -53,7 +53,7 @@
       "text": "text-green-800",
       "dot": "bg-green-500"
     },
-    "Art": {
+    "Frog Fractions": {
       "bg": "bg-orange-100",
       "border": "border-orange-400",
       "text": "text-orange-800",
