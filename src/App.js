@@ -227,7 +227,17 @@ export default function StreamCalendar() {
                         {streamData.time}
                       </div>
                     </div>
-                    <div className={`text-sm font-semibold mb-2 ${categoryColor ? categoryColor.text : 'text-gray-800'}`}>
+                    <div 
+                      className="text-sm font-semibold mb-2"
+                      style={{
+                        color: categoryColor ? 
+                          (categoryColor.text === 'text-purple-800' ? '#6b21a8' :
+                           categoryColor.text === 'text-pink-800' ? '#9d174d' :
+                           categoryColor.text === 'text-orange-800' ? '#9a3412' :
+                           categoryColor.text === 'text-green-800' ? '#166534' :
+                           categoryColor.text === 'text-blue-800' ? '#1e40af' : '#1f2937') : '#1f2937'
+                      }}
+                    >
                       {streamData.category}
                     </div>
                     <div className="text-base font-bold text-gray-800 leading-tight">
@@ -302,7 +312,17 @@ export default function StreamCalendar() {
                         {streamData && (
                           <div className="flex flex-col justify-start flex-grow">
                             {/* Category */}
-                            <div className={`text-xs font-semibold leading-tight mb-1 ${categoryColor ? categoryColor.text : 'text-gray-800'}`}>
+                            <div 
+                              className="text-xs font-semibold leading-tight mb-1"
+                              style={{
+                                color: categoryColor ? 
+                                  (categoryColor.text === 'text-purple-800' ? '#6b21a8' :
+                                   categoryColor.text === 'text-pink-800' ? '#9d174d' :
+                                   categoryColor.text === 'text-orange-800' ? '#9a3412' :
+                                   categoryColor.text === 'text-green-800' ? '#166534' :
+                                   categoryColor.text === 'text-blue-800' ? '#1e40af' : '#1f2937') : '#1f2937'
+                              }}
+                            >
                               <div className="h-8 md:h-10 lg:h-12 overflow-hidden">
                                 {streamData.category}
                               </div>
@@ -386,7 +406,7 @@ export default function StreamCalendar() {
                       value={formData.idea}
                       onChange={handleInputChange}
                       rows="4"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none placeholder-gray-500 text-gray-900 ${
                         formErrors.idea ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="Example: Play through Hollow Knight or Build a weather app with React"
@@ -407,7 +427,7 @@ export default function StreamCalendar() {
                       type="text"
                       value={formData.username}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-500 text-gray-900 ${
                         formErrors.username ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="your_username"
