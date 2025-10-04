@@ -1,43 +1,10 @@
+/* Retro futuristic App styles */
 .App {
   text-align: center;
+  font-family: 'JetBrains Mono', monospace;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Mobile optimizations */
+/* Retro mobile optimizations */
 @media (max-width: 767px) {
   /* Improve text rendering on mobile */
   * {
@@ -62,4 +29,63 @@
   .smooth-scroll {
     -webkit-overflow-scrolling: touch;
   }
+}
+
+/* Additional retro effects */
+.retro-container::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #22d3ee, #a78bfa, #f472b6, #34d399, #fb923c, #60a5fa);
+  background-size: 400% 400%;
+  animation: gradient-shift 3s ease infinite;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Retro scanline effect for the entire page */
+.retro-scanline::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(34, 211, 238, 0.03) 2px,
+    rgba(34, 211, 238, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+  animation: scan 2s linear infinite;
+}
+
+/* Pixelated hover effects */
+.retro-card:hover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(34, 211, 238, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  animation: pixel-glow 0.3s ease-out;
+}
+
+@keyframes pixel-glow {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
 }

@@ -167,17 +167,20 @@ export default function StreamCalendar() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-2 sm:p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-retro-bg retro-grid scanline p-2 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-4 sm:mb-6 md:mb-8">
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">
-            itsFlannelBeard's<br />
-            31 Days of Streams Schedule
-          </h1>
-          <p className="text-purple-200 text-sm sm:text-base md:text-lg">
-            {monthNames[month]} {year}
-          </p>
+          <div className="retro-container p-6 retro-glow mb-4">
+            <h1 className="retro-title text-lg sm:text-xl md:text-2xl lg:text-3xl mb-2 leading-tight">
+              ITSFLANNELBEARD'S<br />
+              31 DAYS OF STREAMS<br />
+              SCHEDULE
+            </h1>
+            <p className="retro-text text-retro-muted text-sm sm:text-base md:text-lg font-mono">
+              {monthNames[month].toUpperCase()} {year}
+            </p>
+          </div>
           
           {/* Suggest Idea Button */}
           <button
@@ -190,7 +193,7 @@ export default function StreamCalendar() {
         
         {/* Mobile List View - Show on small screens */}
         <div className="block md:hidden">
-          <div className="bg-white rounded-lg shadow-2xl p-4">
+          <div className="retro-container p-4 retro-glow">
             <h2 className="text-lg font-bold text-gray-800 mb-4 text-center">
               Upcoming Streams
             </h2>
@@ -243,7 +246,7 @@ export default function StreamCalendar() {
 
         {/* Desktop Calendar Grid - Show on medium screens and up */}
         <div className="hidden md:block overflow-x-auto">
-          <div className="bg-white rounded-lg shadow-2xl p-4 md:p-6 min-w-80">
+          <div className="retro-container p-4 md:p-6 retro-glow min-w-80">
             {/* Day Names Header */}
             <div className="grid grid-cols-7 gap-2 mb-4">
               {dayNames.map(day => (

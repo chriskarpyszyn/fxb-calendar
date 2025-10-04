@@ -1,3 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
 @tailwind base;
-   @tailwind components;
-   @tailwind utilities;
+@tailwind components;
+@tailwind utilities;
+
+/* Retro futuristic base styles */
+@layer base {
+  * {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+  
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: #0a0a0f;
+    color: #e2e8f0;
+    overflow-x: hidden;
+  }
+  
+  /* Pixelated scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #1a1a2e;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #22d3ee;
+    border-radius: 0;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #06b6d4;
+  }
+}
+
+/* Retro components */
+@layer components {
+  .retro-container {
+    @apply relative bg-retro-surface border-2 border-retro-border;
+    background-image: 
+      linear-gradient(rgba(34, 211, 238, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34, 211, 238, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  .retro-card {
+    @apply bg-retro-surface border-2 border-retro-border shadow-pixel;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+  
+  .retro-card:hover {
+    @apply shadow-glow border-retro-cyan;
+    transform: translateY(-2px);
+  }
+  
+  .retro-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(34, 211, 238, 0.03) 2px,
+      rgba(34, 211, 238, 0.03) 4px
+    );
+    pointer-events: none;
+  }
+  
+  .retro-button {
+    @apply bg-retro-accent border-2 border-retro-cyan text-retro-cyan font-pixel text-xs px-4 py-2;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .retro-button:hover {
+    @apply bg-retro-cyan text-retro-bg shadow-glow;
+    transform: translateY(-1px);
+  }
+  
+  .retro-button:active {
+    transform: translateY(1px);
+  }
+  
+  .retro-text {
+    @apply text-retro-text font-mono;
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+  }
+  
+  .retro-title {
+    @apply font-pixel text-retro-cyan;
+    text-shadow: 0 0 20px rgba(34, 211, 238, 0.5);
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  .pixel-border {
+    border-image: url("data:image/svg+xml,%3csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M0 0h100v4H0zm0 4h4v92H0zm4 96h92v4H4zm96 0h4v-4h-4z' fill='%2322d3ee'/%3e%3c/svg%3e") 4;
+  }
+  
+  .scanline {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .scanline::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(34, 211, 238, 0.03) 2px,
+      rgba(34, 211, 238, 0.03) 4px
+    );
+    pointer-events: none;
+    animation: scan 2s linear infinite;
+  }
+  
+  .retro-grid {
+    background-image: 
+      linear-gradient(rgba(34, 211, 238, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34, 211, 238, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  .retro-glow {
+    box-shadow: 
+      0 0 20px rgba(34, 211, 238, 0.3),
+      inset 0 0 20px rgba(34, 211, 238, 0.1);
+  }
+  
+  .retro-flicker {
+    animation: flicker 0.15s infinite linear;
+  }
+}
+
+/* Retro utilities */
+@layer utilities {
+  .text-pixel {
+    font-family: 'Press Start 2P', monospace;
+  }
+  
+  .text-retro {
+    font-family: 'Orbitron', monospace;
+  }
+  
+  .text-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+}
