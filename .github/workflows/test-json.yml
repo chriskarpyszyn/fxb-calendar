@@ -40,4 +40,7 @@ jobs:
       
     - name: Run all tests with coverage
       run: npm run test:ci
+      
+    # Note: Discord integration tests (test:discord) are intentionally excluded
+    # from CI/CD to prevent accidental webhook messages in production
 

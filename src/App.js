@@ -10,7 +10,7 @@ export default function StreamCalendar() {
     username: ''
   });
   const [formErrors, setFormErrors] = useState({});
-  const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', or null
+  const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', 'loading', or null
   
   // Load schedule data from JSON file
   useEffect(() => {
@@ -75,25 +75,51 @@ export default function StreamCalendar() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) {
       return;
     }
 
-    // TODO: In Milestone 5, this will send to Discord
-    console.log('Form submitted:', formData);
-    
-    // Show success message
-    setSubmitStatus('success');
-    
-    // Reset form after 2 seconds and close modal
-    setTimeout(() => {
-      setFormData({ idea: '', username: '' });
-      setSubmitStatus(null);
-      setShowModal(false);
-    }, 2000);
+    // Show loading state
+    setSubmitStatus('loading');
+
+    try {
+      // Send to our API route
+      const response = await fetch('/api/submit-idea', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit idea');
+      }
+
+      // Show success message
+      setSubmitStatus('success');
+      
+      // Reset form after 2 seconds and close modal
+      setTimeout(() => {
+        setFormData({ idea: '', username: '' });
+        setSubmitStatus(null);
+        setShowModal(false);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error submitting idea:', error);
+      setSubmitStatus('error');
+      
+      // Clear error after 3 seconds
+      setTimeout(() => {
+        setSubmitStatus(null);
+      }, 3000);
+    }
   };
 
   const closeModal = () => {
@@ -391,6 +417,34 @@ export default function StreamCalendar() {
                   <p className="text-gray-600">
                     Thanks for your suggestion!
                   </p>
+                </div>
+              ) : submitStatus === 'loading' ? (
+                // Loading State
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    Submitting...
+                  </h3>
+                  <p className="text-gray-600">
+                    Sending your idea to Discord
+                  </p>
+                </div>
+              ) : submitStatus === 'error' ? (
+                // Error Message
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">❌</div>
+                  <h3 className="text-xl font-bold text-red-600 mb-2">
+                    Submission Failed
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Something went wrong. Please try again.
+                  </p>
+                  <button
+                    onClick={() => setSubmitStatus(null)}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg"
+                  >
+                    Try Again
+                  </button>
                 </div>
               ) : (
                 // Form

@@ -2,6 +2,11 @@
 // This keeps the webhook URL secret
 
 export default async function handler(req, res) {
+  // Load environment variables for local development
+  if (process.env.NODE_ENV !== 'production') {
+    const { config } = await import('dotenv');
+    config({ path: '.env.local' });
+  }
     // Only allow POST requests
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
