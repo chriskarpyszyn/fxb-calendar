@@ -36,8 +36,39 @@
       "category": "Software and Game Development",
       "subject": "Working on Typing Stars",
       "time": "7:00am - 9:00am EST"
+    },
+    "13": {
+      "category": "Software and Game Development",
+      "subject": "Working on Typing Stars",
+      "time": "7:00am - 9:00am EST"
+    },
+    "16": {
+      "category": "Software and Game Development",
+      "subject": "Working on Typing Stars",
+      "time": "7:00am - 9:00am EST"
+    },
+    "20": {
+      "category": "Software and Game Development",
+      "subject": "Working on Typing Stars",
+      "time": "7:00am - 9:00am EST"
+    },    
+    "23": {
+      "category": "Software and Game Development",
+      "subject": "Working on Typing Stars",
+      "time": "7:00am - 9:00am EST"
+    },
+    "27": {
+      "category": "Software and Game Development",
+      "subject": "Working on Typing Stars",
+      "time": "7:00am - 9:00am EST"
+    },
+    "30": {
+      "category": "Software and Game Development",
+      "subject": "Working on Typing Stars",
+      "time": "7:00am - 9:00am EST"
     }
   },
+
   "categories": {
     "Software and Game Development": {
       "bg": "bg-purple-100",
