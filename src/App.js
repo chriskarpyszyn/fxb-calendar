@@ -403,13 +403,38 @@ export default function StreamCalendar() {
                       {/* 8-bit X overlay for past streams */}
                       {isPastStream && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                          <div className="text-4xl font-bold text-red-500 opacity-80" 
-                               style={{
-                                 textShadow: '2px 2px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000',
-                                 fontFamily: 'monospace',
-                                 letterSpacing: '-0.1em'
-                               }}>
-                            ✕
+                          <div className="relative" style={{ width: '60px', height: '60px' }}>
+                            {/* Pixelated X made with individual pixel blocks */}
+                            <div style={{
+                              position: 'absolute',
+                              width: '100%',
+                              height: '100%',
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(6, 1fr)',
+                              gridTemplateRows: 'repeat(6, 1fr)',
+                              gap: '0px'
+                            }}>
+                              {/* Pixel blocks for the X shape */}
+                              {Array.from({ length: 36 }, (_, i) => {
+                                const row = Math.floor(i / 6);
+                                const col = i % 6;
+                                const isX = (row === col) || (row + col === 5);
+                                const isBorder = (row === col - 1) || (row === col + 1) || 
+                                               (row + col === 4) || (row + col === 6);
+                                
+                                return (
+                                  <div
+                                    key={i}
+                                    style={{
+                                      backgroundColor: isX ? '#ff0000' : isBorder ? '#cc0000' : 'transparent',
+                                      imageRendering: 'pixelated',
+                                      width: '10px',
+                                      height: '10px'
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -488,9 +513,15 @@ export default function StreamCalendar() {
                       ${day 
                         ? streamData
                           ? categoryColor 
-                            ? `hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95`
+                            ? isPastStream 
+                              ? '' 
+                              : `hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95`
+                            : isPastStream
+                              ? 'bg-gray-50 border-gray-200'
+                              : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
+                          : isPastStream
+                            ? 'bg-gray-50 border-gray-200'
                             : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
-                          : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
                         : 'bg-transparent border-transparent'
                       }
                       ${isPastStream ? 'opacity-60' : ''}
@@ -511,13 +542,38 @@ export default function StreamCalendar() {
                     {/* 8-bit X overlay for past streams */}
                     {isPastStream && streamData && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                        <div className="text-6xl md:text-7xl lg:text-8xl font-bold text-red-500 opacity-80" 
-                             style={{
-                               textShadow: '2px 2px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000',
-                               fontFamily: 'monospace',
-                               letterSpacing: '-0.1em'
-                             }}>
-                          ✕
+                        <div className="relative" style={{ width: '80px', height: '80px' }}>
+                          {/* Pixelated X made with individual pixel blocks */}
+                          <div style={{
+                            position: 'absolute',
+                            width: '100%',
+                            height: '100%',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(8, 1fr)',
+                            gridTemplateRows: 'repeat(8, 1fr)',
+                            gap: '0px'
+                          }}>
+                            {/* Pixel blocks for the X shape */}
+                            {Array.from({ length: 64 }, (_, i) => {
+                              const row = Math.floor(i / 8);
+                              const col = i % 8;
+                              const isX = (row === col) || (row + col === 7);
+                              const isBorder = (row === col - 1) || (row === col + 1) || 
+                                             (row + col === 6) || (row + col === 8);
+                              
+                              return (
+                                <div
+                                  key={i}
+                                  style={{
+                                    backgroundColor: isX ? '#ff0000' : isBorder ? '#cc0000' : 'transparent',
+                                    imageRendering: 'pixelated',
+                                    width: '10px',
+                                    height: '10px'
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     )}
