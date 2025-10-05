@@ -225,15 +225,71 @@ export default function StreamCalendar() {
     }
   }
 
-  // Find the next upcoming stream based on current date
+  // Parse stream time and convert to Date object
+  const parseStreamTime = (timeString, day, month, year) => {
+    // Parse "8:30am - 9:00am EST" format
+    const match = timeString.match(/(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)\s*(EST|EDT|PST|PDT|CST|CDT|MST|MDT)/);
+    if (!match) return { startTime: null, endTime: null };
+    
+    const [, startHour, startMin, startPeriod, endHour, endMin, endPeriod, timezone] = match;
+    
+    // Convert to 24-hour format
+    const convertTo24Hour = (hour, period) => {
+      let h = parseInt(hour);
+      if (period.toLowerCase() === 'pm' && h !== 12) h += 12;
+      if (period.toLowerCase() === 'am' && h === 12) h = 0;
+      return h;
+    };
+    
+    const startHour24 = convertTo24Hour(startHour, startPeriod);
+    const endHour24 = convertTo24Hour(endHour, endPeriod);
+    
+    // Create Date objects (assuming EST/EDT for now, can be enhanced later)
+    const startTime = new Date(year, month - 1, day, startHour24, parseInt(startMin));
+    const endTime = new Date(year, month - 1, day, endHour24, parseInt(endMin));
+    
+    return { startTime, endTime };
+  };
+
+  // Check if a stream has ended
+  const isStreamEnded = (streamData, day, month, year) => {
+    const { endTime } = parseStreamTime(streamData.time, day, month, year);
+    if (!endTime) return false;
+    
+    const now = new Date();
+    return now > endTime;
+  };
+
+  // Get user's timezone
+  const getUserTimezone = () => {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  };
+
+  // Find the next upcoming stream based on current date and time
   const getNextStream = () => {
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth() + 1; // getMonth() returns 0-11
     const currentDay = today.getDate();
 
+    // If we're after the schedule month/year, no upcoming streams
+    if (currentYear > scheduleData.year || 
+        (currentYear === scheduleData.year && currentMonth > scheduleData.month)) {
+      return null;
+    }
+
     // If we're in the same month and year as the schedule
     if (currentYear === scheduleData.year && currentMonth === scheduleData.month) {
+      // Check today's stream first
+      const todayStream = streamSchedule[currentDay.toString()];
+      if (todayStream && !isStreamEnded(todayStream, currentDay, currentMonth, currentYear)) {
+        return {
+          day: currentDay,
+          streamData: todayStream,
+          categoryColor: categoryColors[todayStream.category]
+        };
+      }
+      
       // Find the next stream after today
       for (let day = currentDay + 1; day <= daysInMonth; day++) {
         const streamData = streamSchedule[day.toString()];
@@ -245,8 +301,19 @@ export default function StreamCalendar() {
           };
         }
       }
-    } 
-  
+    } else {
+      // We're before the schedule month, return the first stream
+      for (let day = 1; day <= daysInMonth; day++) {
+        const streamData = streamSchedule[day.toString()];
+        if (streamData) {
+          return {
+            day,
+            streamData,
+            categoryColor: categoryColors[streamData.category]
+          };
+        }
+      }
+    }
     
     // No upcoming streams found
     return null;
@@ -348,6 +415,9 @@ export default function StreamCalendar() {
               <p className="text-sm text-gray-500 mb-3">
                 October {nextStream.day}, 2025
               </p>
+              <p className="text-xs text-gray-400 mb-3">
+                Your timezone: {getUserTimezone()}
+              </p>
               <a
                 href={`https://www.twitch.tv/${twitchStatus.channelName}`}
                 target="_blank"
@@ -369,14 +439,14 @@ export default function StreamCalendar() {
             {daysWithEvents.length > 0 ? (
               <div className="space-y-3">
                 {daysWithEvents.map(({ day, streamData, categoryColor }) => {
-                  // Check if this is a past stream
+                  // Check if this is a past stream (either past day or stream has ended)
                   const today = new Date();
                   const currentYear = today.getFullYear();
                   const currentMonth = today.getMonth() + 1;
                   const currentDay = today.getDate();
                   const isPastStream = currentYear === scheduleData.year && 
                                      currentMonth === scheduleData.month && 
-                                     day < currentDay;
+                                     (day < currentDay || (day === currentDay && isStreamEnded(streamData, day, currentMonth, currentYear)));
                   
                   return (
                     <div
@@ -496,14 +566,14 @@ export default function StreamCalendar() {
                 const streamData = day ? streamSchedule[day.toString()] : null;
                 const categoryColor = streamData ? categoryColors[streamData.category] : null;
                 
-                // Check if this is a past stream
+                // Check if this is a past stream (either past day or stream has ended)
                 const today = new Date();
                 const currentYear = today.getFullYear();
                 const currentMonth = today.getMonth() + 1;
                 const currentDay = today.getDate();
                 const isPastStream = currentYear === scheduleData.year && 
                                    currentMonth === scheduleData.month && 
-                                   day < currentDay;
+                                   (day < currentDay || (day === currentDay && streamData && isStreamEnded(streamData, day, currentMonth, currentYear)));
                 
                 return (
                   <div
