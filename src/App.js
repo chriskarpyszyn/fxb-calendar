@@ -368,52 +368,79 @@ export default function StreamCalendar() {
             </h2>
             {daysWithEvents.length > 0 ? (
               <div className="space-y-3">
-                {daysWithEvents.map(({ day, streamData, categoryColor }) => (
-                  <div
-                    key={day}
-                    className="p-4 rounded-lg border-2 transition-all duration-200 hover:shadow-lg cursor-pointer active:scale-95 touch-manipulation"
-                    style={categoryColor ? {
-                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
-                                     categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
-                                     categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
-                                     categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
-                                     categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
-                      borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
-                                  categoryColor.border === 'border-purple-400' ? '#a855f7' :
-                                  categoryColor.border === 'border-pink-400' ? '#f472b6' :
-                                  categoryColor.border === 'border-blue-400' ? '#60a5fa' :
-                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
-                    } : {
-                      backgroundColor: '#f9fafb',
-                      borderColor: '#e5e7eb'
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-lg font-bold text-gray-800">
-                        Day {day}
-                      </div>
-                      <div className="text-sm text-gray-600 font-medium">
-                        {streamData.time}
-                      </div>
-                    </div>
-                    <div 
-                      className="text-sm font-semibold mb-2"
-                      style={{
-                        color: categoryColor ? 
-                          (categoryColor.text === 'text-purple-800' ? '#6b21a8' :
-                           categoryColor.text === 'text-pink-800' ? '#9d174d' :
-                           categoryColor.text === 'text-orange-800' ? '#9a3412' :
-                           categoryColor.text === 'text-green-800' ? '#166534' :
-                           categoryColor.text === 'text-blue-800' ? '#1e40af' : '#1f2937') : '#1f2937'
+                {daysWithEvents.map(({ day, streamData, categoryColor }) => {
+                  // Check if this is a past stream
+                  const today = new Date();
+                  const currentYear = today.getFullYear();
+                  const currentMonth = today.getMonth() + 1;
+                  const currentDay = today.getDate();
+                  const isPastStream = currentYear === scheduleData.year && 
+                                     currentMonth === scheduleData.month && 
+                                     day < currentDay;
+                  
+                  return (
+                    <div
+                      key={day}
+                      className={`p-4 rounded-lg border-2 transition-all duration-200 relative ${
+                        isPastStream ? 'opacity-60' : 'hover:shadow-lg cursor-pointer active:scale-95 touch-manipulation'
+                      }`}
+                      style={categoryColor ? {
+                        backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
+                                       categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
+                                       categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
+                                       categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
+                                       categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
+                        borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
+                                    categoryColor.border === 'border-purple-400' ? '#a855f7' :
+                                    categoryColor.border === 'border-pink-400' ? '#f472b6' :
+                                    categoryColor.border === 'border-blue-400' ? '#60a5fa' :
+                                    categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
+                      } : {
+                        backgroundColor: '#f9fafb',
+                        borderColor: '#e5e7eb'
                       }}
                     >
-                      {streamData.category}
+                      {/* 8-bit X overlay for past streams */}
+                      {isPastStream && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                          <div className="text-4xl font-bold text-red-500 opacity-80" 
+                               style={{
+                                 textShadow: '2px 2px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000',
+                                 fontFamily: 'monospace',
+                                 letterSpacing: '-0.1em'
+                               }}>
+                            ✕
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-lg font-bold text-gray-800">
+                          Day {day}
+                        </div>
+                        <div className="text-sm text-gray-600 font-medium">
+                          {streamData.time}
+                        </div>
+                      </div>
+                      <div 
+                        className="text-sm font-semibold mb-2"
+                        style={{
+                          color: categoryColor ? 
+                            (categoryColor.text === 'text-purple-800' ? '#6b21a8' :
+                             categoryColor.text === 'text-pink-800' ? '#9d174d' :
+                             categoryColor.text === 'text-orange-800' ? '#9a3412' :
+                             categoryColor.text === 'text-green-800' ? '#166534' :
+                             categoryColor.text === 'text-blue-800' ? '#1e40af' : '#1f2937') : '#1f2937'
+                        }}
+                      >
+                        {streamData.category}
+                      </div>
+                      <div className="text-base font-bold text-gray-800 leading-tight">
+                        {streamData.subject}
+                      </div>
                     </div>
-                    <div className="text-base font-bold text-gray-800 leading-tight">
-                      {streamData.subject}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
@@ -444,11 +471,20 @@ export default function StreamCalendar() {
                 const streamData = day ? streamSchedule[day.toString()] : null;
                 const categoryColor = streamData ? categoryColors[streamData.category] : null;
                 
+                // Check if this is a past stream
+                const today = new Date();
+                const currentYear = today.getFullYear();
+                const currentMonth = today.getMonth() + 1;
+                const currentDay = today.getDate();
+                const isPastStream = currentYear === scheduleData.year && 
+                                   currentMonth === scheduleData.month && 
+                                   day < currentDay;
+                
                 return (
                   <div
                     key={index}
                     className={`
-                      min-h-32 lg:min-h-44 p-2 md:p-3 rounded-lg border-2 transition-all duration-200
+                      min-h-32 lg:min-h-44 p-2 md:p-3 rounded-lg border-2 transition-all duration-200 relative
                       ${day 
                         ? streamData
                           ? categoryColor 
@@ -457,6 +493,7 @@ export default function StreamCalendar() {
                           : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
                         : 'bg-transparent border-transparent'
                       }
+                      ${isPastStream ? 'opacity-60' : ''}
                     `}
                     style={day && streamData && categoryColor ? {
                       backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
@@ -471,6 +508,20 @@ export default function StreamCalendar() {
                                   categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
                     } : {}}
                   >
+                    {/* 8-bit X overlay for past streams */}
+                    {isPastStream && streamData && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div className="text-6xl md:text-7xl lg:text-8xl font-bold text-red-500 opacity-80" 
+                             style={{
+                               textShadow: '2px 2px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000',
+                               fontFamily: 'monospace',
+                               letterSpacing: '-0.1em'
+                             }}>
+                          ✕
+                        </div>
+                      </div>
+                    )}
+                    
                     {day && (
                       <div className="flex flex-col h-full">
                         {/* Day Number */}
