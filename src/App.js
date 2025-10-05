@@ -225,6 +225,35 @@ export default function StreamCalendar() {
     }
   }
 
+  // Find the next upcoming stream based on current date
+  const getNextStream = () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1; // getMonth() returns 0-11
+    const currentDay = today.getDate();
+
+    // If we're in the same month and year as the schedule
+    if (currentYear === scheduleData.year && currentMonth === scheduleData.month) {
+      // Find the next stream after today
+      for (let day = currentDay + 1; day <= daysInMonth; day++) {
+        const streamData = streamSchedule[day.toString()];
+        if (streamData) {
+          return {
+            day,
+            streamData,
+            categoryColor: categoryColors[streamData.category]
+          };
+        }
+      }
+    } 
+  
+    
+    // No upcoming streams found
+    return null;
+  };
+
+  const nextStream = getNextStream();
+
   return (
     <div className="min-h-screen bg-retro-bg retro-grid scanline p-2 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
@@ -304,17 +333,20 @@ export default function StreamCalendar() {
         )}
 
         {/* Offline - Show Next Stream */}
-        {!twitchStatus.isLive && !twitchStatus.loading && daysWithEvents.length > 0 && (
+        {!twitchStatus.isLive && !twitchStatus.loading && nextStream && (
           <div className="mb-6 retro-container p-6 retro-glow bg-purple-50 border-2 border-purple-400">
             <div className="text-center">
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
-                📅 Next Stream
+                Next Stream
               </h2>
               <p className="text-lg md:text-xl text-gray-800 mb-2">
-                <span className="font-semibold">{daysWithEvents[0].streamData.subject}</span>
+                <span className="font-semibold">{nextStream.streamData.subject}</span>
               </p>
               <p className="text-md md:text-lg text-gray-600 mb-3">
-                {daysWithEvents[0].streamData.category} • {daysWithEvents[0].streamData.time}
+                {nextStream.streamData.category} • {nextStream.streamData.time}
+              </p>
+              <p className="text-sm text-gray-500 mb-3">
+                October {nextStream.day}, 2025
               </p>
               <a
                 href={`https://www.twitch.tv/${twitchStatus.channelName}`}
