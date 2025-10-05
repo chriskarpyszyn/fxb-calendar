@@ -4,6 +4,13 @@ export default function StreamCalendar() {
   const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    idea: '',
+    username: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', 'loading', or null
   
   // Load schedule data from JSON file
   useEffect(() => {
@@ -23,23 +30,117 @@ export default function StreamCalendar() {
         setLoading(false);
       });
   }, []);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showModal]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error for this field when user starts typing
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!formData.idea.trim()) {
+      errors.idea = 'Please enter your stream idea';
+    } else if (formData.idea.trim().length < 10) {
+      errors.idea = 'Idea should be at least 10 characters';
+    }
+    
+    if (!formData.username.trim()) {
+      errors.username = 'Please enter your Twitch username';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    // Show loading state
+    setSubmitStatus('loading');
+
+    try {
+      // Send to our API route
+      const response = await fetch('/api/submit-idea', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit idea');
+      }
+
+      // Show success message
+      setSubmitStatus('success');
+      
+      // Reset form after 2 seconds and close modal
+      setTimeout(() => {
+        setFormData({ idea: '', username: '' });
+        setSubmitStatus(null);
+        setShowModal(false);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error submitting idea:', error);
+      setSubmitStatus('error');
+      
+      // Clear error after 3 seconds
+      setTimeout(() => {
+        setSubmitStatus(null);
+      }, 3000);
+    }
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setFormData({ idea: '', username: '' });
+    setFormErrors({});
+    setSubmitStatus(null);
+  };
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-retro-bg retro-grid scanline flex items-center justify-center">
-        <div className="retro-container p-8 retro-glow">
-          <div className="retro-title text-lg retro-flicker">LOADING SCHEDULE...</div>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-2xl">Loading schedule...</div>
       </div>
     );
   }
   
   if (error) {
     return (
-      <div className="min-h-screen bg-retro-bg retro-grid scanline flex items-center justify-center">
-        <div className="retro-container p-8 retro-glow">
-          <div className="retro-title text-lg text-retro-pink">ERROR: {error}</div>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-2xl">Error: {error}</div>
       </div>
     );
   }
@@ -106,56 +207,74 @@ export default function StreamCalendar() {
               {monthNames[month].toUpperCase()} {year}
             </p>
           </div>
+          
+          {/* Suggest Idea Button */}
+          <button
+            onClick={() => setShowModal(true)}
+            className="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
+          >
+            💡 Suggest a Stream Idea
+          </button>
         </div>
         
         {/* Mobile List View - Show on small screens */}
         <div className="block md:hidden">
           <div className="retro-container p-4 retro-glow">
-            <h2 className="retro-title text-base mb-4 text-center">
-              UPCOMING STREAMS
+            <h2 className="text-lg font-bold text-gray-800 mb-4 text-center">
+              Upcoming Streams
             </h2>
             {daysWithEvents.length > 0 ? (
               <div className="space-y-3">
                 {daysWithEvents.map(({ day, streamData, categoryColor }) => (
                   <div
                     key={day}
-                    className="retro-card p-4 cursor-pointer active:scale-95 touch-manipulation"
+                    className="p-4 rounded-lg border-2 transition-all duration-200 hover:shadow-lg cursor-pointer active:scale-95 touch-manipulation"
                     style={categoryColor ? {
-                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#1a2e1a' : 
-                                     categoryColor.bg === 'bg-purple-100' ? '#2e1a2e' :
-                                     categoryColor.bg === 'bg-pink-100' ? '#2e1a2a' :
-                                     categoryColor.bg === 'bg-blue-100' ? '#1a2a2e' :
-                                     categoryColor.bg === 'bg-orange-100' ? '#2e2a1a' : '#1a1a2e',
-                      borderColor: categoryColor.border === 'border-green-400' ? '#34d399' :
-                                  categoryColor.border === 'border-purple-400' ? '#a78bfa' :
+                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
+                                     categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
+                                     categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
+                                     categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
+                                     categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
+                      borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
+                                  categoryColor.border === 'border-purple-400' ? '#a855f7' :
                                   categoryColor.border === 'border-pink-400' ? '#f472b6' :
                                   categoryColor.border === 'border-blue-400' ? '#60a5fa' :
-                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#2d3748'
+                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
                     } : {
-                      backgroundColor: '#1a1a2e',
-                      borderColor: '#2d3748'
+                      backgroundColor: '#f9fafb',
+                      borderColor: '#e5e7eb'
                     }}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="retro-text text-lg font-bold text-retro-cyan">
-                        DAY {day}
+                      <div className="text-lg font-bold text-gray-800">
+                        Day {day}
                       </div>
-                      <div className="retro-text text-sm text-retro-muted font-mono">
+                      <div className="text-sm text-gray-600 font-medium">
                         {streamData.time}
                       </div>
                     </div>
-                    <div className={`retro-text text-sm font-semibold mb-2 ${categoryColor ? categoryColor.text : 'text-retro-text'}`}>
-                      {streamData.category.toUpperCase()}
+                    <div 
+                      className="text-sm font-semibold mb-2"
+                      style={{
+                        color: categoryColor ? 
+                          (categoryColor.text === 'text-purple-800' ? '#6b21a8' :
+                           categoryColor.text === 'text-pink-800' ? '#9d174d' :
+                           categoryColor.text === 'text-orange-800' ? '#9a3412' :
+                           categoryColor.text === 'text-green-800' ? '#166534' :
+                           categoryColor.text === 'text-blue-800' ? '#1e40af' : '#1f2937') : '#1f2937'
+                      }}
+                    >
+                      {streamData.category}
                     </div>
-                    <div className="retro-text text-base font-bold leading-tight">
-                      {streamData.subject.toUpperCase()}
+                    <div className="text-base font-bold text-gray-800 leading-tight">
+                      {streamData.subject}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="retro-text text-lg text-retro-muted">NO STREAMS SCHEDULED FOR THIS MONTH</p>
+              <div className="text-center py-8 text-gray-500">
+                <p className="text-lg">No streams scheduled for this month</p>
               </div>
             )}
           </div>
@@ -163,13 +282,13 @@ export default function StreamCalendar() {
 
         {/* Desktop Calendar Grid - Show on medium screens and up */}
         <div className="hidden md:block overflow-x-auto">
-          <div className="retro-container p-4 md:p-6 min-w-80 retro-glow">
+          <div className="retro-container p-4 md:p-6 retro-glow min-w-80">
             {/* Day Names Header */}
             <div className="grid grid-cols-7 gap-2 mb-4">
               {dayNames.map(day => (
                 <div
                   key={day}
-                  className="text-center font-bold text-retro-cyan py-2 text-sm font-pixel"
+                  className="text-center font-bold text-gray-700 py-2 text-sm"
                 >
                   {day}
                 </div>
@@ -186,57 +305,64 @@ export default function StreamCalendar() {
                   <div
                     key={index}
                     className={`
-                      min-h-32 lg:min-h-44 p-2 md:p-3 retro-card transition-all duration-200
+                      min-h-32 lg:min-h-44 p-2 md:p-3 rounded-lg border-2 transition-all duration-200
                       ${day 
                         ? streamData
                           ? categoryColor 
-                            ? `cursor-pointer hover:scale-105 active:scale-95`
-                            : 'cursor-pointer active:scale-95'
-                          : 'cursor-pointer active:scale-95'
+                            ? `hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95`
+                            : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
+                          : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
                         : 'bg-transparent border-transparent'
                       }
                     `}
                     style={day && streamData && categoryColor ? {
-                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#1a2e1a' : 
-                                     categoryColor.bg === 'bg-purple-100' ? '#2e1a2e' :
-                                     categoryColor.bg === 'bg-pink-100' ? '#2e1a2a' :
-                                     categoryColor.bg === 'bg-blue-100' ? '#1a2a2e' :
-                                     categoryColor.bg === 'bg-orange-100' ? '#2e2a1a' : '#1a1a2e',
-                      borderColor: categoryColor.border === 'border-green-400' ? '#34d399' :
-                                  categoryColor.border === 'border-purple-400' ? '#a78bfa' :
+                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
+                                     categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
+                                     categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
+                                     categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
+                                     categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
+                      borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
+                                  categoryColor.border === 'border-purple-400' ? '#a855f7' :
                                   categoryColor.border === 'border-pink-400' ? '#f472b6' :
                                   categoryColor.border === 'border-blue-400' ? '#60a5fa' :
-                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#2d3748'
-                    } : day ? {
-                      backgroundColor: '#1a1a2e',
-                      borderColor: '#2d3748'
+                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
                     } : {}}
                   >
                     {day && (
                       <div className="flex flex-col h-full">
                         {/* Day Number */}
-                        <div className="retro-text font-bold text-retro-cyan text-sm md:text-base lg:text-lg mb-2 border-b border-retro-border pb-1 flex-shrink-0 font-pixel">
+                        <div className="font-bold text-gray-800 text-sm md:text-base lg:text-lg mb-2 border-b border-gray-300 pb-1 flex-shrink-0">
                           {day}
                         </div>
                         
                         {streamData && (
                           <div className="flex flex-col justify-start flex-grow">
                             {/* Category */}
-                            <div className={`retro-text text-xs font-semibold leading-tight mb-1 ${categoryColor ? categoryColor.text : 'text-retro-text'}`}>
+                            <div 
+                              className="text-xs font-semibold leading-tight mb-1"
+                              style={{
+                                color: categoryColor ? 
+                                  (categoryColor.text === 'text-purple-800' ? '#6b21a8' :
+                                   categoryColor.text === 'text-pink-800' ? '#9d174d' :
+                                   categoryColor.text === 'text-orange-800' ? '#9a3412' :
+                                   categoryColor.text === 'text-green-800' ? '#166534' :
+                                   categoryColor.text === 'text-blue-800' ? '#1e40af' : '#1f2937') : '#1f2937'
+                              }}
+                            >
                               <div className="h-8 md:h-10 lg:h-12 overflow-hidden">
-                                {streamData.category.toUpperCase()}
+                                {streamData.category}
                               </div>
                             </div>
                             
                             {/* Subject */}
-                            <div className="retro-text text-xs font-bold leading-tight mb-1">
+                            <div className="text-xs font-bold text-gray-800 leading-tight mb-1">
                               <div className="h-8 md:h-10 lg:h-12 overflow-hidden">
-                                {streamData.subject.toUpperCase()}
+                                {streamData.subject}
                               </div>
                             </div>
                             
                             {/* Time */}
-                            <div className="retro-text text-xs text-retro-muted leading-tight font-mono">
+                            <div className="text-xs text-gray-600 leading-tight">
                               <div className="h-8 md:h-10 lg:h-12 overflow-hidden">
                                 {streamData.time}
                               </div>
@@ -252,6 +378,141 @@ export default function StreamCalendar() {
           </div>
         </div>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={closeModal}
+          ></div>
+          
+          {/* Modal Content */}
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform transition-all">
+              {/* Close Button */}
+              <button
+                onClick={closeModal}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
+              >
+                ×
+              </button>
+              
+              {/* Modal Header */}
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                💡 Suggest a Stream Idea
+              </h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Have an idea for a stream? Let me know!
+              </p>
+
+              {submitStatus === 'success' ? (
+                // Success Message
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">✅</div>
+                  <h3 className="text-xl font-bold text-green-600 mb-2">
+                    Idea Submitted!
+                  </h3>
+                  <p className="text-gray-600">
+                    Thanks for your suggestion!
+                  </p>
+                </div>
+              ) : submitStatus === 'loading' ? (
+                // Loading State
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    Submitting...
+                  </h3>
+                  <p className="text-gray-600">
+                    Sending your idea to Discord
+                  </p>
+                </div>
+              ) : submitStatus === 'error' ? (
+                // Error Message
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">❌</div>
+                  <h3 className="text-xl font-bold text-red-600 mb-2">
+                    Submission Failed
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Something went wrong. Please try again.
+                  </p>
+                  <button
+                    onClick={() => setSubmitStatus(null)}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : (
+                // Form
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Idea Field */}
+                  <div>
+                    <label htmlFor="idea" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Your Stream Idea *
+                    </label>
+                    <textarea
+                      id="idea"
+                      name="idea"
+                      value={formData.idea}
+                      onChange={handleInputChange}
+                      rows="4"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none placeholder-gray-500 text-gray-900 ${
+                        formErrors.idea ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Example: Play through Hollow Knight or Build a weather app with React"
+                    ></textarea>
+                    {formErrors.idea && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.idea}</p>
+                    )}
+                  </div>
+
+                  {/* Username Field */}
+                  <div>
+                    <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Your Twitch Username *
+                    </label>
+                    <input
+                      id="username"
+                      name="username"
+                      type="text"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-500 text-gray-900 ${
+                        formErrors.username ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="your_username"
+                    />
+                    {formErrors.username && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.username}</p>
+                    )}
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={closeModal}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors touch-manipulation"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
+                    >
+                      Submit Idea
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
