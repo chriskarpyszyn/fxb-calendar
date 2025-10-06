@@ -227,7 +227,7 @@ export default function StreamCalendar() {
 
   // Parse stream time and convert to Date object
   const parseStreamTime = (timeString, day, month, year) => {
-    // Parse "8:30am - 9:00am" format (assuming EST)
+    // Parse "8:30am - 9:00am" format (assuming EDT)
     const match = timeString.match(/(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)/);
     if (!match) return { startTime: null, endTime: null };
     
@@ -244,9 +244,10 @@ export default function StreamCalendar() {
     const startHour24 = convertTo24Hour(startHour, startPeriod);
     const endHour24 = convertTo24Hour(endHour, endPeriod);
     
-    // Create Date objects (assuming EST/EDT for now, can be enhanced later)
-    const startTime = new Date(year, month - 1, day, startHour24, parseInt(startMin));
-    const endTime = new Date(year, month - 1, day, endHour24, parseInt(endMin));
+    // Create Date objects in EDT (Eastern Daylight Time, UTC-4) - FIXED VERSION
+    // Use proper timezone handling by creating dates with explicit timezone offset
+    const startTime = new Date(`${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${startHour24.toString().padStart(2, '0')}:${startMin}:00-04:00`);
+    const endTime = new Date(`${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${endHour24.toString().padStart(2, '0')}:${endMin}:00-04:00`);
     
     return { startTime, endTime };
   };
@@ -265,9 +266,9 @@ export default function StreamCalendar() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   };
 
-  // Convert EST time to user's local timezone
+  // Convert EDT time to user's local timezone
   const convertTimeToUserTimezone = (timeString, day, month, year, includeTimezoneAbbr = false) => {
-    // Parse "8:30am - 9:00am" format (assuming EST)
+    // Parse "8:30am - 9:00am" format (assuming EDT)
     const match = timeString.match(/(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)/);
     if (!match) return timeString; // Return original if parsing fails
     
@@ -284,9 +285,10 @@ export default function StreamCalendar() {
     const startHour24 = convertTo24Hour(startHour, startPeriod);
     const endHour24 = convertTo24Hour(endHour, endPeriod);
     
-    // Create Date objects in EST/EDT (America/New_York timezone)
-    const estDate = new Date(year, month - 1, day, startHour24, parseInt(startMin));
-    const estEndDate = new Date(year, month - 1, day, endHour24, parseInt(endMin));
+    // Create Date objects in EDT (Eastern Daylight Time, UTC-4) - FIXED VERSION
+    // Use proper timezone handling by creating dates with explicit timezone offset
+    const edtStartTime = new Date(`${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${startHour24.toString().padStart(2, '0')}:${startMin}:00-04:00`);
+    const edtEndTime = new Date(`${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${endHour24.toString().padStart(2, '0')}:${endMin}:00-04:00`);
     
     // Convert to user's timezone
     const userTimezone = getUserTimezone();
@@ -301,15 +303,15 @@ export default function StreamCalendar() {
       }).format(date).replace(/\s/g, '');
     };
     
-    const startTimeLocal = formatTime(estDate);
-    const endTimeLocal = formatTime(estEndDate);
+    const startTimeLocal = formatTime(edtStartTime);
+    const endTimeLocal = formatTime(edtEndTime);
     
     if (includeTimezoneAbbr) {
       // Get timezone abbreviation for user's timezone
       const timezoneAbbr = new Intl.DateTimeFormat('en-US', {
         timeZone: userTimezone,
         timeZoneName: 'short'
-      }).formatToParts(estDate).find(part => part.type === 'timeZoneName')?.value || '';
+      }).formatToParts(edtStartTime).find(part => part.type === 'timeZoneName')?.value || '';
       
       return `${startTimeLocal} - ${endTimeLocal} ${timezoneAbbr}`;
     } else {
