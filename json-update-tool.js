@@ -146,7 +146,7 @@ class StreamScheduleUpdater {
       return;
     }
 
-    const time = await this.askQuestion('Enter time (e.g., "7:00pm - 9:00pm EST"): ');
+    const time = await this.askQuestion('Enter time (e.g., "7:00pm - 9:00pm"): ');
     if (!time || time.trim() === '') {
       console.log('❌ Time cannot be empty!\n');
       await this.addStream();

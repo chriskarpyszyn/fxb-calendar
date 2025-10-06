@@ -11,6 +11,11 @@ export default function StreamCalendar() {
   });
   const [formErrors, setFormErrors] = useState({});
   const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', 'loading', or null
+  const [twitchStatus, setTwitchStatus] = useState({
+    isLive: false,
+    loading: true,
+    channelName: 'itsFlannelBeard'
+  });
   
   // Load schedule data from JSON file
   useEffect(() => {
@@ -29,6 +34,34 @@ export default function StreamCalendar() {
         setError(err.message);
         setLoading(false);
       });
+  }, []);
+
+  // Check Twitch live status
+  useEffect(() => {
+    const checkTwitchStatus = async () => {
+      try {
+        const response = await fetch('/api/twitch-status');
+        const data = await response.json();
+        setTwitchStatus({
+          ...data,
+          loading: false
+        });
+      } catch (err) {
+        console.error('Failed to check Twitch status:', err);
+        setTwitchStatus(prev => ({
+          ...prev,
+          loading: false
+        }));
+      }
+    };
+
+    // Check immediately
+    checkTwitchStatus();
+
+    // Then check every 60 seconds
+    const interval = setInterval(checkTwitchStatus, 60000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Prevent body scroll when modal is open
@@ -192,6 +225,154 @@ export default function StreamCalendar() {
     }
   }
 
+  // Parse stream time and convert to Date object
+  const parseStreamTime = (timeString, day, month, year) => {
+    // Parse "8:30am - 9:00am" format (assuming EST)
+    const match = timeString.match(/(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)/);
+    if (!match) return { startTime: null, endTime: null };
+    
+    const [, startHour, startMin, startPeriod, endHour, endMin, endPeriod] = match;
+    
+    // Convert to 24-hour format
+    const convertTo24Hour = (hour, period) => {
+      let h = parseInt(hour);
+      if (period.toLowerCase() === 'pm' && h !== 12) h += 12;
+      if (period.toLowerCase() === 'am' && h === 12) h = 0;
+      return h;
+    };
+    
+    const startHour24 = convertTo24Hour(startHour, startPeriod);
+    const endHour24 = convertTo24Hour(endHour, endPeriod);
+    
+    // Create Date objects (assuming EST/EDT for now, can be enhanced later)
+    const startTime = new Date(year, month - 1, day, startHour24, parseInt(startMin));
+    const endTime = new Date(year, month - 1, day, endHour24, parseInt(endMin));
+    
+    return { startTime, endTime };
+  };
+
+  // Check if a stream has ended
+  const isStreamEnded = (streamData, day, month, year) => {
+    const { endTime } = parseStreamTime(streamData.time, day, month, year);
+    if (!endTime) return false;
+    
+    const now = new Date();
+    return now > endTime;
+  };
+
+  // Get user's timezone
+  const getUserTimezone = () => {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  };
+
+  // Convert EST time to user's local timezone
+  const convertTimeToUserTimezone = (timeString, day, month, year, includeTimezoneAbbr = false) => {
+    // Parse "8:30am - 9:00am" format (assuming EST)
+    const match = timeString.match(/(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)/);
+    if (!match) return timeString; // Return original if parsing fails
+    
+    const [, startHour, startMin, startPeriod, endHour, endMin, endPeriod] = match;
+    
+    // Convert to 24-hour format
+    const convertTo24Hour = (hour, period) => {
+      let h = parseInt(hour);
+      if (period.toLowerCase() === 'pm' && h !== 12) h += 12;
+      if (period.toLowerCase() === 'am' && h === 12) h = 0;
+      return h;
+    };
+    
+    const startHour24 = convertTo24Hour(startHour, startPeriod);
+    const endHour24 = convertTo24Hour(endHour, endPeriod);
+    
+    // Create Date objects in EST/EDT (America/New_York timezone)
+    const estDate = new Date(year, month - 1, day, startHour24, parseInt(startMin));
+    const estEndDate = new Date(year, month - 1, day, endHour24, parseInt(endMin));
+    
+    // Convert to user's timezone
+    const userTimezone = getUserTimezone();
+    
+    // Format the converted times
+    const formatTime = (date) => {
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: userTimezone,
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }).format(date).replace(/\s/g, '');
+    };
+    
+    const startTimeLocal = formatTime(estDate);
+    const endTimeLocal = formatTime(estEndDate);
+    
+    if (includeTimezoneAbbr) {
+      // Get timezone abbreviation for user's timezone
+      const timezoneAbbr = new Intl.DateTimeFormat('en-US', {
+        timeZone: userTimezone,
+        timeZoneName: 'short'
+      }).formatToParts(estDate).find(part => part.type === 'timeZoneName')?.value || '';
+      
+      return `${startTimeLocal} - ${endTimeLocal} ${timezoneAbbr}`;
+    } else {
+      return `${startTimeLocal} - ${endTimeLocal}`;
+    }
+  };
+
+  // Find the next upcoming stream based on current date and time
+  const getNextStream = () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1; // getMonth() returns 0-11
+    const currentDay = today.getDate();
+
+    // If we're after the schedule month/year, no upcoming streams
+    if (currentYear > scheduleData.year || 
+        (currentYear === scheduleData.year && currentMonth > scheduleData.month)) {
+      return null;
+    }
+
+    // If we're in the same month and year as the schedule
+    if (currentYear === scheduleData.year && currentMonth === scheduleData.month) {
+      // Check today's stream first
+      const todayStream = streamSchedule[currentDay.toString()];
+      if (todayStream && !isStreamEnded(todayStream, currentDay, currentMonth, currentYear)) {
+        return {
+          day: currentDay,
+          streamData: todayStream,
+          categoryColor: categoryColors[todayStream.category]
+        };
+      }
+      
+      // Find the next stream after today
+      for (let day = currentDay + 1; day <= daysInMonth; day++) {
+        const streamData = streamSchedule[day.toString()];
+        if (streamData) {
+          return {
+            day,
+            streamData,
+            categoryColor: categoryColors[streamData.category]
+          };
+        }
+      }
+    } else {
+      // We're before the schedule month, return the first stream
+      for (let day = 1; day <= daysInMonth; day++) {
+        const streamData = streamSchedule[day.toString()];
+        if (streamData) {
+          return {
+            day,
+            streamData,
+            categoryColor: categoryColors[streamData.category]
+          };
+        }
+      }
+    }
+    
+    // No upcoming streams found
+    return null;
+  };
+
+  const nextStream = getNextStream();
+
   return (
     <div className="min-h-screen bg-retro-bg retro-grid scanline p-2 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
@@ -206,6 +387,9 @@ export default function StreamCalendar() {
             <p className="retro-text text-retro-muted text-sm sm:text-base md:text-lg font-mono">
               {monthNames[month].toUpperCase()} {year}
             </p>
+            <p className="retro-text text-retro-muted text-xs sm:text-sm font-mono mt-2">
+              All times shown in your timezone: {getUserTimezone()}
+            </p>
           </div>
           
           {/* Suggest Idea Button */}
@@ -216,6 +400,87 @@ export default function StreamCalendar() {
             💡 Suggest a Stream Idea
           </button>
         </div>
+
+        {/* Twitch Live Banner */}
+        {twitchStatus.isLive && !twitchStatus.loading && (
+          <div className="mb-6 retro-container p-6 retro-glow bg-red-50 border-4 border-red-500">
+            <div className="text-center mb-4">
+              <div className="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-full font-bold text-lg mb-3 animate-pulse">
+                <span className="w-3 h-3 bg-white rounded-full animate-pulse"></span>
+                LIVE NOW
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                {twitchStatus.title || 'Streaming Now!'}
+              </h2>
+              {twitchStatus.gameName && (
+                <p className="text-lg md:text-xl text-gray-700 mb-2">
+                  Playing: <span className="font-semibold">{twitchStatus.gameName}</span>
+                </p>
+              )}
+              <p className="text-md md:text-lg text-gray-600 mb-4">
+                👁️ {twitchStatus.viewerCount?.toLocaleString() || 0} viewers watching
+              </p>
+              
+              {/* Buttons */}
+              <div className="flex gap-3 justify-center flex-wrap mb-4">
+                <a
+                  href={`https://www.twitch.tv/${twitchStatus.channelName}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  🎮 Watch on Twitch
+                </a>
+                <a
+                  href={`https://www.twitch.tv/${twitchStatus.channelName}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-3 bg-gray-800 hover:bg-gray-900 text-white font-bold rounded-lg shadow-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  ❤️ Follow
+                </a>
+              </div>
+            </div>
+
+            {/* Embedded Twitch Player */}
+            <div className="relative w-full rounded-lg overflow-hidden" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                src={`https://player.twitch.tv/?channel=${twitchStatus.channelName}&parent=${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}&muted=false`}
+                className="absolute top-0 left-0 w-full h-full"
+                allowFullScreen
+                title="Twitch Stream"
+              ></iframe>
+            </div>
+          </div>
+        )}
+
+        {/* Offline - Show Next Stream */}
+        {!twitchStatus.isLive && !twitchStatus.loading && nextStream && (
+          <div className="mb-6 retro-container p-6 retro-glow bg-purple-50 border-2 border-purple-400">
+            <div className="text-center">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                Next Stream
+              </h2>
+              <p className="text-lg md:text-xl text-gray-800 mb-2">
+                <span className="font-semibold">{nextStream.streamData.subject}</span>
+              </p>
+              <p className="text-md md:text-lg text-gray-600 mb-3">
+                {nextStream.streamData.category} • {convertTimeToUserTimezone(nextStream.streamData.time, nextStream.day, scheduleData.month, scheduleData.year)}
+              </p>
+              <p className="text-sm text-gray-500 mb-3">
+                October {nextStream.day}, 2025
+              </p>
+              <a
+                href={`https://www.twitch.tv/${twitchStatus.channelName}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg transition-all duration-200 hover:scale-105 active:scale-95"
+              >
+                ❤️ Follow on Twitch
+              </a>
+            </div>
+          </div>
+        )}
         
         {/* Mobile List View - Show on small screens */}
         <div className="block md:hidden">
@@ -225,52 +490,104 @@ export default function StreamCalendar() {
             </h2>
             {daysWithEvents.length > 0 ? (
               <div className="space-y-3">
-                {daysWithEvents.map(({ day, streamData, categoryColor }) => (
-                  <div
-                    key={day}
-                    className="p-4 rounded-lg border-2 transition-all duration-200 hover:shadow-lg cursor-pointer active:scale-95 touch-manipulation"
-                    style={categoryColor ? {
-                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
-                                     categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
-                                     categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
-                                     categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
-                                     categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
-                      borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
-                                  categoryColor.border === 'border-purple-400' ? '#a855f7' :
-                                  categoryColor.border === 'border-pink-400' ? '#f472b6' :
-                                  categoryColor.border === 'border-blue-400' ? '#60a5fa' :
-                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
-                    } : {
-                      backgroundColor: '#f9fafb',
-                      borderColor: '#e5e7eb'
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-lg font-bold text-gray-800">
-                        Day {day}
-                      </div>
-                      <div className="text-sm text-gray-600 font-medium">
-                        {streamData.time}
-                      </div>
-                    </div>
-                    <div 
-                      className="text-sm font-semibold mb-2"
-                      style={{
-                        color: categoryColor ? 
-                          (categoryColor.text === 'text-purple-800' ? '#6b21a8' :
-                           categoryColor.text === 'text-pink-800' ? '#9d174d' :
-                           categoryColor.text === 'text-orange-800' ? '#9a3412' :
-                           categoryColor.text === 'text-green-800' ? '#166534' :
-                           categoryColor.text === 'text-blue-800' ? '#1e40af' : '#1f2937') : '#1f2937'
+                {daysWithEvents.map(({ day, streamData, categoryColor }) => {
+                  // Check if this is a past stream (either past day or stream has ended)
+                  const today = new Date();
+                  const currentYear = today.getFullYear();
+                  const currentMonth = today.getMonth() + 1;
+                  const currentDay = today.getDate();
+                  const isPastStream = currentYear === scheduleData.year && 
+                                     currentMonth === scheduleData.month && 
+                                     (day < currentDay || (day === currentDay && isStreamEnded(streamData, day, currentMonth, currentYear)));
+                  
+                  return (
+                    <div
+                      key={day}
+                      className={`p-4 rounded-lg border-2 transition-all duration-200 relative ${
+                        isPastStream ? 'opacity-60' : 'hover:shadow-lg cursor-pointer active:scale-95 touch-manipulation'
+                      }`}
+                      style={categoryColor ? {
+                        backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
+                                       categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
+                                       categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
+                                       categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
+                                       categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
+                        borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
+                                    categoryColor.border === 'border-purple-400' ? '#a855f7' :
+                                    categoryColor.border === 'border-pink-400' ? '#f472b6' :
+                                    categoryColor.border === 'border-blue-400' ? '#60a5fa' :
+                                    categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
+                      } : {
+                        backgroundColor: '#f9fafb',
+                        borderColor: '#e5e7eb'
                       }}
                     >
-                      {streamData.category}
+                      {/* 8-bit X overlay for past streams */}
+                      {isPastStream && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                          <div className="relative" style={{ width: '60px', height: '60px' }}>
+                            {/* Pixelated X made with individual pixel blocks */}
+                            <div style={{
+                              position: 'absolute',
+                              width: '100%',
+                              height: '100%',
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(6, 1fr)',
+                              gridTemplateRows: 'repeat(6, 1fr)',
+                              gap: '0px'
+                            }}>
+                              {/* Pixel blocks for the X shape */}
+                              {Array.from({ length: 36 }, (_, i) => {
+                                const row = Math.floor(i / 6);
+                                const col = i % 6;
+                                const isX = (row === col) || (row + col === 5);
+                                const isBorder = (row === col - 1) || (row === col + 1) || 
+                                               (row + col === 4) || (row + col === 6);
+                                
+                                return (
+                                  <div
+                                    key={i}
+                                    style={{
+                                      backgroundColor: isX ? '#ff0000' : isBorder ? '#cc0000' : 'transparent',
+                                      imageRendering: 'pixelated',
+                                      width: '10px',
+                                      height: '10px'
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-lg font-bold text-gray-800">
+                          Day {day}
+                        </div>
+                        <div className="text-sm text-gray-600 font-medium">
+                          {convertTimeToUserTimezone(streamData.time, day, scheduleData.month, scheduleData.year)}
+                        </div>
+                      </div>
+                      <div 
+                        className="text-sm font-semibold mb-2"
+                        style={{
+                          color: categoryColor ? 
+                            (categoryColor.text === 'text-purple-800' ? '#6b21a8' :
+                             categoryColor.text === 'text-pink-800' ? '#9d174d' :
+                             categoryColor.text === 'text-orange-800' ? '#9a3412' :
+                             categoryColor.text === 'text-green-800' ? '#166534' :
+                             categoryColor.text === 'text-blue-800' ? '#1e40af' : '#1f2937') : '#1f2937'
+                        }}
+                      >
+                        {streamData.category}
+                      </div>
+                      <div className="text-base font-bold text-gray-800 leading-tight">
+                        {streamData.subject}
+                      </div>
                     </div>
-                    <div className="text-base font-bold text-gray-800 leading-tight">
-                      {streamData.subject}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
@@ -301,19 +618,35 @@ export default function StreamCalendar() {
                 const streamData = day ? streamSchedule[day.toString()] : null;
                 const categoryColor = streamData ? categoryColors[streamData.category] : null;
                 
+                // Check if this is a past stream (either past day or stream has ended)
+                const today = new Date();
+                const currentYear = today.getFullYear();
+                const currentMonth = today.getMonth() + 1;
+                const currentDay = today.getDate();
+                const isPastStream = currentYear === scheduleData.year && 
+                                   currentMonth === scheduleData.month && 
+                                   (day < currentDay || (day === currentDay && streamData && isStreamEnded(streamData, day, currentMonth, currentYear)));
+                
                 return (
                   <div
                     key={index}
                     className={`
-                      min-h-32 lg:min-h-44 p-2 md:p-3 rounded-lg border-2 transition-all duration-200
+                      min-h-32 lg:min-h-44 p-2 md:p-3 rounded-lg border-2 transition-all duration-200 relative
                       ${day 
                         ? streamData
                           ? categoryColor 
-                            ? `hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95`
+                            ? isPastStream 
+                              ? '' 
+                              : `hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95`
+                            : isPastStream
+                              ? 'bg-gray-50 border-gray-200'
+                              : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
+                          : isPastStream
+                            ? 'bg-gray-50 border-gray-200'
                             : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
-                          : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
                         : 'bg-transparent border-transparent'
                       }
+                      ${isPastStream ? 'opacity-60' : ''}
                     `}
                     style={day && streamData && categoryColor ? {
                       backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
@@ -328,6 +661,45 @@ export default function StreamCalendar() {
                                   categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
                     } : {}}
                   >
+                    {/* 8-bit X overlay for past streams */}
+                    {isPastStream && streamData && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div className="relative" style={{ width: '80px', height: '80px' }}>
+                          {/* Pixelated X made with individual pixel blocks */}
+                          <div style={{
+                            position: 'absolute',
+                            width: '100%',
+                            height: '100%',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(8, 1fr)',
+                            gridTemplateRows: 'repeat(8, 1fr)',
+                            gap: '0px'
+                          }}>
+                            {/* Pixel blocks for the X shape */}
+                            {Array.from({ length: 64 }, (_, i) => {
+                              const row = Math.floor(i / 8);
+                              const col = i % 8;
+                              const isX = (row === col) || (row + col === 7);
+                              const isBorder = (row === col - 1) || (row === col + 1) || 
+                                             (row + col === 6) || (row + col === 8);
+                              
+                              return (
+                                <div
+                                  key={i}
+                                  style={{
+                                    backgroundColor: isX ? '#ff0000' : isBorder ? '#cc0000' : 'transparent',
+                                    imageRendering: 'pixelated',
+                                    width: '10px',
+                                    height: '10px'
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     {day && (
                       <div className="flex flex-col h-full">
                         {/* Day Number */}
@@ -364,7 +736,7 @@ export default function StreamCalendar() {
                             {/* Time */}
                             <div className="text-xs text-gray-600 leading-tight">
                               <div className="h-8 md:h-10 lg:h-12 overflow-hidden">
-                                {streamData.time}
+                                {convertTimeToUserTimezone(streamData.time, day, scheduleData.month, scheduleData.year)}
                               </div>
                             </div>
                           </div>
