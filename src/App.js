@@ -470,9 +470,6 @@ export default function StreamCalendar() {
               <p className="text-sm text-gray-500 mb-3">
                 October {nextStream.day}, 2025
               </p>
-              <p className="text-xs text-gray-400 mb-3">
-                All times shown in your timezone: {getUserTimezone()}
-              </p>
               <a
                 href={`https://www.twitch.tv/${twitchStatus.channelName}`}
                 target="_blank"
