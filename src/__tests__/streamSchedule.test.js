@@ -153,7 +153,8 @@ describe('Stream Schedule JSON Validation', () => {
         // Basic time format validation - should contain time indicators
         expect(stream.time).toMatch(/\d{1,2}:\d{2}(am|pm)/i);
         expect(stream.time).toMatch(/-/); // Should contain dash for time range
-        expect(stream.time).toMatch(/(EST|PST|CST|MST|UTC)/i); // Should contain timezone
+        // Time format should be "startTime - endTime" (no timezone suffix)
+        expect(stream.time).toMatch(/^\d{1,2}:\d{2}(am|pm)\s*-\s*\d{1,2}:\d{2}(am|pm)$/i);
       });
     });
   });
