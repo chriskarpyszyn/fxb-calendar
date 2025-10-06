@@ -227,11 +227,11 @@ export default function StreamCalendar() {
 
   // Parse stream time and convert to Date object
   const parseStreamTime = (timeString, day, month, year) => {
-    // Parse "8:30am - 9:00am EST" format
-    const match = timeString.match(/(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)\s*(EST|EDT|PST|PDT|CST|CDT|MST|MDT)/);
+    // Parse "8:30am - 9:00am" format (assuming EST)
+    const match = timeString.match(/(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)/);
     if (!match) return { startTime: null, endTime: null };
     
-    const [, startHour, startMin, startPeriod, endHour, endMin, endPeriod, timezone] = match;
+    const [, startHour, startMin, startPeriod, endHour, endMin, endPeriod] = match;
     
     // Convert to 24-hour format
     const convertTo24Hour = (hour, period) => {
@@ -263,6 +263,58 @@ export default function StreamCalendar() {
   // Get user's timezone
   const getUserTimezone = () => {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  };
+
+  // Convert EST time to user's local timezone
+  const convertTimeToUserTimezone = (timeString, day, month, year, includeTimezoneAbbr = false) => {
+    // Parse "8:30am - 9:00am" format (assuming EST)
+    const match = timeString.match(/(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)/);
+    if (!match) return timeString; // Return original if parsing fails
+    
+    const [, startHour, startMin, startPeriod, endHour, endMin, endPeriod] = match;
+    
+    // Convert to 24-hour format
+    const convertTo24Hour = (hour, period) => {
+      let h = parseInt(hour);
+      if (period.toLowerCase() === 'pm' && h !== 12) h += 12;
+      if (period.toLowerCase() === 'am' && h === 12) h = 0;
+      return h;
+    };
+    
+    const startHour24 = convertTo24Hour(startHour, startPeriod);
+    const endHour24 = convertTo24Hour(endHour, endPeriod);
+    
+    // Create Date objects in EST/EDT (America/New_York timezone)
+    const estDate = new Date(year, month - 1, day, startHour24, parseInt(startMin));
+    const estEndDate = new Date(year, month - 1, day, endHour24, parseInt(endMin));
+    
+    // Convert to user's timezone
+    const userTimezone = getUserTimezone();
+    
+    // Format the converted times
+    const formatTime = (date) => {
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: userTimezone,
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }).format(date).replace(/\s/g, '');
+    };
+    
+    const startTimeLocal = formatTime(estDate);
+    const endTimeLocal = formatTime(estEndDate);
+    
+    if (includeTimezoneAbbr) {
+      // Get timezone abbreviation for user's timezone
+      const timezoneAbbr = new Intl.DateTimeFormat('en-US', {
+        timeZone: userTimezone,
+        timeZoneName: 'short'
+      }).formatToParts(estDate).find(part => part.type === 'timeZoneName')?.value || '';
+      
+      return `${startTimeLocal} - ${endTimeLocal} ${timezoneAbbr}`;
+    } else {
+      return `${startTimeLocal} - ${endTimeLocal}`;
+    }
   };
 
   // Find the next upcoming stream based on current date and time
@@ -334,6 +386,9 @@ export default function StreamCalendar() {
             </h1>
             <p className="retro-text text-retro-muted text-sm sm:text-base md:text-lg font-mono">
               {monthNames[month].toUpperCase()} {year}
+            </p>
+            <p className="retro-text text-retro-muted text-xs sm:text-sm font-mono mt-2">
+              All times shown in your timezone: {getUserTimezone()}
             </p>
           </div>
           
@@ -410,13 +465,13 @@ export default function StreamCalendar() {
                 <span className="font-semibold">{nextStream.streamData.subject}</span>
               </p>
               <p className="text-md md:text-lg text-gray-600 mb-3">
-                {nextStream.streamData.category} • {nextStream.streamData.time}
+                {nextStream.streamData.category} • {convertTimeToUserTimezone(nextStream.streamData.time, nextStream.day, scheduleData.month, scheduleData.year)}
               </p>
               <p className="text-sm text-gray-500 mb-3">
                 October {nextStream.day}, 2025
               </p>
               <p className="text-xs text-gray-400 mb-3">
-                Your timezone: {getUserTimezone()}
+                All times shown in your timezone: {getUserTimezone()}
               </p>
               <a
                 href={`https://www.twitch.tv/${twitchStatus.channelName}`}
@@ -514,7 +569,7 @@ export default function StreamCalendar() {
                           Day {day}
                         </div>
                         <div className="text-sm text-gray-600 font-medium">
-                          {streamData.time}
+                          {convertTimeToUserTimezone(streamData.time, day, scheduleData.month, scheduleData.year)}
                         </div>
                       </div>
                       <div 
@@ -684,7 +739,7 @@ export default function StreamCalendar() {
                             {/* Time */}
                             <div className="text-xs text-gray-600 leading-tight">
                               <div className="h-8 md:h-10 lg:h-12 overflow-hidden">
-                                {streamData.time}
+                                {convertTimeToUserTimezone(streamData.time, day, scheduleData.month, scheduleData.year)}
                               </div>
                             </div>
                           </div>
