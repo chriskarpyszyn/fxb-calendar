@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './App.css';
 
 export default function StreamCalendar() {
   const [scheduleData, setScheduleData] = useState(null);
@@ -507,10 +508,15 @@ export default function StreamCalendar() {
                                      currentMonth === scheduleData.month && 
                                      (day < currentDay || (day === currentDay && isStreamEnded(streamData, day, currentMonth, currentYear)));
                   
+                  // Check if this is the next streaming day
+                  const isNextStream = nextStream && nextStream.day === day;
+                  
                   return (
                     <div
                       key={day}
                       className={`p-4 rounded-lg border-2 transition-all duration-200 relative ${
+                        isNextStream ? 'next-stream-glow' : ''
+                      } ${
                         isPastStream ? 'opacity-60' : 'hover:shadow-lg cursor-pointer active:scale-95 touch-manipulation'
                       }`}
                       style={categoryColor ? {
@@ -634,11 +640,15 @@ export default function StreamCalendar() {
                                    currentMonth === scheduleData.month && 
                                    (day < currentDay || (day === currentDay && streamData && isStreamEnded(streamData, day, currentMonth, currentYear)));
                 
+                // Check if this is the next streaming day
+                const isNextStream = nextStream && nextStream.day === day;
+                
                 return (
                   <div
                     key={index}
                     className={`
                       min-h-32 lg:min-h-44 p-2 md:p-3 rounded-lg border-2 transition-all duration-200 relative
+                      ${isNextStream ? 'next-stream-glow' : ''}
                       ${day 
                         ? streamData
                           ? categoryColor 

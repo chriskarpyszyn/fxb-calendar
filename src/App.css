@@ -89,3 +89,44 @@
   0% { opacity: 0; transform: scale(0.8); }
   100% { opacity: 1; transform: scale(1); }
 }
+
+/* Glowing outline for next streaming day */
+.next-stream-glow {
+  position: relative;
+  animation: next-stream-pulse 2s ease-in-out infinite;
+}
+
+.next-stream-glow::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background: linear-gradient(45deg, #22d3ee, #a78bfa, #f472b6, #34d399, #fb923c, #60a5fa);
+  background-size: 400% 400%;
+  animation: gradient-shift 3s ease infinite;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: 
+    0 0 20px rgba(34, 211, 238, 0.6),
+    0 0 40px rgba(167, 139, 250, 0.4),
+    0 0 60px rgba(244, 114, 182, 0.3);
+}
+
+@keyframes next-stream-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 
+      0 0 20px rgba(34, 211, 238, 0.6),
+      0 0 40px rgba(167, 139, 250, 0.4),
+      0 0 60px rgba(244, 114, 182, 0.3);
+  }
+  50% { 
+    transform: scale(1.02);
+    box-shadow: 
+      0 0 30px rgba(34, 211, 238, 0.8),
+      0 0 50px rgba(167, 139, 250, 0.6),
+      0 0 70px rgba(244, 114, 182, 0.5);
+  }
+}
