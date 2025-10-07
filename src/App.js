@@ -449,13 +449,6 @@ export default function StreamCalendar() {
             </p>
           </div>
           
-          {/* Suggest Idea Button */}
-          <button
-            onClick={() => setShowModal(true)}
-            className="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
-          >
-            💡 Suggest a Stream Idea
-          </button>
         </div>
 
         {/* Stream Status Card - Shows live status if live, otherwise shows next stream */}
@@ -580,6 +573,16 @@ export default function StreamCalendar() {
             )}
           </>
         )}
+
+        {/* Suggest Idea Button */}
+        <div className="text-center mb-6">
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
+          >
+            💡 Suggest a Stream Idea
+          </button>
+        </div>
         
         {/* Mobile List View - Show on small screens */}
         <div className="block md:hidden">
