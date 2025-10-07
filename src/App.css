@@ -89,3 +89,208 @@
   0% { opacity: 0; transform: scale(0.8); }
   100% { opacity: 1; transform: scale(1); }
 }
+
+/* Foil trading card effect for next streaming day */
+.next-stream-glow {
+  position: relative;
+  animation: foil-shimmer 3s linear infinite;
+  transform-style: preserve-3d;
+}
+
+/* Enhanced text readability for foil effect */
+.next-stream-glow * {
+  color: #0a0a0a !important;
+  font-weight: 700;
+  text-shadow: 
+    0 0 1px rgba(255, 255, 255, 0.9),
+    0 0 2px rgba(255, 255, 255, 0.7),
+    0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.next-stream-glow::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  background: linear-gradient(
+    45deg,
+    #d4a5a5, #7fbdb8, #6ba3c4, #9bb5a8, #d4b85a, #d4a5c4,
+    #7ba3d4, #8a6bb8, #5bb5b5, #d4a56b, #c48a6b, #5bb5d4,
+    #4a7ba6, #4a8bd4, #6b5bb8, #5b8bd4, #4ad4a5, #d4b84a
+  );
+  background-size: 300% 300%;
+  animation: foil-gradient 4s ease infinite;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: 
+    0 0 15px rgba(212, 165, 165, 0.3),
+    0 0 30px rgba(127, 189, 184, 0.25),
+    0 0 45px rgba(107, 163, 196, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.08);
+}
+
+.next-stream-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.3) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  background-size: 200% 200%;
+  animation: foil-highlight 2s ease-in-out infinite;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+@keyframes foil-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes foil-shimmer {
+  0% { 
+    transform: scale(1) rotateY(0deg);
+    box-shadow: 
+      0 0 15px rgba(212, 165, 165, 0.3),
+      0 0 30px rgba(127, 189, 184, 0.25),
+      0 0 45px rgba(107, 163, 196, 0.2),
+      inset 0 0 20px rgba(255, 255, 255, 0.08);
+  }
+  50% { 
+    transform: scale(1.05) rotateY(0deg);
+    box-shadow: 
+      0 0 20px rgba(107, 163, 196, 0.35),
+      0 0 35px rgba(155, 181, 168, 0.30),
+      0 0 50px rgba(212, 184, 90, 0.25),
+      inset 0 0 25px rgba(255, 255, 255, 0.12);
+  }
+  100% { 
+    transform: scale(1) rotateY(0deg);
+    box-shadow: 
+      0 0 15px rgba(212, 165, 165, 0.3),
+      0 0 30px rgba(127, 189, 184, 0.25),
+      0 0 45px rgba(107, 163, 196, 0.2),
+      inset 0 0 20px rgba(255, 255, 255, 0.08);
+  }
+}
+
+@keyframes foil-highlight {
+  0% { background-position: -200% -200%; }
+  50% { background-position: 200% 200%; }
+  100% { background-position: -200% -200%; }
+}
+
+/* Retro countdown timer styles */
+.countdown-timer {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border: 3px solid #22d3ee;
+  border-radius: 8px;
+  box-shadow: 
+    0 0 20px rgba(34, 211, 238, 0.3),
+    inset 0 0 20px rgba(34, 211, 238, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.countdown-timer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.2), transparent);
+  animation: scan-line 3s linear infinite;
+}
+
+@keyframes scan-line {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.countdown-timer.live {
+  background: linear-gradient(135deg, #2d1b1b 0%, #4a1a1a 50%, #6b1a1a 100%);
+  border-color: #ff4757;
+  box-shadow: 
+    0 0 20px rgba(255, 71, 87, 0.4),
+    inset 0 0 20px rgba(255, 71, 87, 0.1);
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { 
+    box-shadow: 
+      0 0 20px rgba(255, 71, 87, 0.4),
+      inset 0 0 20px rgba(255, 71, 87, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 0 30px rgba(255, 71, 87, 0.6),
+      inset 0 0 30px rgba(255, 71, 87, 0.2);
+  }
+}
+
+.countdown-label {
+  color: #22d3ee;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  letter-spacing: 1px;
+}
+
+.countdown-label.live {
+  color: #ff4757;
+  text-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+}
+
+.countdown-time-box {
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+  border: 2px solid #22d3ee;
+  border-radius: 4px;
+  color: #22d3ee;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(34, 211, 238, 0.6);
+  box-shadow: 
+    0 0 10px rgba(34, 211, 238, 0.3),
+    inset 0 0 10px rgba(34, 211, 238, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.countdown-time-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(34, 211, 238, 0.1) 50%, transparent 70%);
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.countdown-time-label {
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

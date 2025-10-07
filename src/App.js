@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './App.css';
 
 export default function StreamCalendar() {
   const [scheduleData, setScheduleData] = useState(null);
@@ -15,6 +16,15 @@ export default function StreamCalendar() {
     isLive: false,
     loading: true,
     channelName: 'itsFlannelBeard'
+  });
+
+  // Countdown timer state
+  const [timeUntilStream, setTimeUntilStream] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    isLive: false
   });
   
   // Load schedule data from JSON file
@@ -75,6 +85,51 @@ export default function StreamCalendar() {
       document.body.style.overflow = 'unset';
     };
   }, [showModal]);
+
+  // Calculate time until next stream
+  useEffect(() => {
+    if (!scheduleData) return; // Don't run if schedule data isn't loaded yet
+    
+    const updateCountdown = () => {
+      const nextStream = getNextStream();
+      
+      if (!nextStream) {
+        setTimeUntilStream({ days: 0, hours: 0, minutes: 0, seconds: 0, isLive: false });
+        return;
+      }
+
+      const now = new Date();
+      const { startTime } = parseStreamTime(nextStream.streamData.time, nextStream.day, scheduleData.month, scheduleData.year);
+      
+      if (!startTime) {
+        setTimeUntilStream({ days: 0, hours: 0, minutes: 0, seconds: 0, isLive: false });
+        return;
+      }
+
+      const timeDiff = startTime.getTime() - now.getTime();
+      
+      if (timeDiff <= 0) {
+        // Stream has started or is live
+        setTimeUntilStream({ days: 0, hours: 0, minutes: 0, seconds: 0, isLive: true });
+        return;
+      }
+
+      const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+
+      setTimeUntilStream({ days, hours, minutes, seconds, isLive: false });
+    };
+
+    // Update immediately
+    updateCountdown();
+    
+    // Update every second
+    const interval = setInterval(updateCountdown, 1000);
+    
+    return () => clearInterval(interval);
+  }, [scheduleData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -394,13 +449,6 @@ export default function StreamCalendar() {
             </p>
           </div>
           
-          {/* Suggest Idea Button */}
-          <button
-            onClick={() => setShowModal(true)}
-            className="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
-          >
-            💡 Suggest a Stream Idea
-          </button>
         </div>
 
         {/* Stream Status Card - Shows live status if live, otherwise shows next stream */}
@@ -475,6 +523,43 @@ export default function StreamCalendar() {
                   <p className="text-sm text-gray-500 mb-3">
                     October {nextStream.day}, 2025
                   </p>
+                  
+                  {/* Countdown Timer */}
+                  {timeUntilStream.isLive ? (
+                    <div className={`mb-4 p-4 countdown-timer live`}>
+                      <div className="text-center relative z-10">
+                        <div className="text-xl font-bold countdown-label live mb-2">LIVE NOW!</div>
+                        <div className="text-sm countdown-time-label">Stream is currently live</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-4 p-4 countdown-timer">
+                      <div className="text-center relative z-10">
+                        <div className="text-sm font-semibold countdown-label mb-3">Stream starts in:</div>
+                        <div className="flex justify-center space-x-3">
+                          {timeUntilStream.days > 0 && (
+                            <div className="flex flex-col items-center">
+                              <div className="countdown-time-box px-3 py-2 text-lg">{timeUntilStream.days}</div>
+                              <div className="countdown-time-label mt-1">days</div>
+                            </div>
+                          )}
+                          <div className="flex flex-col items-center">
+                            <div className="countdown-time-box px-3 py-2 text-lg">{timeUntilStream.hours.toString().padStart(2, '0')}</div>
+                            <div className="countdown-time-label mt-1">hours</div>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <div className="countdown-time-box px-3 py-2 text-lg">{timeUntilStream.minutes.toString().padStart(2, '0')}</div>
+                            <div className="countdown-time-label mt-1">min</div>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <div className="countdown-time-box px-3 py-2 text-lg">{timeUntilStream.seconds.toString().padStart(2, '0')}</div>
+                            <div className="countdown-time-label mt-1">sec</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <a
                     href={`https://www.twitch.tv/${twitchStatus.channelName}`}
                     target="_blank"
@@ -488,6 +573,16 @@ export default function StreamCalendar() {
             )}
           </>
         )}
+
+        {/* Suggest Idea Button */}
+        <div className="text-center mb-6">
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 touch-manipulation"
+          >
+            💡 Suggest a Stream Idea
+          </button>
+        </div>
         
         {/* Mobile List View - Show on small screens */}
         <div className="block md:hidden">
@@ -507,10 +602,15 @@ export default function StreamCalendar() {
                                      currentMonth === scheduleData.month && 
                                      (day < currentDay || (day === currentDay && isStreamEnded(streamData, day, currentMonth, currentYear)));
                   
+                  // Check if this is the next streaming day
+                  const isNextStream = nextStream && nextStream.day === day;
+                  
                   return (
                     <div
                       key={day}
                       className={`p-4 rounded-lg border-2 transition-all duration-200 relative ${
+                        isNextStream ? 'next-stream-glow' : ''
+                      } ${
                         isPastStream ? 'opacity-60' : 'hover:shadow-lg cursor-pointer active:scale-95 touch-manipulation'
                       }`}
                       style={categoryColor ? {
@@ -634,11 +734,15 @@ export default function StreamCalendar() {
                                    currentMonth === scheduleData.month && 
                                    (day < currentDay || (day === currentDay && streamData && isStreamEnded(streamData, day, currentMonth, currentYear)));
                 
+                // Check if this is the next streaming day
+                const isNextStream = nextStream && nextStream.day === day;
+                
                 return (
                   <div
                     key={index}
                     className={`
                       min-h-32 lg:min-h-44 p-2 md:p-3 rounded-lg border-2 transition-all duration-200 relative
+                      ${isNextStream ? 'next-stream-glow' : ''}
                       ${day 
                         ? streamData
                           ? categoryColor 
