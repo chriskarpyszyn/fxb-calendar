@@ -17,6 +17,8 @@ export default function StreamCalendar() {
     loading: true,
     channelName: 'itsFlannelBeard'
   });
+  const [versionData, setVersionData] = useState(null);
+  const [showVersionModal, setShowVersionModal] = useState(false);
 
   // Countdown timer state
   const [timeUntilStream, setTimeUntilStream] = useState({
@@ -43,6 +45,23 @@ export default function StreamCalendar() {
       .catch(err => {
         setError(err.message);
         setLoading(false);
+      });
+  }, []);
+
+  // Load version data
+  useEffect(() => {
+    fetch('/version.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to load version data');
+        }
+        return response.json();
+      })
+      .then(data => {
+        setVersionData(data);
+      })
+      .catch(err => {
+        console.error('Failed to load version data:', err);
       });
   }, []);
 
@@ -215,6 +234,10 @@ export default function StreamCalendar() {
     setFormData({ idea: '', username: '' });
     setFormErrors({});
     setSubmitStatus(null);
+  };
+
+  const closeVersionModal = () => {
+    setShowVersionModal(false);
   };
   
   if (loading) {
@@ -862,6 +885,18 @@ export default function StreamCalendar() {
         </div>
       </div>
 
+      {/* Version Display */}
+      {versionData && (
+        <div className="text-center mt-8 mb-4">
+          <button
+            onClick={() => setShowVersionModal(true)}
+            className="text-gray-400 hover:text-gray-300 text-sm italic transition-colors duration-200 cursor-pointer"
+          >
+            {versionData.currentVersion}
+          </button>
+        </div>
+      )}
+
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -992,6 +1027,71 @@ export default function StreamCalendar() {
                   </div>
                 </form>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Version Modal */}
+      {showVersionModal && versionData && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={closeVersionModal}
+          ></div>
+          
+          {/* Modal Content */}
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 transform transition-all">
+              {/* Close Button */}
+              <button
+                onClick={closeVersionModal}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
+              >
+                ×
+              </button>
+              
+              {/* Modal Header */}
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Release Notes
+              </h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Current version: {versionData.currentVersion}
+              </p>
+
+              {/* Release Notes */}
+              <div className="space-y-6 max-h-96 overflow-y-auto">
+                {versionData.releaseNotes.map((release, index) => (
+                  <div key={index} className="border-b border-gray-200 pb-4 last:border-b-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        {release.title}
+                      </h3>
+                      <span className="text-sm text-gray-500">
+                        {release.date}
+                      </span>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1">
+                      {release.changes.map((change, changeIndex) => (
+                        <li key={changeIndex} className="text-sm text-gray-600">
+                          {change}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+
+              {/* Close Button */}
+              <div className="mt-6 text-center">
+                <button
+                  onClick={closeVersionModal}
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
