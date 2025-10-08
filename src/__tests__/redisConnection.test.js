@@ -136,6 +136,7 @@ describe('Redis Connection Tests', () => {
         expect(pingResult).toBe('PONG');
       } catch (error) {
         console.warn('Redis ping failed:', error.message);
+        // Redis connection failed - this is expected in CI without Redis
         expect(error).toBeDefined();
       }
     });

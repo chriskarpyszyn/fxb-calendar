@@ -107,7 +107,7 @@ describe('Stream Schedule JSON Validation', () => {
     });
 
     test('category color properties should be valid Tailwind CSS classes', () => {
-      const validColorNames = ['purple', 'pink', 'blue', 'green', 'orange', 'red', 'yellow', 'indigo', 'gray'];
+      // const validColorNames = ['purple', 'pink', 'blue', 'green', 'orange', 'red', 'yellow', 'indigo', 'gray'];
       
       Object.entries(streamSchedule.categories).forEach(([name, colors]) => {
         // Check bg class format: bg-{color}-100

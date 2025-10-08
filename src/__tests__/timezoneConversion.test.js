@@ -173,6 +173,9 @@ describe('Timezone Conversion Tests', () => {
       // This test will pass if we're in EDT, but fail if we're in a different timezone
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
+      // Test that conversion produces a valid time format
+      expect(result).toMatch(/^\d{1,2}:\d{2}(am|pm)-\d{1,2}:\d{2}(am|pm)$/);
+      
       if (userTimezone !== 'America/New_York') {
         // If we're not in EDT, the time should be different
         expect(result).not.toBe('8:30am-9:00am');
@@ -201,6 +204,10 @@ describe('Timezone Conversion Tests', () => {
         
         // Should be different from input if user is not in EDT timezone
         const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
+        // Always test that result is a valid time format
+        expect(result).toMatch(/^\d{1,2}:\d{2}(am|pm|AM|PM)\s*-\s*\d{1,2}:\d{2}(am|pm|AM|PM)$/);
+        
         if (userTimezone !== 'America/New_York') {
           expect(result).not.toBe(testCase.expectedEDT.replace(/\s/g, ''));
         }
@@ -222,7 +229,7 @@ describe('Timezone Conversion Tests', () => {
 
     test('should handle different timezones correctly', () => {
       // Test with a known timezone offset
-      const originalTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      // const originalTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
       // Mock different timezones for testing
       const testTimezones = [
