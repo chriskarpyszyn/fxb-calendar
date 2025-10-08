@@ -110,6 +110,60 @@ export default function StreamCalendar() {
     if (!scheduleData) return; // Don't run if schedule data isn't loaded yet
     
     const updateCountdown = () => {
+      // Find the next upcoming stream based on current date and time
+      const getNextStream = () => {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1; // getMonth() returns 0-11
+        const currentDay = today.getDate();
+
+        // If we're after the schedule month/year, no upcoming streams
+        if (currentYear > scheduleData.year || 
+            (currentYear === scheduleData.year && currentMonth > scheduleData.month)) {
+          return null;
+        }
+
+        // If we're in the same month and year as the schedule
+        if (currentYear === scheduleData.year && currentMonth === scheduleData.month) {
+          // Check today's stream first
+          const todayStream = scheduleData.streams[currentDay.toString()];
+          if (todayStream && !isStreamEnded(todayStream, currentDay, currentMonth, currentYear)) {
+            return {
+              day: currentDay,
+              streamData: todayStream,
+              categoryColor: scheduleData.categories[todayStream.category]
+            };
+          }
+          
+          // Find the next stream after today
+          for (let day = currentDay + 1; day <= 31; day++) {
+            const streamData = scheduleData.streams[day.toString()];
+            if (streamData) {
+              return {
+                day,
+                streamData,
+                categoryColor: scheduleData.categories[streamData.category]
+              };
+            }
+          }
+        } else {
+          // We're before the schedule month, return the first stream
+          for (let day = 1; day <= 31; day++) {
+            const streamData = scheduleData.streams[day.toString()];
+            if (streamData) {
+              return {
+                day,
+                streamData,
+                categoryColor: scheduleData.categories[streamData.category]
+              };
+            }
+          }
+        }
+        
+        // No upcoming streams found
+        return null;
+      };
+
       const nextStream = getNextStream();
       
       if (!nextStream) {
@@ -148,6 +202,7 @@ export default function StreamCalendar() {
     const interval = setInterval(updateCountdown, 1000);
     
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleData]);
 
   const handleInputChange = (e) => {

@@ -8,7 +8,8 @@
       "changes": [
         "Added version tracking and release notes system",
         "Added clickable version display with release notes modal",
-        "Added Redis integration to persist ideas"
+        "Added Redis integration to persist ideas",
+        "Optimized CI pipeline for faster builds and better reliability"
       ]
     },
     {

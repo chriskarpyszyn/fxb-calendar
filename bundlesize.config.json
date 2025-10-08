@@ -1,0 +1,10 @@
+[
+  {
+    "path": "./build/static/js/*.js",
+    "maxSize": "500 kB"
+  },
+  {
+    "path": "./build/static/css/*.css",
+    "maxSize": "50 kB"
+  }
+]
