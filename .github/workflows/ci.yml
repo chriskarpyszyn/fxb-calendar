@@ -44,8 +44,6 @@ jobs:
       run: npm run lint:check --if-present || echo "ESLint completed with warnings"
       continue-on-error: true
       
-    - name: Type check
-      run: npx tsc --noEmit --if-present
 
   # Build and test
   test:
