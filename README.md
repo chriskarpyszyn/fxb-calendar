@@ -1,4 +1,17 @@
-# Getting Started with Create React App
+# FXB Calendar
+
+[![CI Pipeline](https://github.com/ckarpyszyn/fxb-calendar/actions/workflows/ci.yml/badge.svg)](https://github.com/ckarpyszyn/fxb-calendar/actions/workflows/ci.yml)
+
+A retro-themed stream calendar application for tracking and displaying streaming schedules.
+
+## Features
+
+- Interactive calendar view
+- Twitch integration for live status
+- Countdown timers for upcoming streams
+- Stream idea submission
+- Retro-themed UI design
+- Mobile-responsive layout
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 

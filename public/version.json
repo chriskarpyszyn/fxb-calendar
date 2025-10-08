@@ -1,0 +1,30 @@
+{
+  "currentVersion": "v1.1",
+  "releaseNotes": [
+    {
+      "version": "v1.1",
+      "date": "2024-12-19",
+      "title": "Version 1.1 - Enhanced User Experience",
+      "changes": [
+        "Added version tracking and release notes system",
+        "Added clickable version display with release notes modal",
+        "Added Redis integration to persist ideas",
+        "Optimized CI pipeline for faster builds and better reliability"
+      ]
+    },
+    {
+      "version": "v1.0",
+      "date": "2024-12-15",
+      "title": "Version 1.0 - Initial Release",
+      "changes": [
+        "Launched the FXB Calendar application",
+        "Implemented stream schedule display",
+        "Added Twitch integration for live status",
+        "Created retro-themed UI design",
+        "Added stream idea submission feature",
+        "Implemented timezone conversion",
+        "Added countdown timer for next streams"
+      ]
+    }
+  ]
+}

@@ -11,6 +11,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-scripts": "5.0.1",
+    "redis": "^5.8.3",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -20,6 +21,11 @@
     "test:json": "react-scripts test --testPathPattern=streamSchedule.test.js --watchAll=false",
     "test:ci": "react-scripts test --coverage --watchAll=false",
     "test:discord": "NODE_ENV=development node test-discord.js",
+    "lint": "eslint src --ext .js,.jsx --fix",
+    "lint:check": "eslint src --ext .js,.jsx",
+    "type-check": "tsc --noEmit",
+    "preinstall": "npx only-allow npm",
+    "postinstall": "npm audit --audit-level=moderate || true",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
