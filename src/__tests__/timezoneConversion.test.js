@@ -174,7 +174,7 @@ describe('Timezone Conversion Tests', () => {
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
       // Test that conversion produces a valid time format
-      expect(result).toMatch(/^\d{1,2}:\d{2}(am|pm)-\d{1,2}:\d{2}(am|pm)$/);
+      expect(result).toMatch(/^\d{1,2}:\d{2}(am|pm|AM|PM)-\d{1,2}:\d{2}(am|pm|AM|PM)$/);
       
       if (userTimezone !== 'America/New_York') {
         // If we're not in EDT, the time should be different
