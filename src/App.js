@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import IdeasList from './components/IdeasList';
 
 export default function StreamCalendar() {
   const [scheduleData, setScheduleData] = useState(null);
@@ -661,6 +662,9 @@ export default function StreamCalendar() {
             💡 Suggest a Stream Idea
           </button>
         </div>
+
+        {/* Ideas List Component */}
+        <IdeasList />
         
         {/* Mobile List View - Show on small screens */}
         <div className="block md:hidden">
