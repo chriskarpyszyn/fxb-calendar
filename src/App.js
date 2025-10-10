@@ -687,7 +687,7 @@ export default function StreamCalendar() {
                     <div
                       key={day}
                       className={`p-4 rounded-lg border-2 transition-all duration-200 relative ${
-                        categoryColor ? categoryColor.bg + ' ' + categoryColor.border : 'bg-gray-50 border-gray-300'
+                        categoryColor ? `${categoryColor.bg} ${categoryColor.border}` : 'bg-gray-50 border-gray-300'
                       } ${
                         isNextStream ? 'next-stream-glow' : ''
                       } ${
@@ -804,8 +804,8 @@ export default function StreamCalendar() {
                         ? streamData
                           ? categoryColor 
                             ? isPastStream 
-                              ? categoryColor.bg + ' ' + categoryColor.border
-                              : categoryColor.bg + ' ' + categoryColor.border + ' hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95'
+                              ? `${categoryColor.bg} ${categoryColor.border}`
+                              : `${categoryColor.bg} ${categoryColor.border} hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95`
                             : isPastStream
                               ? 'bg-gray-50 border-gray-200'
                               : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'

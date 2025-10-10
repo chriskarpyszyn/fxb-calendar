@@ -2,6 +2,17 @@
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
+    "./public/**/*.json",
+  ],
+  safelist: [
+    // Category colors from JSON
+    'bg-yellow-100', 'border-yellow-400', 'text-yellow-800', 'bg-yellow-500',
+    'bg-red-100', 'border-red-400', 'text-red-800', 'bg-red-500',
+    'bg-pink-100', 'border-pink-400', 'text-pink-800', 'bg-pink-500',
+    'bg-purple-100', 'border-purple-400', 'text-purple-800', 'bg-purple-500',
+    'bg-blue-100', 'border-blue-400', 'text-blue-800', 'bg-blue-500',
+    'bg-green-100', 'border-green-400', 'text-green-800', 'bg-green-500',
+    'bg-orange-100', 'border-orange-400', 'text-orange-800', 'bg-orange-500',
   ],
   theme: {
     extend: {
