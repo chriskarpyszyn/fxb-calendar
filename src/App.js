@@ -687,25 +687,12 @@ export default function StreamCalendar() {
                     <div
                       key={day}
                       className={`p-4 rounded-lg border-2 transition-all duration-200 relative ${
+                        categoryColor ? categoryColor.bg + ' ' + categoryColor.border : 'bg-gray-50 border-gray-300'
+                      } ${
                         isNextStream ? 'next-stream-glow' : ''
                       } ${
                         isPastStream ? 'opacity-60' : 'hover:shadow-lg cursor-pointer active:scale-95 touch-manipulation'
                       }`}
-                      style={categoryColor ? {
-                        backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
-                                       categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
-                                       categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
-                                       categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
-                                       categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
-                        borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
-                                    categoryColor.border === 'border-purple-400' ? '#a855f7' :
-                                    categoryColor.border === 'border-pink-400' ? '#f472b6' :
-                                    categoryColor.border === 'border-blue-400' ? '#60a5fa' :
-                                    categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
-                      } : {
-                        backgroundColor: '#f9fafb',
-                        borderColor: '#e5e7eb'
-                      }}
                     >
                       {/* 8-bit X overlay for past streams */}
                       {isPastStream && (
@@ -755,15 +742,7 @@ export default function StreamCalendar() {
                         </div>
                       </div>
                       <div 
-                        className="text-sm font-semibold mb-2"
-                        style={{
-                          color: categoryColor ? 
-                            (categoryColor.text === 'text-purple-800' ? '#6b21a8' :
-                             categoryColor.text === 'text-pink-800' ? '#9d174d' :
-                             categoryColor.text === 'text-orange-800' ? '#9a3412' :
-                             categoryColor.text === 'text-green-800' ? '#166534' :
-                             categoryColor.text === 'text-blue-800' ? '#1e40af' : '#1f2937') : '#1f2937'
-                        }}
+                        className={`text-sm font-semibold mb-2 ${categoryColor ? categoryColor.text : 'text-gray-800'}`}
                       >
                         {streamData.category}
                       </div>
@@ -825,8 +804,8 @@ export default function StreamCalendar() {
                         ? streamData
                           ? categoryColor 
                             ? isPastStream 
-                              ? '' 
-                              : `hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95`
+                              ? categoryColor.bg + ' ' + categoryColor.border
+                              : categoryColor.bg + ' ' + categoryColor.border + ' hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95'
                             : isPastStream
                               ? 'bg-gray-50 border-gray-200'
                               : 'bg-gray-50 border-gray-200 hover:border-purple-400 hover:shadow-md cursor-pointer active:scale-95'
@@ -837,18 +816,6 @@ export default function StreamCalendar() {
                       }
                       ${isPastStream ? 'opacity-60' : ''}
                     `}
-                    style={day && streamData && categoryColor ? {
-                      backgroundColor: categoryColor.bg === 'bg-green-100' ? '#dcfce7' : 
-                                     categoryColor.bg === 'bg-purple-100' ? '#f3e8ff' :
-                                     categoryColor.bg === 'bg-pink-100' ? '#fce7f3' :
-                                     categoryColor.bg === 'bg-blue-100' ? '#dbeafe' :
-                                     categoryColor.bg === 'bg-orange-100' ? '#fed7aa' : '#f9fafb',
-                      borderColor: categoryColor.border === 'border-green-400' ? '#4ade80' :
-                                  categoryColor.border === 'border-purple-400' ? '#a855f7' :
-                                  categoryColor.border === 'border-pink-400' ? '#f472b6' :
-                                  categoryColor.border === 'border-blue-400' ? '#60a5fa' :
-                                  categoryColor.border === 'border-orange-400' ? '#fb923c' : '#e5e7eb'
-                    } : {}}
                   >
                     {/* 8-bit X overlay for past streams */}
                     {isPastStream && streamData && (
@@ -900,15 +867,7 @@ export default function StreamCalendar() {
                           <div className="flex flex-col justify-start flex-grow">
                             {/* Category */}
                             <div 
-                              className="text-xs font-semibold leading-tight mb-1"
-                              style={{
-                                color: categoryColor ? 
-                                  (categoryColor.text === 'text-purple-800' ? '#6b21a8' :
-                                   categoryColor.text === 'text-pink-800' ? '#9d174d' :
-                                   categoryColor.text === 'text-orange-800' ? '#9a3412' :
-                                   categoryColor.text === 'text-green-800' ? '#166534' :
-                                   categoryColor.text === 'text-blue-800' ? '#1e40af' : '#1f2937') : '#1f2937'
-                              }}
+                              className={`text-xs font-semibold leading-tight mb-1 ${categoryColor ? categoryColor.text : 'text-gray-800'}`}
                             >
                               <div className="h-8 md:h-10 lg:h-12 overflow-hidden">
                                 {streamData.category}

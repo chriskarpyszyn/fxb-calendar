@@ -48,8 +48,8 @@
       "time": "7:00am - 9:00am"
     },
     "13": {
-      "category": "Software and Game Development",
-      "subject": "Working on Typing Stars",
+      "category": "Surprise",
+      "subject": "Surprise",
       "time": "7:00am - 9:00am"
     },
     "16": {
@@ -71,6 +71,21 @@
       "category": "Software and Game Development",
       "subject": "Working on Typing Stars",
       "time": "7:00am - 9:00am"
+    },
+    "10": {
+      "category": "Software and Game Development",
+      "subject": "Working on the Typing Stars Alpha",
+      "time": "7:00am - 9:00am"
+    },
+    "11": {
+      "category": "Software and Game Development",
+      "subject": "Working on the Settings for Typing Stars",
+      "time": "11:00am - 2:00pm"
+    },
+    "12": {
+      "category": "Art",
+      "subject": "Lego Break",
+      "time": "11:00am - 12:00pm"
     },
     "30": {
       "category": "Software and Game Development",
@@ -114,6 +129,18 @@
       "border": "border-blue-400",
       "text": "text-blue-800",
       "dot": "bg-blue-500"
+    },
+    "Art": {
+      "bg": "bg-yellow-100",
+      "border": "border-yellow-400",
+      "text": "text-yellow-800",
+      "dot": "bg-yellow-500"
+    },
+    "Surprise": {
+      "bg": "bg-red-100",
+      "border": "border-red-400",
+      "text": "text-red-800",
+      "dot": "bg-red-500"
     }
   }
 }
