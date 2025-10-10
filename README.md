@@ -4,6 +4,21 @@
 
 A retro-themed stream calendar application for tracking and displaying streaming schedules.
 
+## Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Install Vercel CLI for API support
+npm install -g vercel
+
+# Run development server with API support
+vercel dev
+```
+
+**⚠️ Use `vercel dev` not `npm start` for full functionality!**
+
 ## Features
 
 - Interactive calendar view
@@ -15,13 +30,56 @@ A retro-themed stream calendar application for tracking and displaying streaming
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Development Setup
+
+**⚠️ IMPORTANT: This project uses Vercel serverless functions for the API**
+
+### Prerequisites
+
+1. Install Vercel CLI globally:
+```bash
+npm install -g vercel
+```
+
+2. Set up environment variables in `.env.local`:
+```bash
+REDIS_URL=your_redis_connection_string
+DISCORD_WEBHOOK_URL=your_discord_webhook_url
+```
+
+### Running the Development Server
+
+**Use `vercel dev` instead of `npm start` for full functionality:**
+
+```bash
+vercel dev
+```
+
+This will:
+- Start the React app on http://localhost:3000
+- Enable serverless API functions at `/api/get-ideas` and `/api/submit-idea`
+- Load environment variables from `.env.local`
+- Provide hot reloading for both frontend and API
+
+**❌ DO NOT use `npm start`** - it only runs the React frontend without API support.
+
 ## Available Scripts
 
 In the project directory, you can run:
 
-### `npm start`
+### `vercel dev` (Recommended)
 
-Runs the app in the development mode.\
+Runs the full application with API support.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+
+The page will reload when you make changes.\
+API functions will also hot-reload when modified.
+
+### `npm start` (Frontend Only)
+
+Runs only the React app without API support.\
+**Use this only for frontend-only development.**
+
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
 The page will reload when you make changes.\
