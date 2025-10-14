@@ -91,6 +91,16 @@
       "category": "Software and Game Development",
       "subject": "Working on Typing Stars",
       "time": "7:00am - 9:00am"
+    },
+    "14": {
+      "category": "Megabonk",
+      "subject": "Megabonk",
+      "time": "8:00pm - 9:00pm"
+    },
+    "15": {
+      "category": "CloverPit",
+      "subject": "CloverPitt",
+      "time": "5:00pm - 6:00pm"
     }
   },
   "categories": {
@@ -141,6 +151,12 @@
       "border": "border-red-400",
       "text": "text-red-800",
       "dot": "bg-red-500"
+    },
+    "megabonk": {
+      "bg": "bg-indigo-100",
+      "border": "border-indigo-400",
+      "text": "text-indigo-800",
+      "dot": "bg-indigo-500"
     }
   }
 }
