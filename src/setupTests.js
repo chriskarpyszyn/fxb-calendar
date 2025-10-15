@@ -16,3 +16,10 @@ if (typeof global.clearImmediate === 'undefined') {
     clearTimeout(id);
   };
 }
+
+// TextEncoder/TextDecoder polyfills for Jest environment
+if (typeof global.TextEncoder === 'undefined') {
+  const { TextEncoder, TextDecoder } = require('util');
+  global.TextEncoder = TextEncoder;
+  global.TextDecoder = TextDecoder;
+}
