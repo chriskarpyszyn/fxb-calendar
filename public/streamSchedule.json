@@ -59,8 +59,8 @@
     },
     "20": {
       "category": "Software and Game Development",
-      "subject": "Working on Typing Stars",
-      "time": "7:00am - 9:00am"
+      "subject": "Making Game Music with Udio",
+      "time": "8:15am - 9:00am"
     },
     "23": {
       "category": "Software and Game Development",
@@ -101,6 +101,21 @@
       "category": "CloverPit",
       "subject": "CloverPitt",
       "time": "5:00pm - 6:00pm"
+    },
+    "17": {
+      "category": "CloverPit",
+      "subject": "Finishing CloverPitt",
+      "time": "8:00pm - 9:00pm"
+    },
+    "18": {
+      "category": "Software and Game Development",
+      "subject": "Alpha build",
+      "time": "1:00pm - 2:00pm"
+    },
+    "19": {
+      "category": "Art",
+      "subject": "Lego Break",
+      "time": "11:00am - 12:00pm"
     }
   },
   "categories": {

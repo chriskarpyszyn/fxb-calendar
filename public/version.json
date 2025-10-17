@@ -1,6 +1,14 @@
 {
-  "currentVersion": "v1.1",
+  "currentVersion": "v1.2",
   "releaseNotes": [
+    {
+      "version": "v1.2",
+      "date": "2025-01-27",
+      "title": "Version 1.2 - Calendar Layout Update",
+      "changes": [
+        "Changed calendar week start from Sunday to Monday"
+      ]
+    },
     {
       "version": "v1.1",
       "date": "2025-10-08",
