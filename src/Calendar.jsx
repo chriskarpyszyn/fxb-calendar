@@ -323,6 +323,7 @@ export default function Calendar() {
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
   const startingDayOfWeek = firstDay.getDay();
+  const adjustedStartingDay = (startingDayOfWeek + 6) % 7;
   
   // Month names
   const monthNames = [
@@ -331,13 +332,13 @@ export default function Calendar() {
   ];
   
   // Day names
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   
   // Create array of day numbers
   const days = [];
   
   // Add empty cells for days before the month starts
-  for (let i = 0; i < startingDayOfWeek; i++) {
+  for (let i = 0; i < adjustedStartingDay; i++) {
     days.push(null);
   }
   
