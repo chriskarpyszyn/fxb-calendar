@@ -13,10 +13,10 @@ Integrate Twitch Channel Points with EventSub webhooks to allow viewers to vote 
 5. **Real-time Display**: UI shows updated vote counts (polling every 15 seconds during streams)
 
 ### Why This Approach?
-- ✅ Simple: One reward to manage
-- ✅ Scalable: Works with unlimited ideas
-- ✅ Flexible: Easy to show/hide idea IDs in UI
-- ✅ Standard: How most Twitch voting systems work
+- Simple: One reward to manage
+- Scalable: Works with unlimited ideas
+- Flexible: Easy to show/hide idea IDs in UI
+- Standard: How most Twitch voting systems work
 
 ### Webhook Signature Verification
 Twitch signs all EventSub webhooks with a secret key. We verify this signature to ensure the webhook actually came from Twitch and wasn't spoofed by a malicious actor. **It's simple to implement** (just comparing HMAC hashes) and **critical for security**.
@@ -272,7 +272,7 @@ async function processVote(redemption) {
 
 **Changes**:
 1. Display idea ID clearly (e.g., "Idea #1729012345678")
-2. Show vote count with 👍 emoji and styling
+2. Show vote count with styling
 3. Add "How to Vote" instructions when stream is live
 4. Implement auto-refresh during live streams (every 15 seconds)
 5. Sort by votes (default) or submission time
@@ -280,7 +280,7 @@ async function processVote(redemption) {
 **Visual Hierarchy**:
 ```
 ┌─────────────────────────────────────┐
-│ Idea #5 • 🔥 47 votes • 2 hours ago │
+│ Idea #5 • 47 votes • 2 hours ago    │
 ├─────────────────────────────────────┤
 │ Play Hollow Knight and try to       │
 │ finish all the pantheons             │
@@ -295,7 +295,7 @@ async function processVote(redemption) {
 Show when stream is live:
 ```
 ┌─────────────────────────────────────────────────┐
-│ 🎮 VOTING IS LIVE! 🎮                           │
+│ VOTING IS LIVE!                                 │
 │                                                  │
 │ To vote for an idea:                            │
 │ 1. Look for the "Idea #" in the box            │
@@ -445,10 +445,10 @@ When someone enters invalid idea ID:
 ## Security Considerations
 
 ### Webhook Security
-✅ **Signature Verification**: Prevents spoofed webhooks
-✅ **HTTPS Only**: Vercel enforces HTTPS automatically
-✅ **Secret Management**: Environment variables never exposed to client
-✅ **Rate Limiting**: Twitch handles this on their end
+- **Signature Verification**: Prevents spoofed webhooks
+- **HTTPS Only**: Vercel enforces HTTPS automatically
+- **Secret Management**: Environment variables never exposed to client
+- **Rate Limiting**: Twitch handles this on their end
 
 ### Vote Integrity
 - **Optional**: Prevent duplicate votes per user (check `voters` array)
@@ -456,8 +456,8 @@ When someone enters invalid idea ID:
 - **Recommended**: Log all vote events for audit trail
 
 ### Admin Protection
-✅ **Already Implemented**: JWT-based admin authentication
-✅ **Already Implemented**: Session expiry
+- **Already Implemented**: JWT-based admin authentication
+- **Already Implemented**: Session expiry
 
 ---
 
