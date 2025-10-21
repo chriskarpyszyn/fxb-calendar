@@ -59,7 +59,17 @@
     },
     "20": {
       "category": "Software and Game Development",
-      "subject": "Making Game Music with Udio",
+      "subject": "Working on Steam Stats",
+      "time": "7:00am - 9:00am"
+    },
+    "21": {
+      "category": "CloverPit",
+      "subject": "Trying to beat CloverPitt",
+      "time": "8:00pm - 9:00pm"
+    },
+    "22": {
+      "category": "Software and Game Development",
+      "subject": "Making Music with Udio",
       "time": "8:15am - 9:00am"
     },
     "23": {
