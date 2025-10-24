@@ -102,8 +102,8 @@ export default function TwentyFourHourSchedule() {
         <div className="text-center mb-4 sm:mb-6 md:mb-8">
           <div className="retro-container p-6 retro-glow mb-4">
             <h1 className="retro-title text-lg sm:text-xl md:text-2xl lg:text-3xl mb-2 leading-tight">
-              24 HOUR STREAM<br />
-              SCHEDULE
+              EXTRA LIFE 24 HOUR<br />
+              STREAM SCHEDULE
             </h1>
             <p className="retro-text text-retro-muted text-sm sm:text-base md:text-lg font-mono">
               {scheduleData.date}
