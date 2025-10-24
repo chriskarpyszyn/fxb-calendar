@@ -4,18 +4,18 @@
   "endDate": "2025-11-07",
   "timeSlots": [
     {
-      "hour": 23,
-      "time": "11:00pm - 12:00am",
-      "category": "Software and Game Development",
-      "activity": "Late Night Coding Session",
-      "description": "Working on Typing Stars features and bug fixes in the quiet hours"
-    },
-    {
       "hour": 0,
       "time": "12:00am - 1:00am",
       "category": "Gaming",
       "activity": "Midnight Gaming",
       "description": "Playing some relaxing indie games to wind down"
+    },
+    {
+      "hour": 23,
+      "time": "11:00pm - 12:00am",
+      "category": "Software and Game Development",
+      "activity": "Late Night Coding Session",
+      "description": "Working on Typing Stars features and bug fixes in the quiet hours"
     },
     {
       "hour": 1,

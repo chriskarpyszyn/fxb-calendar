@@ -49,7 +49,7 @@ export default function TwentyFourHourSchedule() {
     const startHour24 = convertTo24Hour(startHour, startPeriod);
     const endHour24 = convertTo24Hour(endHour, endPeriod);
     
-    // Create Date objects for November 6, 2025 (assuming EDT, UTC-4)
+    // Create Date objects for November 6, 2025 (using EST, UTC-5 since it's Standard Time in November)
     const year = 2025;
     const month = 11; // November
     const day = 6;
@@ -57,8 +57,8 @@ export default function TwentyFourHourSchedule() {
     // Handle day rollover for times after midnight
     const actualDay = startHour24 < 12 ? day + 1 : day;
     
-    const edtStartTime = new Date(`${year}-${month.toString().padStart(2, '0')}-${actualDay.toString().padStart(2, '0')}T${startHour24.toString().padStart(2, '0')}:${startMin}:00-04:00`);
-    const edtEndTime = new Date(`${year}-${month.toString().padStart(2, '0')}-${actualDay.toString().padStart(2, '0')}T${endHour24.toString().padStart(2, '0')}:${endMin}:00-04:00`);
+    const estStartTime = new Date(`${year}-${month.toString().padStart(2, '0')}-${actualDay.toString().padStart(2, '0')}T${startHour24.toString().padStart(2, '0')}:${startMin}:00-05:00`);
+    const estEndTime = new Date(`${year}-${month.toString().padStart(2, '0')}-${actualDay.toString().padStart(2, '0')}T${endHour24.toString().padStart(2, '0')}:${endMin}:00-05:00`);
     
     // Convert to user's timezone
     const userTimezone = getUserTimezone();
@@ -73,8 +73,8 @@ export default function TwentyFourHourSchedule() {
       }).format(date).replace(/\s/g, '');
     };
     
-    const startTimeLocal = formatTime(edtStartTime);
-    const endTimeLocal = formatTime(edtEndTime);
+    const startTimeLocal = formatTime(estStartTime);
+    const endTimeLocal = formatTime(estEndTime);
     
     return `${startTimeLocal} - ${endTimeLocal}`;
   };
