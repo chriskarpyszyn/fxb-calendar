@@ -10,8 +10,10 @@ export default function useTwitchStatus() {
   useEffect(() => {
     const checkTwitchStatus = async () => {
       try {
+        console.log('useTwitchStatus - Fetching Twitch status...');
         const response = await fetch('/api/twitch-status');
         const data = await response.json();
+        console.log('useTwitchStatus - Received data:', data);
         setTwitchStatus({
           ...data,
           loading: false

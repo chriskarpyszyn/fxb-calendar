@@ -1,13 +1,22 @@
 import React from 'react';
 
 export default function LiveStreamBanner({ twitchStatus }) {
+  // Debug logging
+  console.log('LiveStreamBanner - twitchStatus:', twitchStatus);
+  
   // Only show the banner when live and not loading
-  if (!twitchStatus.isLive || twitchStatus.loading) {
+  // TEMPORARY: Always show for debugging
+  if (false && (!twitchStatus.isLive || twitchStatus.loading)) {
+    console.log('LiveStreamBanner - Not showing banner. isLive:', twitchStatus.isLive, 'loading:', twitchStatus.loading);
     return null;
   }
 
   return (
     <div className="mb-6 retro-container p-6 retro-glow bg-red-50 border-4 border-red-500">
+      {/* DEBUG: Test banner */}
+      <div className="bg-yellow-200 p-2 mb-4 text-center">
+        DEBUG: LiveStreamBanner is rendering! Twitch Status: {JSON.stringify(twitchStatus)}
+      </div>
       <div className="text-center mb-4">
         <div className="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-full font-bold text-lg mb-3 animate-pulse">
           <span className="w-3 h-3 bg-white rounded-full animate-pulse"></span>
