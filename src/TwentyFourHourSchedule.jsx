@@ -144,14 +144,18 @@ export default function TwentyFourHourSchedule() {
                       categoryColor ? `${categoryColor.bg} ${categoryColor.border}` : 'bg-gray-50 border-gray-300'
                     }`}
                   >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                      {/* Time and Category */}
-                      <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <div className="grid grid-cols-12 gap-4 items-start">
+                      {/* Time Column - 3 columns */}
+                      <div className="col-span-3">
                         <div className="text-lg font-bold text-gray-800">
                           {convertTimeToUserTimezone(slot.time)}
                         </div>
+                      </div>
+                      
+                      {/* Category Column - 3 columns */}
+                      <div className="col-span-3">
                         <div 
-                          className={`text-sm font-semibold px-2 py-1 rounded ${
+                          className={`text-sm font-semibold ${
                             categoryColor ? categoryColor.text : 'text-gray-800'
                           }`}
                         >
@@ -159,8 +163,8 @@ export default function TwentyFourHourSchedule() {
                         </div>
                       </div>
                       
-                      {/* Activity and Description */}
-                      <div className="flex-1">
+                      {/* Activity/Subject Column - 6 columns */}
+                      <div className="col-span-6">
                         <div className="text-base font-bold text-gray-800 mb-1">
                           {slot.activity}
                         </div>
