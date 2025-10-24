@@ -32,9 +32,10 @@ export default function TwentyFourHourSchedule() {
 
   // Convert time to user's local timezone
   const convertTimeToUserTimezone = (timeString) => {
-    // Parse "11:00pm - 12:00am" format
-    const match = timeString.match(/(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)/);
-    if (!match) return timeString; // Return original if parsing fails
+    try {
+      // Parse "11:00pm - 12:00am" format
+      const match = timeString.match(/(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)/);
+      if (!match) return timeString; // Return original if parsing fails
     
     const [, startHour, startMin, startPeriod, endHour, endMin, endPeriod] = match;
     
@@ -57,26 +58,45 @@ export default function TwentyFourHourSchedule() {
     // Handle day rollover for times after midnight
     const actualDay = startHour24 < 12 ? day + 1 : day;
     
-    const estStartTime = new Date(`${year}-${month.toString().padStart(2, '0')}-${actualDay.toString().padStart(2, '0')}T${startHour24.toString().padStart(2, '0')}:${startMin}:00-05:00`);
-    const estEndTime = new Date(`${year}-${month.toString().padStart(2, '0')}-${actualDay.toString().padStart(2, '0')}T${endHour24.toString().padStart(2, '0')}:${endMin}:00-05:00`);
+    // Create dates more safely
+    const startDateStr = `${year}-${month.toString().padStart(2, '0')}-${actualDay.toString().padStart(2, '0')}T${startHour24.toString().padStart(2, '0')}:${startMin}:00-05:00`;
+    const endDateStr = `${year}-${month.toString().padStart(2, '0')}-${actualDay.toString().padStart(2, '0')}T${endHour24.toString().padStart(2, '0')}:${endMin}:00-05:00`;
+    
+    const estStartTime = new Date(startDateStr);
+    const estEndTime = new Date(endDateStr);
+    
+    // Check if dates are valid
+    if (isNaN(estStartTime.getTime()) || isNaN(estEndTime.getTime())) {
+      console.error('Invalid date created:', { startDateStr, endDateStr, startHour24, endHour24, actualDay });
+      return timeString; // Return original if date creation fails
+    }
     
     // Convert to user's timezone
     const userTimezone = getUserTimezone();
     
     // Format the converted times
     const formatTime = (date) => {
-      return new Intl.DateTimeFormat('en-US', {
-        timeZone: userTimezone,
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }).format(date).replace(/\s/g, '');
+      try {
+        return new Intl.DateTimeFormat('en-US', {
+          timeZone: userTimezone,
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }).format(date).replace(/\s/g, '');
+      } catch (error) {
+        console.error('Date formatting error:', error, date);
+        return timeString;
+      }
     };
     
     const startTimeLocal = formatTime(estStartTime);
     const endTimeLocal = formatTime(estEndTime);
     
     return `${startTimeLocal} - ${endTimeLocal}`;
+    } catch (error) {
+      console.error('Timezone conversion error:', error, timeString);
+      return timeString; // Return original if any error occurs
+    }
   };
 
   if (loading) {
