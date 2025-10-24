@@ -126,6 +126,21 @@
       "category": "Art",
       "subject": "Lego Break",
       "time": "11:00am - 12:00pm"
+    },
+    "24": {
+      "category": "CloverPit",
+      "subject": "Trying a new winning method",
+      "time": "8:00pm - 9:00pm"
+    },
+    "25": {
+      "category": "Software and Game Development",
+      "subject": "Adding more stats to the build",
+      "time": "12:00pm - 1:00pm"
+    },
+    "26": {
+      "category": "Art",
+      "subject": "Lofi Lego Stream",
+      "time": "11:00am - 12:00pm"
     }
   },
   "categories": {
