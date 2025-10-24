@@ -184,7 +184,7 @@ export default function TwentyFourHourSchedule() {
         <div className="text-center mt-8">
           <div className="retro-container p-4 retro-glow">
             <p className="text-sm text-gray-400">
-              Join the 24-hour stream adventure! 🎮
+              Join the 24-hour stream adventure! 
             </p>
           </div>
         </div>
