@@ -140,10 +140,20 @@ export default function TwentyFourHourSchedule() {
             {scheduleData.timeSlots.map((slot, index) => {
               const categoryColor = scheduleData.categories[slot.category];
               const isNewDay = slot.hour === 0; // Midnight marks new day
+              const isFirstSlot = index === 0; // First slot gets Thursday heading
               const isSixHourMark = slot.hour % 6 === 0; // Every 6 hours
               
               return (
                 <div key={index}>
+                  {/* Thursday heading for first slot */}
+                  {isFirstSlot && (
+                    <div className="text-center my-6">
+                      <div className="inline-block bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                        THURSDAY NOVEMBER 6TH
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Day separator at midnight */}
                   {isNewDay && (
                     <div className="text-center my-6">
