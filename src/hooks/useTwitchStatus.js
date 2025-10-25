@@ -29,6 +29,11 @@ export default function useTwitchStatus() {
     };
 
     const connectSSE = () => {
+      // Skip SSE in test environment
+      if (typeof window === 'undefined' || !window.EventSource) {
+        return;
+      }
+
       // Close existing connection
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
