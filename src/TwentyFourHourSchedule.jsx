@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import LiveStreamBanner from './components/LiveStreamBanner';
+import useTwitchStatus from './hooks/useTwitchStatus';
 
 export default function TwentyFourHourSchedule() {
   const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const twitchStatus = useTwitchStatus();
 
   // Load schedule data from JSON file
   useEffect(() => {
@@ -133,6 +136,9 @@ export default function TwentyFourHourSchedule() {
             </p>
           </div>
         </div>
+
+        {/* Live Stream Banner */}
+        <LiveStreamBanner twitchStatus={twitchStatus} />
 
         {/* Schedule Grid */}
         <div className="retro-container p-4 md:p-6 retro-glow">
