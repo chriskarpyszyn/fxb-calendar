@@ -42,6 +42,10 @@ export default function useTwitchStatus() {
       const eventSource = new EventSource('/api/twitch-events');
       eventSourceRef.current = eventSource;
 
+      eventSource.onopen = () => {
+        console.log('SSE connection opened successfully');
+      };
+
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -64,6 +68,8 @@ export default function useTwitchStatus() {
 
       eventSource.onerror = (error) => {
         console.error('SSE error:', error);
+        console.error('EventSource readyState:', eventSource.readyState);
+        console.error('EventSource URL:', eventSource.url);
         eventSource.close();
         
         // Reconnect after 5 seconds
