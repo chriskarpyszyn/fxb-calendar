@@ -1,5 +1,7 @@
 // API route to check Twitch live status
-// Checks if the channel is live and returns stream info
+// Reads from Redis (updated by webhooks) with Twitch API fallback
+
+const { getStreamStatus } = require('./redis-helper');
 
 let cachedToken = null;
 let tokenExpiry = null;
@@ -42,8 +44,8 @@ async function getTwitchToken() {
   return cachedToken;
 }
 
-// Check if channel is live
-async function getStreamStatus(channelName) {
+// Check if channel is live (renamed to avoid conflict with Redis function)
+async function getStreamStatusFromTwitch(channelName) {
   const token = await getTwitchToken();
   const clientId = process.env.TWITCH_CLIENT_ID;
 
@@ -108,7 +110,7 @@ async function getStreamStatus(channelName) {
   };
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Only allow GET requests
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -117,10 +119,31 @@ export default async function handler(req, res) {
   const channelName = process.env.TWITCH_CHANNEL_NAME || 'itsFlannelBeard';
 
   try {
-    const status = await getStreamStatus(channelName);
+    // First, try to get status from Redis (updated by webhooks)
+    let status = await getStreamStatus();
     
-    // Set cache headers to avoid hitting rate limits
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
+    if (!status) {
+      // Fallback to Twitch API if no data in Redis
+      console.log('No status in Redis, falling back to Twitch API');
+      status = await getStreamStatusFromTwitch(channelName);
+      
+      // Store the result in Redis for future requests
+      if (status) {
+        const { storeStreamStatus } = require('./redis-helper');
+        await storeStreamStatus(status);
+      }
+    }
+    
+    // If still no status, return default offline
+    if (!status) {
+      status = {
+        isLive: false,
+        channelName: channelName
+      };
+    }
+    
+    // Set cache headers (shorter since we have webhook updates)
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate');
     
     return res.status(200).json(status);
     
@@ -128,7 +151,8 @@ export default async function handler(req, res) {
     console.error('Error checking Twitch status:', error);
     return res.status(500).json({ 
       error: 'Failed to check stream status',
-      isLive: false 
+      isLive: false,
+      channelName: channelName
     });
   }
 }
