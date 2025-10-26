@@ -110,6 +110,7 @@ async function getStreamStatusFromTwitch(channelName) {
   };
 }
 
+// Export the function for use in other modules
 module.exports = async function handler(req, res) {
   // Only allow GET requests
   if (req.method !== 'GET') {
@@ -156,3 +157,6 @@ module.exports = async function handler(req, res) {
     });
   }
 }
+
+// Export the function for use in other modules
+module.exports.getStreamStatusFromTwitch = getStreamStatusFromTwitch;

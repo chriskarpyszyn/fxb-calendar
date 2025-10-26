@@ -27,13 +27,25 @@ module.exports = async function handler(req, res) {
     if (currentStatus) {
       res.write(`data: ${JSON.stringify(currentStatus)}\n\n`);
     } else {
-      // If no status in Redis, send default offline status
-      const defaultStatus = {
-        isLive: false,
-        channelName: process.env.TWITCH_CHANNEL_NAME || 'itsFlannelBeard',
-        loading: false
-      };
-      res.write(`data: ${JSON.stringify(defaultStatus)}\n\n`);
+      // If no status in Redis, fall back to Twitch API
+      const { getStreamStatusFromTwitch } = require('./twitch-status');
+      const channelName = process.env.TWITCH_CHANNEL_NAME || 'itsFlannelBeard';
+      const twitchStatus = await getStreamStatusFromTwitch(channelName);
+      
+      if (twitchStatus) {
+        res.write(`data: ${JSON.stringify(twitchStatus)}\n\n`);
+        // Store in Redis for future requests
+        const { storeStreamStatus } = require('./redis-helper');
+        await storeStreamStatus(twitchStatus);
+      } else {
+        // Default offline status
+        const defaultStatus = {
+          isLive: false,
+          channelName: channelName,
+          loading: false
+        };
+        res.write(`data: ${JSON.stringify(defaultStatus)}\n\n`);
+      }
     }
   } catch (error) {
     console.error('Error getting initial status:', error);
