@@ -123,9 +123,13 @@ module.exports = async function handler(req, res) {
     // First, try to get status from Redis (updated by webhooks)
     let status = await getStreamStatus();
     
-    if (!status) {
-      // Fallback to Twitch API if no data in Redis
-      console.log('No status in Redis, falling back to Twitch API');
+    // Check if status is stale (older than 2 minutes)
+    const isStale = status?.updatedAt && 
+      (Date.now() - new Date(status.updatedAt).getTime() > 120000);
+    
+    if (!status || isStale) {
+      // Fallback to Twitch API if no data in Redis or data is stale
+      console.log('Status missing or stale, fetching from Twitch API');
       status = await getStreamStatusFromTwitch(channelName);
       
       // Store the result in Redis for future requests
@@ -143,8 +147,8 @@ module.exports = async function handler(req, res) {
       };
     }
     
-    // Set cache headers (shorter since we have webhook updates)
-    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate');
+    // Set cache headers to force fresh checks and prevent stale cache
+    res.setHeader('Cache-Control', 'public, s-maxage=30, max-age=0, must-revalidate');
     
     return res.status(200).json(status);
     

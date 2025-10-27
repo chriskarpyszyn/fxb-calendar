@@ -49,7 +49,7 @@ export default function LiveStreamBanner({ twitchStatus }) {
       {/* Embedded Twitch Player */}
       <div className="relative w-full rounded-lg overflow-hidden" style={{ paddingBottom: '56.25%' }}>
         <iframe
-          src={`https://player.twitch.tv/?channel=${twitchStatus.channelName}&parent=fxb-calendar.vercel.app&muted=false`}
+          src={`https://player.twitch.tv/?channel=${twitchStatus.channelName}&parent=${window.location.hostname}&muted=false`}
           className="absolute top-0 left-0 w-full h-full"
           allowFullScreen
           title="Twitch Stream"

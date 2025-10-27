@@ -8,20 +8,44 @@ export default function useTwitchStatus() {
   });
 
   useEffect(() => {
+    let mounted = true;
+    let abortController = new AbortController();
+    
     const checkTwitchStatus = async () => {
       try {
-        const response = await fetch('/api/twitch-status');
-        const data = await response.json();
-        setTwitchStatus({
-          ...data,
-          loading: false
+        // Create new abort controller for this request
+        abortController = new AbortController();
+        
+        const response = await fetch('/api/twitch-status', {
+          signal: abortController.signal,
+          cache: 'no-cache' // Force fresh requests
         });
+        
+        if (!mounted) return; // Don't update if unmounted
+        
+        const data = await response.json();
+        console.log('Twitch Status:', data); // Debug log
+        
+        if (mounted) {
+          setTwitchStatus({
+            ...data,
+            loading: false
+          });
+        }
       } catch (err) {
+        // Ignore abort errors (expected on unmount)
+        if (err.name === 'AbortError') {
+          return;
+        }
+        
         console.error('Failed to check Twitch status:', err);
-        setTwitchStatus(prev => ({
-          ...prev,
-          loading: false
-        }));
+        
+        if (mounted) {
+          setTwitchStatus(prev => ({
+            ...prev,
+            loading: false
+          }));
+        }
       }
     };
 
@@ -41,6 +65,8 @@ export default function useTwitchStatus() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      mounted = false;
+      abortController.abort(); // Cancel any in-flight requests
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
