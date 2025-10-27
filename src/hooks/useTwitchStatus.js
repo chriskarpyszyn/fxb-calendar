@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function useTwitchStatus() {
   const [twitchStatus, setTwitchStatus] = useState({
@@ -6,9 +6,6 @@ export default function useTwitchStatus() {
     loading: true,
     channelName: 'itsFlannelBeard'
   });
-  
-  const eventSourceRef = useRef(null);
-  const reconnectTimeoutRef = useRef(null);
 
   useEffect(() => {
     const checkTwitchStatus = async () => {
@@ -28,77 +25,13 @@ export default function useTwitchStatus() {
       }
     };
 
-    const connectSSE = () => {
-      // Skip SSE in test environment
-      if (typeof window === 'undefined' || !window.EventSource) {
-        return;
-      }
-
-      // Close existing connection
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-
-      const eventSource = new EventSource('/api/twitch-events');
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        console.log('SSE connection opened successfully');
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          // Handle different message types
-          if (data.type === 'connected' || data.type === 'heartbeat' || data.type === 'timeout') {
-            // Ignore system messages
-            return;
-          } else {
-            // Regular status update
-            setTwitchStatus(prev => ({
-              ...data,
-              loading: false
-            }));
-          }
-        } catch (err) {
-          console.error('Error parsing SSE data:', err);
-        }
-      };
-
-      eventSource.onerror = (error) => {
-        // Only log errors if we're not already trying to reconnect
-        if (eventSource.readyState === 0) {
-          // Connection is closed/closing
-          console.log('SSE connection closing, will reconnect...');
-        } else {
-          console.error('SSE error:', error);
-          console.error('EventSource readyState:', eventSource.readyState);
-        }
-        eventSource.close();
-        
-        // Reconnect after 1 second
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connectSSE();
-        }, 1000);
-      };
-
-      // Handle connection close (timeout)
-      eventSource.addEventListener('close', () => {
-        // Reconnect immediately for seamless experience
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connectSSE();
-        }, 1000);
-      });
-    };
-
-    // Get initial status
+    // Check immediately
     checkTwitchStatus();
-    
-    // Connect to SSE
-    connectSSE();
 
-    // Handle page visibility changes
+    // Then poll every 30 seconds
+    const interval = setInterval(checkTwitchStatus, 30000);
+
+    // Handle page visibility changes for immediate check when user returns
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         checkTwitchStatus();
@@ -108,13 +41,7 @@ export default function useTwitchStatus() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      // Cleanup
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
+      clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);

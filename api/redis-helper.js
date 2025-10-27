@@ -1,10 +1,7 @@
-// Centralized Redis helper module for Twitch webhook and SSE functionality
+// Centralized Redis helper module for Twitch webhook functionality
 // Reuses connection logic from submit-idea.js
 
 const { createClient } = require('redis');
-
-// In-memory store for SSE clients
-let sseClients = new Set();
 
 // Helper function to get Redis client
 async function getRedisClient() {
@@ -46,9 +43,6 @@ async function storeStreamStatus(status) {
     await redis.set('twitch:stream:status', JSON.stringify(statusWithTimestamp));
     console.log('Stream status stored in Redis:', statusWithTimestamp);
     
-    // Broadcast to all connected SSE clients
-    broadcastToSSEClients(statusWithTimestamp);
-    
     return statusWithTimestamp;
   } finally {
     await redis.disconnect();
@@ -69,49 +63,8 @@ async function getStreamStatus() {
   }
 }
 
-// Add SSE client to registry
-function addSSEClient(client) {
-  sseClients.add(client);
-  console.log(`SSE client added. Total clients: ${sseClients.size}`);
-}
-
-// Remove SSE client from registry
-function removeSSEClient(client) {
-  sseClients.delete(client);
-  console.log(`SSE client removed. Total clients: ${sseClients.size}`);
-}
-
-// Broadcast message to all connected SSE clients
-function broadcastToSSEClients(data) {
-  const message = `data: ${JSON.stringify(data)}\n\n`;
-  const deadClients = [];
-  
-  sseClients.forEach(client => {
-    try {
-      client.write(message);
-    } catch (error) {
-      console.error('Error writing to SSE client:', error);
-      deadClients.push(client);
-    }
-  });
-  
-  // Remove dead clients
-  deadClients.forEach(client => removeSSEClient(client));
-  
-  console.log(`Broadcasted to ${sseClients.size} SSE clients`);
-}
-
-// Get count of connected SSE clients
-function getSSEClientCount() {
-  return sseClients.size;
-}
-
 module.exports = {
   getRedisClient,
   storeStreamStatus,
-  getStreamStatus,
-  addSSEClient,
-  removeSSEClient,
-  broadcastToSSEClients,
-  getSSEClientCount
+  getStreamStatus
 };
