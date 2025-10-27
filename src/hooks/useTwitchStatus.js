@@ -67,15 +67,20 @@ export default function useTwitchStatus() {
       };
 
       eventSource.onerror = (error) => {
-        console.error('SSE error:', error);
-        console.error('EventSource readyState:', eventSource.readyState);
-        console.error('EventSource URL:', eventSource.url);
+        // Only log errors if we're not already trying to reconnect
+        if (eventSource.readyState === 0) {
+          // Connection is closed/closing
+          console.log('SSE connection closing, will reconnect...');
+        } else {
+          console.error('SSE error:', error);
+          console.error('EventSource readyState:', eventSource.readyState);
+        }
         eventSource.close();
         
-        // Reconnect after 5 seconds
+        // Reconnect after 1 second
         reconnectTimeoutRef.current = setTimeout(() => {
           connectSSE();
-        }, 5000);
+        }, 1000);
       };
 
       // Handle connection close (timeout)
