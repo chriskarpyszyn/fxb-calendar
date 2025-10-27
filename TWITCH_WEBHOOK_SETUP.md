@@ -56,44 +56,54 @@ Your webhook URL will be: `https://yourdomain.vercel.app/api/twitch-webhook`
 
 ## Step 4: Register EventSub Subscriptions
 
-### Option A: Using Twitch CLI (Recommended)
+### Option A: Using Twitch CLI (Recommended if installed)
 
-1. **Install Twitch CLI:**
-   ```bash
-   # macOS
-   brew install twitchdev/twitch/twitch-cli
-   
-   # Windows
-   # Download from: https://github.com/twitchdev/twitch-cli/releases
-   ```
-
-2. **Configure Twitch CLI:**
+1. **Configure Twitch CLI** (if not already done):
    ```bash
    twitch configure
-   # Enter your Client ID and Client Secret
+   # Enter your Client ID and Secret
    ```
 
-3. **Create EventSub subscriptions:**
+2. **Get User ID:**
+   ```bash
+   twitch api get users -q login=itsFlannelBeard
+   ```
+   Note down the `id` value from the response.
+
+3. **Create EventSub subscriptions** using the Twitch CLI:
    ```bash
    # Subscribe to stream.online events
-   twitch event subscribe stream.online \
-     --broadcaster-user-id YOUR_USER_ID \
-     --webhook-url https://yourdomain.vercel.app/api/twitch-webhook \
-     --secret your_webhook_secret
+   twitch api post eventsub/subscriptions \
+     --body '{ \
+       "type": "stream.online", \
+       "version": "1", \
+       "condition": { \
+         "broadcaster_user_id": "YOUR_USER_ID" \
+       }, \
+       "transport": { \
+         "method": "webhook", \
+         "callback": "https://yourdomain.vercel.app/api/twitch-webhook", \
+         "secret": "your_webhook_secret" \
+       } \
+     }'
    
    # Subscribe to stream.offline events
-   twitch event subscribe stream.offline \
-     --broadcaster-user-id YOUR_USER_ID \
-     --webhook-url https://yourdomain.vercel.app/api/twitch-webhook \
-     --secret your_webhook_secret
+   twitch api post eventsub/subscriptions \
+     --body '{ \
+       "type": "stream.offline", \
+       "version": "1", \
+       "condition": { \
+         "broadcaster_user_id": "YOUR_USER_ID" \
+       }, \
+       "transport": { \
+         "method": "webhook", \
+         "callback": "https://yourdomain.vercel.app/api/twitch-webhook", \
+         "secret": "your_webhook_secret" \
+       } \
+     }'
    ```
 
-4. **Get your User ID:**
-   ```bash
-   twitch api get users --login itsFlannelBeard
-   ```
-
-### Option B: Using Twitch API Directly
+### Option B: Using Twitch API Directly with curl
 
 1. **Get App Access Token:**
    ```bash
@@ -109,14 +119,33 @@ Your webhook URL will be: `https://yourdomain.vercel.app/api/twitch-webhook`
      -H 'Client-Id: YOUR_CLIENT_ID'
    ```
 
-3. **Create EventSub subscription:**
+3. **Create EventSub subscriptions:**
    ```bash
+   # Subscribe to stream.online
    curl -X POST 'https://api.twitch.tv/helix/eventsub/subscriptions' \
      -H 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
      -H 'Client-Id: YOUR_CLIENT_ID' \
      -H 'Content-Type: application/json' \
      -d '{
        "type": "stream.online",
+       "version": "1",
+       "condition": {
+         "broadcaster_user_id": "YOUR_USER_ID"
+       },
+       "transport": {
+         "method": "webhook",
+         "callback": "https://yourdomain.vercel.app/api/twitch-webhook",
+         "secret": "your_webhook_secret"
+       }
+     }'
+   
+   # Subscribe to stream.offline
+   curl -X POST 'https://api.twitch.tv/helix/eventsub/subscriptions' \
+     -H 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
+     -H 'Client-Id: YOUR_CLIENT_ID' \
+     -H 'Content-Type: application/json' \
+     -d '{
+       "type": "stream.offline",
        "version": "1",
        "condition": {
          "broadcaster_user_id": "YOUR_USER_ID"
@@ -215,15 +244,22 @@ curl -N https://yourdomain.vercel.app/api/twitch-events
 ### Debug Commands
 
 ```bash
-# Check EventSub subscriptions
-twitch event list
+# List current EventSub subscriptions
+curl -X GET 'https://api.twitch.tv/helix/eventsub/subscriptions' \
+  -H 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
+  -H 'Client-Id: YOUR_CLIENT_ID'
 
-# Revoke and recreate subscription
-twitch event revoke SUBSCRIPTION_ID
-twitch event subscribe stream.online --broadcaster-user-id YOUR_USER_ID --webhook-url https://yourdomain.vercel.app/api/twitch-webhook --secret your_webhook_secret
+# Revoke a subscription (replace SUBSCRIPTION_ID)
+curl -X DELETE "https://api.twitch.tv/helix/eventsub/subscriptions?id=SUBSCRIPTION_ID" \
+  -H 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
+  -H 'Client-Id: YOUR_CLIENT_ID'
 
-# Test webhook locally
-twitch event test stream.online --broadcaster-user-id YOUR_USER_ID
+# Test webhook locally (requires Twitch CLI)
+# First, install ngrok and expose your local server
+# Then use Twitch CLI to trigger mock events
+twitch event trigger stream.online \
+  --forward-address https://your-ngrok-url.ngrok.io/api/twitch-webhook \
+  --secret your_webhook_secret
 ```
 
 ## Monitoring
