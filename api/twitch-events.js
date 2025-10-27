@@ -97,8 +97,12 @@ module.exports = async function handler(req, res) {
   // Close connection after 9 seconds (within Vercel Hobby 10s limit)
   const timeoutId = setTimeout(() => {
     try {
+      // Send close message and flush before ending
       res.write('data: {"type":"timeout","message":"Connection closing for reconnection"}\n\n');
-      res.end();
+      // Small delay to ensure message is sent
+      setTimeout(() => {
+        res.end();
+      }, 100);
     } catch (error) {
       console.error('Error closing connection:', error);
     }
