@@ -60,7 +60,9 @@ module.exports = async function handler(req, res) {
       idea: idea.trim(),
       timestamp: new Date().toISOString(),
       status: 'pending',
-      votes: 0
+      votes: 0,
+      voters: [],
+      lastVoteAt: null
     };
 
     // Save to Redis

@@ -5,6 +5,8 @@ export default function AdminDashboard({ onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [expandedVoters, setExpandedVoters] = useState(new Set());
+  const [resettingVotes, setResettingVotes] = useState(false);
 
   // Fetch ideas from API
   const fetchIdeas = useCallback(async () => {
@@ -88,10 +90,77 @@ export default function AdminDashboard({ onLogout }) {
     }
   };
 
+  // Reset all votes
+  const resetVotes = async () => {
+    if (!window.confirm('Are you sure you want to reset ALL votes? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setResettingVotes(true);
+      const token = localStorage.getItem('adminToken');
+      
+      const response = await fetch('/api/admin-reset-votes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Refresh ideas to show updated vote counts
+        await fetchIdeas();
+        alert(`Successfully reset votes for ${data.resetCount} ideas`);
+      } else {
+        if (response.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        alert(data.error || 'Failed to reset votes');
+      }
+    } catch (err) {
+      console.error('Error resetting votes:', err);
+      alert('Failed to reset votes');
+    } finally {
+      setResettingVotes(false);
+    }
+  };
+
+  // Toggle voter list expansion
+  const toggleVoters = (ideaId) => {
+    const newExpanded = new Set(expandedVoters);
+    if (newExpanded.has(ideaId)) {
+      newExpanded.delete(ideaId);
+    } else {
+      newExpanded.add(ideaId);
+    }
+    setExpandedVoters(newExpanded);
+  };
+
   // Format timestamp to human-readable format
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
     return date.toLocaleString();
+  };
+
+  // Format vote timestamp
+  const formatVoteTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString();
   };
 
   // Check if session is still valid
@@ -121,18 +190,34 @@ export default function AdminDashboard({ onLogout }) {
                 Manage submitted stream ideas
               </p>
             </div>
-            <button
-              onClick={onLogout}
-              className="retro-button hover:scale-105 active:scale-95"
-            >
-              LOGOUT
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={resetVotes}
+                disabled={resettingVotes}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resettingVotes ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Resetting...
+                  </div>
+                ) : (
+                  'RESET VOTES'
+                )}
+              </button>
+              <button
+                onClick={onLogout}
+                className="retro-button hover:scale-105 active:scale-95"
+              >
+                LOGOUT
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Stats */}
         <div className="retro-container p-4 retro-glow mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold text-retro-cyan">{ideas.length}</div>
               <div className="text-sm text-retro-muted">Total Ideas</div>
@@ -148,6 +233,18 @@ export default function AdminDashboard({ onLogout }) {
                 {ideas.reduce((sum, idea) => sum + (idea.votes || 0), 0)}
               </div>
               <div className="text-sm text-retro-muted">Total Votes</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-retro-cyan">
+                {ideas.reduce((sum, idea) => sum + ((idea.voters && idea.voters.length) || 0), 0)}
+              </div>
+              <div className="text-sm text-retro-muted">Unique Voters</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-retro-cyan">
+                {ideas.length > 0 ? Math.round(ideas.reduce((sum, idea) => sum + (idea.votes || 0), 0) / ideas.length * 10) / 10 : 0}
+              </div>
+              <div className="text-sm text-retro-muted">Avg Votes/Idea</div>
             </div>
           </div>
         </div>
@@ -203,7 +300,14 @@ export default function AdminDashboard({ onLogout }) {
                         <span>•</span>
                         <span>{formatTimestamp(idea.timestamp)}</span>
                         <span>•</span>
-                        <span>👍 {idea.votes || 0} votes</span>
+                        <span className="flex items-center gap-1">
+                          👍 {idea.votes || 0} votes
+                          {idea.voters && idea.voters.length > 0 && (
+                            <span className="text-xs">
+                              ({idea.voters.length} voters)
+                            </span>
+                          )}
+                        </span>
                         <span>•</span>
                         <span className={`px-2 py-1 rounded text-xs font-semibold ${
                           idea.status === 'pending' 
@@ -213,6 +317,39 @@ export default function AdminDashboard({ onLogout }) {
                           {idea.status || 'pending'}
                         </span>
                       </div>
+                      
+                      {/* Voter Details */}
+                      {idea.voters && idea.voters.length > 0 && (
+                        <div className="mb-3">
+                          <button
+                            onClick={() => toggleVoters(idea.id)}
+                            className="text-sm text-retro-cyan hover:text-retro-cyan/80 transition-colors duration-200 flex items-center gap-1"
+                          >
+                            {expandedVoters.has(idea.id) ? '▼' : '▶'} 
+                            View {idea.voters.length} voter{idea.voters.length !== 1 ? 's' : ''}
+                            {idea.lastVoteAt && (
+                              <span className="text-retro-muted">
+                                (last vote: {formatVoteTime(idea.lastVoteAt)})
+                              </span>
+                            )}
+                          </button>
+                          
+                          {expandedVoters.has(idea.id) && (
+                            <div className="mt-2 ml-4 space-y-1 max-h-32 overflow-y-auto">
+                              {idea.voters.map((voter, index) => (
+                                <div key={index} className="text-xs text-retro-muted flex items-center justify-between bg-retro-bg/20 p-2 rounded">
+                                  <span className="font-mono">@{voter.username}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span>{voter.pointsSpent} pts</span>
+                                    <span>•</span>
+                                    <span>{formatVoteTime(voter.votedAt)}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() => deleteIdea(idea.id)}
