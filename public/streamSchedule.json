@@ -141,6 +141,16 @@
       "category": "Art",
       "subject": "Lofi Lego Stream",
       "time": "11:00am - 12:00pm"
+    },
+    "28": {
+      "category": "CloverPit",
+      "subject": "The Final Spin",
+      "time": "8:00pm - 9:00pm"
+    },
+    "29": {
+      "category": "Shroud of Gloom",
+      "subject": "Mad Chripy's Spooky Game",
+      "time": "8:15am - 9:00am"
     }
   },
   "categories": {
@@ -197,6 +207,12 @@
       "border": "border-indigo-400",
       "text": "text-indigo-800",
       "dot": "bg-indigo-500"
+    },
+    "Shroud of Gloom": {
+      "bg": "bg-gray-100",
+      "border": "border-gray-400",
+      "text": "text-gray-800",
+      "dot": "bg-gray-500"
     }
   }
 }
