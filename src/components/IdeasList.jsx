@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useTwitchStatus from '../hooks/useTwitchStatus';
 
 export default function IdeasList() {
   const [ideas, setIdeas] = useState([]);
@@ -6,11 +7,25 @@ export default function IdeasList() {
   const [error, setError] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [sortBy, setSortBy] = useState('votes'); // 'votes', 'recent', 'newest', 'oldest'
+  const { isLive } = useTwitchStatus();
+
+  // Format timestamp to human-readable format
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
 
   // Fetch ideas from API
-  const fetchIdeas = async () => {
+  const fetchIdeas = async (showRefreshIndicator = false) => {
     try {
-      setLoading(true);
+      if (showRefreshIndicator) {
+        setIsRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      
       const response = await fetch('/api/get-ideas');
       const data = await response.json();
       
@@ -25,6 +40,7 @@ export default function IdeasList() {
       setError('Failed to load ideas');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -32,25 +48,26 @@ export default function IdeasList() {
   useEffect(() => {
     fetchIdeas();
     
-    // Set up auto-refresh every 5 minutes (300 seconds)
-    const interval = setInterval(fetchIdeas, 300000);
+    // Set up auto-refresh based on stream status
+    const interval = setInterval(() => {
+      if (isLive) {
+        // Refresh every 15 seconds when live
+        fetchIdeas(true);
+      } else {
+        // Refresh every 5 minutes when offline
+        fetchIdeas(true);
+      }
+    }, isLive ? 15000 : 300000);
     
     // Cleanup interval on unmount
     return () => clearInterval(interval);
-  }, []);
+  }, [isLive]);
 
-  // Format timestamp to human-readable format
-  const formatTimestamp = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return `${Math.floor(diffDays / 30)} months ago`;
+  // Format idea ID for display (show last 6 digits)
+  const formatIdeaId = (id) => {
+    if (!id) return '';
+    const idStr = id.toString();
+    return idStr.length > 6 ? idStr.slice(-6) : idStr;
   };
 
   // Toggle drawer expansion
@@ -58,8 +75,31 @@ export default function IdeasList() {
     setIsExpanded(!isExpanded);
   };
 
+  // Sort ideas based on current sort option
+  const sortIdeas = (ideasList) => {
+    const sorted = [...ideasList];
+    
+    switch (sortBy) {
+      case 'votes':
+        return sorted.sort((a, b) => (b.votes || 0) - (a.votes || 0));
+      case 'recent':
+        return sorted.sort((a, b) => {
+          const aTime = a.lastVoteAt ? new Date(a.lastVoteAt) : new Date(0);
+          const bTime = b.lastVoteAt ? new Date(b.lastVoteAt) : new Date(0);
+          return bTime - aTime;
+        });
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      default:
+        return sorted;
+    }
+  };
+
   // Get ideas to display (first 5 or all)
-  const displayedIdeas = showAll ? ideas : ideas.slice(0, 5);
+  const sortedIdeas = sortIdeas(ideas);
+  const displayedIdeas = showAll ? sortedIdeas : sortedIdeas.slice(0, 5);
   const hasMoreIdeas = ideas.length > 5;
 
   return (
@@ -70,9 +110,22 @@ export default function IdeasList() {
         onClick={toggleExpanded}
       >
         <div className="flex items-center justify-between">
-          <h3 className="retro-title text-lg font-bold text-retro-cyan">
-            VIEW SUBMITTED IDEAS ({ideas.length})
-          </h3>
+          <div className="flex items-center gap-3">
+            <h3 className="retro-title text-lg font-bold text-retro-cyan">
+              VIEW SUBMITTED IDEAS ({ideas.length})
+            </h3>
+            {isLive && (
+              <div className="flex items-center gap-2">
+                <div className="animate-pulse">
+                  <span className="text-red-500 text-sm">🔴</span>
+                </div>
+                <span className="text-xs text-retro-muted">Live Updates</span>
+              </div>
+            )}
+            {isRefreshing && (
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-retro-cyan border-t-transparent"></div>
+            )}
+          </div>
           <div 
             className={`text-retro-cyan transition-transform duration-300 ${
               isExpanded ? 'rotate-180' : 'rotate-0'
@@ -90,6 +143,31 @@ export default function IdeasList() {
         }`}
       >
         <div className="retro-container p-4 retro-glow mt-2">
+          {/* Sort Options */}
+          {!loading && !error && ideas.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2 justify-center">
+              <span className="text-sm text-retro-muted mr-2">Sort by:</span>
+              {[
+                { key: 'votes', label: 'Most Votes', icon: '👍' },
+                { key: 'recent', label: 'Recent Votes', icon: '🕒' },
+                { key: 'newest', label: 'Newest Ideas', icon: '🆕' },
+                { key: 'oldest', label: 'Oldest Ideas', icon: '📅' }
+              ].map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setSortBy(key)}
+                  className={`px-3 py-1 rounded text-sm font-semibold transition-all duration-200 ${
+                    sortBy === key
+                      ? 'bg-retro-cyan text-retro-bg'
+                      : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+                  }`}
+                >
+                  {icon} {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Loading State */}
           {loading && (
             <div className="text-center py-8">
@@ -137,15 +215,20 @@ export default function IdeasList() {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-grow">
-                      <p className="text-lg font-bold text-retro-text mb-2 leading-tight">
-                        {idea.idea}
-                      </p>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="bg-retro-cyan text-retro-bg px-2 py-1 rounded font-mono text-sm font-bold">
+                          #{formatIdeaId(idea.id)}
+                        </span>
+                        <span className="text-lg font-bold text-retro-text leading-tight">
+                          {idea.idea}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-4 text-sm text-retro-muted flex-wrap">
                         <span className="font-mono">@{idea.username}</span>
                         <span>•</span>
                         <span>{formatTimestamp(idea.timestamp)}</span>
                         <span>•</span>
-                        <span>👍 {idea.votes} votes</span>
+                        <span>👍 {idea.votes || 0} votes</span>
                       </div>
                     </div>
                   </div>

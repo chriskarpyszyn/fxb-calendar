@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import IdeasList from './components/IdeasList';
 import LiveStreamBanner from './components/LiveStreamBanner';
+import VotingBanner from './components/VotingBanner';
 import useTwitchStatus from './hooks/useTwitchStatus';
 
 export default function Calendar() {
@@ -504,6 +505,9 @@ export default function Calendar() {
 
         {/* Live Stream Banner */}
         <LiveStreamBanner twitchStatus={twitchStatus} />
+
+        {/* Voting Banner - Show when stream is live */}
+        <VotingBanner />
 
         {/* Stream Status Card - Shows live status if live, otherwise shows next stream */}
         {nextStream && (
