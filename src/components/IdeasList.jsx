@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useTwitchStatus } from '../hooks/useTwitchStatus';
+import useTwitchStatus from '../hooks/useTwitchStatus';
 
 export default function IdeasList() {
   const [ideas, setIdeas] = useState([]);
@@ -10,6 +10,12 @@ export default function IdeasList() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState('votes'); // 'votes', 'recent', 'newest', 'oldest'
   const { isLive } = useTwitchStatus();
+
+  // Format timestamp to human-readable format
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
 
   // Fetch ideas from API
   const fetchIdeas = async (showRefreshIndicator = false) => {

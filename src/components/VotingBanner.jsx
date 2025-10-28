@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTwitchStatus } from '../hooks/useTwitchStatus';
+import useTwitchStatus from '../hooks/useTwitchStatus';
 
 export default function VotingBanner() {
   const { isLive, loading } = useTwitchStatus();

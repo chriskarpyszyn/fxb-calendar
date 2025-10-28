@@ -25,6 +25,29 @@ Before starting, you need:
 5. Click **Create**
 6. **Save the Reward ID** - you'll need this for the next step
 
+### How to Get Your Reward ID
+
+Use the Twitch CLI to get your Reward ID:
+
+1. **Install Twitch CLI**:
+   - Download from [Twitch CLI releases](https://github.com/twitchdev/twitch-cli/releases)
+   - Install using Scoop: `scoop install twitch`
+
+2. **Configure and authenticate**:
+   ```bash
+   twitch configure
+   twitch token -u -s 'channel:read:redemptions'
+   ```
+
+3. **Get your Reward ID**:
+   ```bash
+   twitch api get /channel_points/custom_rewards -q "broadcaster_id=YOUR_BROADCASTER_ID"
+   ```
+   
+   Look for your "Vote for Stream Idea" reward and copy its `id` field.
+
+**Note**: The Reward ID is a UUID that looks like: `86710f9c-8f83-41d9-ae63-f8e33ee0d2c8`
+
 ## Step 2: Configure Environment Variables
 
 Add these variables to your Vercel project settings and local `.env.local` file:
