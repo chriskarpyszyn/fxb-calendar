@@ -1,6 +1,14 @@
 {
-  "currentVersion": "v1.3.1",
+  "currentVersion": "v1.4",
   "releaseNotes": [
+    {
+      "version": "v1.4",
+      "date": "2025-10-28",
+      "title": "Version 1.4 - Twitch Channel Points Voting System",
+      "changes": [
+        "Added Twitch Channel Points voting system allowing viewers to vote on stream ideas using channel points"
+      ]
+    },
     {
       "version": "v1.3.1",
       "date": "2025-01-27",
