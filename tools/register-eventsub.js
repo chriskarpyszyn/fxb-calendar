@@ -117,35 +117,6 @@ async function deleteEventSubSubscription(subscriptionId) {
   return true;
 }
 
-// Verify reward ID exists
-async function verifyRewardId(broadcasterId, rewardId) {
-  const token = await getTwitchToken();
-  const clientId = process.env.TWITCH_CLIENT_ID;
-
-  const response = await fetch(
-    `https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${broadcasterId}&id=${rewardId}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Client-Id': clientId
-      }
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to verify reward ID: ${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  
-  if (!data.data || data.data.length === 0) {
-    throw new Error(`Reward ID '${rewardId}' not found. Please check that the reward exists in your Twitch dashboard.`);
-  }
-
-  return data.data[0];
-}
-
 // Register EventSub subscription
 async function registerEventSub(broadcasterId, rewardId, callbackUrl, secret, retryCount = 0) {
   const token = await getTwitchToken();
@@ -243,23 +214,9 @@ async function main() {
     const broadcasterId = await getBroadcasterId(channelName);
     console.log(`✓ Broadcaster ID: ${broadcasterId}\n`);
 
-    // Verify reward ID exists
-    console.log('🔍 Verifying reward ID...');
-    try {
-      const reward = await verifyRewardId(broadcasterId, rewardId);
-      console.log(`✓ Reward verified: "${reward.title}" (Cost: ${reward.cost} points)`);
-      if (!reward.is_user_input_required) {
-        console.log('⚠️  Warning: This reward does not require user input.');
-        console.log('   Voting requires text input to specify which idea to vote for.');
-      }
-    } catch (error) {
-      console.error(`❌ ${error.message}`);
-      console.error('\nTo find your reward ID:');
-      console.error('   1. Go to Twitch Creator Dashboard → Channel Points → Custom Rewards');
-      console.error('   2. Find your voting reward');
-      console.error('   3. Use the reward ID (UUID) in TWITCH_REWARD_ID');
-      process.exit(1);
-    }
+    console.log('💡 Note: Reward ID verification skipped.');
+    console.log('   Use Twitch CLI to verify your reward ID if needed:');
+    console.log(`   twitch api get /channel_points/custom_rewards -q "broadcaster_id=${broadcasterId}"`);
     console.log('');
 
     // Check for existing subscriptions
@@ -384,7 +341,6 @@ module.exports = {
   getBroadcasterId, 
   registerEventSub,
   getEventSubSubscriptions,
-  deleteEventSubSubscription,
-  verifyRewardId
+  deleteEventSubSubscription
 };
 

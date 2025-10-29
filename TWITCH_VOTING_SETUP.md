@@ -54,7 +54,53 @@ ADMIN_JWT_SECRET=your_jwt_secret_here
 - **TWITCH_CHANNEL_NAME**: Your Twitch username (without @)
 - **TWITCH_EVENTSUB_SECRET**: Generate a random string (like a password)
 - **TWITCH_EVENTSUB_CALLBACK_URL**: Your Vercel app URL + `/api/twitch-eventsub`
-- **TWITCH_REWARD_ID**: From Step 1 above
+- **TWITCH_REWARD_ID**: From Step 1 above, or see "Verifying Reward ID" section below
+
+### Verifying Your Reward ID with Twitch CLI
+
+If you need to verify or find your reward ID after registration, use the Twitch CLI:
+
+1. **Install Twitch CLI** (if not already installed):
+   - Download from [Twitch CLI releases](https://github.com/twitchdev/twitch-cli/releases)
+   - Or install using Scoop: `scoop install twitch` (Windows)
+
+2. **Configure Twitch CLI**:
+   ```bash
+   twitch configure
+   ```
+   Enter your Client ID and Client Secret when prompted.
+
+3. **Get User OAuth Token** (required for custom rewards API):
+   ```bash
+   twitch token -u -s 'channel:read:redemptions'
+   ```
+   This will open a browser for you to authorize. Copy the access token from the output.
+
+4. **List Your Custom Rewards**:
+   ```bash
+   twitch api get /channel_points/custom_rewards -q "broadcaster_id=YOUR_BROADCASTER_ID"
+   ```
+   
+   Replace `YOUR_BROADCASTER_ID` with your broadcaster ID (or use the one shown when running `register-eventsub.js`).
+   
+   Example output:
+   ```json
+   {
+     "data": [
+       {
+         "id": "86710f9c-8f83-41d9-ae63-f8e33ee0d2c8",
+         "title": "Vote for Stream Idea",
+         "cost": 100,
+         "is_user_input_required": true,
+         ...
+       }
+     ]
+   }
+   ```
+   
+   Look for your "Vote for Stream Idea" reward and copy its `id` field.
+
+**Alternative**: If you don't have the CLI set up, you can find the reward ID in your Twitch Creator Dashboard → Channel Points → Custom Rewards → click on your reward → the URL will contain the reward ID.
 
 ## Step 3: Register EventSub Subscription
 
@@ -82,8 +128,9 @@ ADMIN_JWT_SECRET=your_jwt_secret_here
    🔍 Fetching broadcaster ID...
    ✓ Broadcaster ID: 123456789
 
-   🔍 Verifying reward ID...
-   ✓ Reward verified: "Vote for Stream Idea" (Cost: 100 points)
+   💡 Note: Reward ID verification skipped.
+      Use Twitch CLI to verify your reward ID if needed:
+      twitch api get /channel_points/custom_rewards -q "broadcaster_id=123456789"
 
    🔍 Checking for existing subscriptions...
       No existing subscriptions found.
