@@ -26,7 +26,7 @@ export default function AdminDashboard({ onLogout }) {
         return;
       }
 
-      const response = await fetch('/api/admin-get-ideas', {
+      const response = await fetch('/api/admin?action=get-ideas', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -65,13 +65,13 @@ export default function AdminDashboard({ onLogout }) {
       setDeletingId(ideaId);
       const token = localStorage.getItem('adminToken');
       
-      const response = await fetch('/api/admin-delete-idea', {
+      const response = await fetch('/api/admin?action=delete-idea', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ ideaId })
+        body: JSON.stringify({ action: 'delete-idea', ideaId })
       });
       
       const data = await response.json();
@@ -107,12 +107,13 @@ export default function AdminDashboard({ onLogout }) {
       setResettingVotes(true);
       const token = localStorage.getItem('adminToken');
       
-      const response = await fetch('/api/admin-reset-votes', {
+      const response = await fetch('/api/admin?action=reset-votes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ action: 'reset-votes' })
       });
       
       const data = await response.json();
@@ -181,7 +182,7 @@ export default function AdminDashboard({ onLogout }) {
         return;
       }
 
-      const response = await fetch('/api/admin-get-surveys', {
+      const response = await fetch('/api/admin?action=get-surveys', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
