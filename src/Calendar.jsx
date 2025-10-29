@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import './App.css';
 import IdeasList from './components/IdeasList';
 import LiveStreamBanner from './components/LiveStreamBanner';
@@ -507,6 +508,23 @@ export default function Calendar() {
 
         {/* Voting Banner - Show when stream is live */}
         <VotingBanner />
+
+        {/* Survey Link Banner */}
+        <div className="mb-6">
+          <Link
+            to="/survey"
+            className="block retro-container p-4 retro-glow hover:shadow-glow transition-all duration-200 hover:scale-[1.02]"
+          >
+            <div className="text-center">
+              <h3 className="retro-title text-lg font-bold text-retro-cyan mb-1">
+                📊 Stream Category Survey
+              </h3>
+              <p className="retro-text text-retro-muted text-sm">
+                Tell us what stream categories you want to see more of!
+              </p>
+            </div>
+          </Link>
+        </div>
 
         {/* Stream Status Card - Shows live status if live, otherwise shows next stream */}
         {nextStream && (
