@@ -25,8 +25,7 @@ export default function Calendar() {
     days: 0,
     hours: 0,
     minutes: 0,
-    seconds: 0,
-    isLive: false
+    seconds: 0
   });
   
   // Load schedule data from JSON file
@@ -140,7 +139,7 @@ export default function Calendar() {
       const nextStream = getNextStream();
       
       if (!nextStream) {
-        setTimeUntilStream({ days: 0, hours: 0, minutes: 0, seconds: 0, isLive: false });
+        setTimeUntilStream({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
       }
 
@@ -148,15 +147,15 @@ export default function Calendar() {
       const { startTime } = parseStreamTime(nextStream.streamData.time, nextStream.day, scheduleData.month, scheduleData.year);
       
       if (!startTime) {
-        setTimeUntilStream({ days: 0, hours: 0, minutes: 0, seconds: 0, isLive: false });
+        setTimeUntilStream({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
       }
 
       const timeDiff = startTime.getTime() - now.getTime();
       
       if (timeDiff <= 0) {
-        // Stream has started or is live
-        setTimeUntilStream({ days: 0, hours: 0, minutes: 0, seconds: 0, isLive: true });
+        // Stream has started - show zero countdown
+        setTimeUntilStream({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
       }
 
@@ -165,7 +164,7 @@ export default function Calendar() {
       const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
 
-      setTimeUntilStream({ days, hours, minutes, seconds, isLive: false });
+      setTimeUntilStream({ days, hours, minutes, seconds });
     };
 
     // Update immediately
@@ -530,7 +529,7 @@ export default function Calendar() {
                   </p>
                   
                   {/* Countdown Timer */}
-                  {timeUntilStream.isLive ? (
+                  {twitchStatus.isLive && !twitchStatus.loading ? (
                     <div className={`mb-4 p-4 countdown-timer live`}>
                       <div className="text-center relative z-10">
                         <div className="text-xl font-bold countdown-label live mb-2">LIVE NOW!</div>
