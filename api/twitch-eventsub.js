@@ -33,24 +33,50 @@ async function getRedisClient() {
 }
 
 // Verify Twitch webhook signature
-function verifyTwitchSignature(payload, signature, secret) {
-  if (!signature || !secret) {
+function verifyTwitchSignature(messageId, timestamp, body, signature, secret) {
+  if (!signature || !secret || !messageId || !timestamp || !body) {
+    console.error('Missing required signature components:', {
+      hasSignature: !!signature,
+      hasSecret: !!secret,
+      hasMessageId: !!messageId,
+      hasTimestamp: !!timestamp,
+      hasBody: !!body
+    });
     return false;
   }
 
-  // Twitch sends signature as "sha256=<hash>"
-  const expectedSignature = signature.replace('sha256=', '');
-  
-  // Create HMAC hash
-  const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(payload);
-  const calculatedSignature = hmac.digest('hex');
-  
-  // Compare signatures using timing-safe comparison
-  return crypto.timingSafeEqual(
-    Buffer.from(expectedSignature, 'hex'),
-    Buffer.from(calculatedSignature, 'hex')
-  );
+  try {
+    // Twitch requires: HMAC-SHA256(message-id + timestamp + raw-body)
+    // Note: body should be the raw JSON string, not the parsed object
+    const message = messageId + timestamp + body;
+    
+    const expectedSignature = signature.replace('sha256=', '').trim();
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(message, 'utf8');
+    const calculatedSignature = hmac.digest('hex');
+    
+    const isValid = crypto.timingSafeEqual(
+      Buffer.from(expectedSignature, 'hex'),
+      Buffer.from(calculatedSignature, 'hex')
+    );
+
+    if (!isValid) {
+      // Log first few characters for debugging (not the full signature for security)
+      console.error('Signature verification failed:', {
+        expectedPrefix: expectedSignature.substring(0, 8) + '...',
+        calculatedPrefix: calculatedSignature.substring(0, 8) + '...',
+        messageLength: message.length,
+        messageIdLength: messageId?.length || 0,
+        timestampLength: timestamp?.length || 0,
+        bodyLength: body?.length || 0
+      });
+    }
+    
+    return isValid;
+  } catch (error) {
+    console.error('Error during signature verification:', error.message);
+    return false;
+  }
 }
 
 // Parse idea ID from user input (flexible matching)
@@ -176,9 +202,33 @@ function handleVerificationChallenge(body) {
   return challenge;
 }
 
+// Normalize headers (Vercel might lowercase them)
+function getHeader(req, headerName) {
+  // Try exact match first
+  if (req.headers[headerName]) {
+    return req.headers[headerName];
+  }
+  // Try lowercase
+  const lowerHeaderName = headerName.toLowerCase();
+  if (req.headers[lowerHeaderName]) {
+    return req.headers[lowerHeaderName];
+  }
+  // Try with capitalized words
+  const capitalized = headerName.split('-').map(part => 
+    part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+  ).join('-');
+  if (req.headers[capitalized]) {
+    return req.headers[capitalized];
+  }
+  return null;
+}
+
 module.exports = async function handler(req, res) {
+  const startTime = Date.now();
+  
   // Only allow POST requests
   if (req.method !== 'POST') {
+    console.warn(`Method not allowed: ${req.method}`);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -189,20 +239,64 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'Webhook secret not configured' });
     }
 
-    // Get raw body for signature verification
+    // Get headers (normalize for different environments)
+    const messageId = getHeader(req, 'twitch-eventsub-message-id');
+    const timestamp = getHeader(req, 'twitch-eventsub-message-timestamp');
+    const signature = getHeader(req, 'twitch-eventsub-message-signature');
+    const messageType = getHeader(req, 'twitch-eventsub-message-type');
+
+    // Get body (Vercel automatically parses JSON, so we need to stringify it back)
     const body = req.body;
-    const signature = req.headers['twitch-eventsub-message-signature'];
     
-    // Verify signature
+    // Add comprehensive diagnostic logging
+    console.log('[EventSub Webhook] Request received:', {
+      method: req.method,
+      messageType: messageType,
+      messageId: messageId || 'MISSING',
+      timestamp: timestamp || 'MISSING',
+      hasSignature: !!signature,
+      signaturePrefix: signature ? signature.substring(0, 12) + '...' : 'MISSING',
+      hasBody: !!body,
+      bodyType: typeof body,
+      hasSecret: !!webhookSecret
+    });
+
+    // Validate required headers
+    if (!messageId || !timestamp || !signature) {
+      console.error('[EventSub Webhook] Missing required headers:', {
+        messageId: !!messageId,
+        timestamp: !!timestamp,
+        signature: !!signature,
+        availableHeaders: Object.keys(req.headers).filter(h => h.toLowerCase().includes('twitch'))
+      });
+      return res.status(400).json({ error: 'Missing required Twitch EventSub headers' });
+    }
+
+    if (!body) {
+      console.error('[EventSub Webhook] Missing request body');
+      return res.status(400).json({ error: 'Missing request body' });
+    }
+
+    // Stringify body for signature verification
+    // Use consistent JSON stringification (sorted keys, no extra whitespace)
+    // Note: This should match Twitch's original body format
     const rawBody = JSON.stringify(body);
-    if (!verifyTwitchSignature(rawBody, signature, webhookSecret)) {
-      console.error('Invalid webhook signature');
+    
+    console.log('[EventSub Webhook] Verifying signature...');
+    const isValidSignature = verifyTwitchSignature(messageId, timestamp, rawBody, signature, webhookSecret);
+    
+    if (!isValidSignature) {
+      console.error('[EventSub Webhook] Signature verification failed');
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    // Handle verification challenge
+    console.log('[EventSub Webhook] Signature verified successfully');
+
+    // Handle verification challenge (for initial subscription setup)
     if (body.challenge) {
+      console.log('[EventSub Webhook] Handling verification challenge');
       const challenge = handleVerificationChallenge(body);
+      console.log('[EventSub Webhook] Challenge response sent');
       return res.status(200).send(challenge);
     }
 
@@ -210,13 +304,34 @@ module.exports = async function handler(req, res) {
     const eventType = body.subscription?.type;
     const event = body.event;
 
-    console.log('Received Twitch EventSub webhook:', { eventType, event });
+    console.log('[EventSub Webhook] Processing event:', {
+      eventType: eventType,
+      subscriptionId: body.subscription?.id,
+      hasEvent: !!event
+    });
 
     // Only handle channel point redemptions
     if (eventType === 'channel.channel_points_custom_reward_redemption.add') {
+      console.log('[EventSub Webhook] Processing channel point redemption:', {
+        userId: event?.user_id,
+        username: event?.user_name,
+        userInput: event?.user_input,
+        rewardId: event?.reward?.id,
+        rewardTitle: event?.reward?.title
+      });
+
       const result = await processVote(event);
       
+      const duration = Date.now() - startTime;
+      
       if (result.success) {
+        console.log('[EventSub Webhook] Vote processed successfully:', {
+          ideaId: result.ideaId,
+          votes: result.votes,
+          voterCount: result.voterCount,
+          duration: `${duration}ms`
+        });
+        
         return res.status(200).json({ 
           message: 'Vote processed successfully',
           ideaId: result.ideaId,
@@ -224,6 +339,12 @@ module.exports = async function handler(req, res) {
           voterCount: result.voterCount
         });
       } else {
+        console.warn('[EventSub Webhook] Vote processing failed:', {
+          error: result.error,
+          userInput: event?.user_input,
+          duration: `${duration}ms`
+        });
+        
         return res.status(400).json({ 
           error: 'Failed to process vote',
           details: result.error
@@ -232,10 +353,17 @@ module.exports = async function handler(req, res) {
     }
     
     // For other event types, just acknowledge
+    console.log('[EventSub Webhook] Unhandled event type:', eventType);
     return res.status(200).json({ message: 'Event type not handled' });
     
   } catch (error) {
-    console.error('Error processing Twitch EventSub webhook:', error);
+    const duration = Date.now() - startTime;
+    console.error('[EventSub Webhook] Error processing webhook:', {
+      error: error.message,
+      stack: error.stack,
+      duration: `${duration}ms`
+    });
+    
     return res.status(500).json({ 
       error: 'Failed to process webhook',
       details: error.message

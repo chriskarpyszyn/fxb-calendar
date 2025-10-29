@@ -89,10 +89,12 @@ async function main() {
     
     if (subscriptions.length === 0) {
       console.log('❌ No EventSub subscriptions found!');
-      console.log('\nYou need to create subscriptions for:');
-      console.log('   - stream.online');
-      console.log('   - stream.offline');
-      console.log('\nRun the subscribe-webhooks.sh script or use the Twitch API directly.');
+      console.log('\nYou may need to create subscriptions for:');
+      console.log('   - stream.online (for stream status)');
+      console.log('   - stream.offline (for stream status)');
+      console.log('   - channel.channel_points_custom_reward_redemption.add (for voting)');
+      console.log('\nFor voting, run: node tools/register-eventsub.js');
+      console.log('For stream events, run: ./subscribe-webhooks.sh');
       return;
     }
 
@@ -115,11 +117,17 @@ async function main() {
       console.log('');
     });
 
-    // Check for stream events specifically
+    // Check for specific event types
     const streamOnlineSub = subscriptions.find(sub => sub.type === 'stream.online');
     const streamOfflineSub = subscriptions.find(sub => sub.type === 'stream.offline');
+    const channelPointsSubs = subscriptions.filter(sub => 
+      sub.type === 'channel.channel_points_custom_reward_redemption.add'
+    );
 
-    console.log('🎯 Stream Event Analysis:');
+    console.log('🎯 Event Type Analysis:');
+    
+    // Stream events
+    console.log('\n📺 Stream Events:');
     if (streamOnlineSub) {
       console.log(`✅ stream.online subscription found (${streamOnlineSub.status})`);
     } else {
@@ -132,6 +140,55 @@ async function main() {
       console.log('❌ stream.offline subscription NOT found');
     }
 
+    // Channel points events
+    console.log('\n🎯 Channel Points Voting:');
+    if (channelPointsSubs.length > 0) {
+      channelPointsSubs.forEach((sub, idx) => {
+        console.log(`✅ Channel Points subscription #${idx + 1} (${sub.status})`);
+        if (sub.condition && sub.condition.reward_id) {
+          console.log(`   Reward ID: ${sub.condition.reward_id}`);
+          if (process.env.TWITCH_REWARD_ID) {
+            const matches = sub.condition.reward_id === process.env.TWITCH_REWARD_ID;
+            console.log(`   Matches TWITCH_REWARD_ID: ${matches ? '✅' : '❌'}`);
+          }
+        }
+        if (sub.transport && sub.transport.callback) {
+          console.log(`   Callback: ${sub.transport.callback}`);
+        }
+      });
+      
+      // Check if any are in failed state
+      const failedSubs = channelPointsSubs.filter(sub => 
+        sub.status === 'webhook_callback_verification_failed' || 
+        sub.status === 'notification_failures_exceeded'
+      );
+      if (failedSubs.length > 0) {
+        console.log(`\n⚠️  Warning: ${failedSubs.length} channel points subscription(s) in failed state!`);
+        console.log('   These need to be deleted and re-registered.');
+        console.log('   Run: node tools/register-eventsub.js (it will handle cleanup)');
+      }
+      
+      // Check if any are pending verification
+      const pendingSubs = channelPointsSubs.filter(sub => 
+        sub.status === 'webhook_callback_verification_pending'
+      );
+      if (pendingSubs.length > 0) {
+        console.log(`\n⏳ ${pendingSubs.length} subscription(s) pending verification.`);
+        console.log('   Twitch is verifying the webhook endpoint. This should complete within a few minutes.');
+      }
+      
+      // Check if any are enabled
+      const enabledSubs = channelPointsSubs.filter(sub => sub.status === 'enabled');
+      if (enabledSubs.length > 0) {
+        console.log(`\n✅ ${enabledSubs.length} subscription(s) enabled and ready to receive events!`);
+      }
+    } else {
+      console.log('❌ channel.channel_points_custom_reward_redemption.add subscription NOT found');
+      console.log('\nTo fix this, run:');
+      console.log('   node tools/register-eventsub.js');
+    }
+
+    // Summary recommendations
     if (!streamOnlineSub || !streamOfflineSub) {
       console.log('\n⚠️  Missing stream event subscriptions!');
       console.log('This explains why the webhook isn\'t receiving stream status updates.');
