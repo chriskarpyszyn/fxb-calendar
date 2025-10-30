@@ -364,8 +364,6 @@ async function handleResetVotes(req, res) {
       await redis.lPush('ideas', ...resetIdeas.map(idea => JSON.stringify(idea)));
     }
     
-    await redis.disconnect();
-    
     console.log(`Admin reset votes for ${ideas.length} ideas`);
     
     return res.status(200).json({
