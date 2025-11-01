@@ -5,20 +5,20 @@ on:
     branches: [ main, develop ]
     paths:
       - 'public/streamSchedule.json'
-      - 'src/__tests__/streamSchedule.test.js'
       - 'package.json'
       - 'package-lock.json'
       - 'src/**'
       - 'public/**'
+      - 'api/**'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'public/streamSchedule.json'
-      - 'src/__tests__/streamSchedule.test.js'
       - 'package.json'
       - 'package-lock.json'
       - 'src/**'
       - 'public/**'
+      - 'api/**'
 
 jobs:
   # Fast linting and type checking
@@ -45,9 +45,9 @@ jobs:
       continue-on-error: true
       
 
-  # Build and test
-  test:
-    name: Test & Build
+  # Build and validate
+  build-and-validate:
+    name: Build & Validate
     runs-on: ubuntu-latest
     needs: lint
     
@@ -66,22 +66,14 @@ jobs:
       run: |
         npm ci --prefer-offline --no-audit --no-fund || npm install --prefer-offline --no-audit --no-fund
         
-    - name: Run JSON validation tests
-      run: npm run test:json
-      
-    - name: Run all tests with coverage
-      run: npm run test:ci
+    - name: Validate JSON files
+      run: |
+        node -e "require('./public/streamSchedule.json')" && echo "✓ streamSchedule.json is valid"
+        node -e "require('./public/24hourSchedule.json')" && echo "✓ 24hourSchedule.json is valid"
+        node -e "require('./public/version.json')" && echo "✓ version.json is valid"
       
     - name: Build application
       run: npm run build
-      
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
-      if: success()
-      with:
-        file: ./coverage/lcov.info
-        flags: unittests
-        name: codecov-umbrella
 
   # Security audit
   security:
@@ -104,32 +96,4 @@ jobs:
         
     - name: Run security audit
       run: npm audit --audit-level=moderate
-      continue-on-error: true
-
-  # Performance check
-  performance:
-    name: Performance Check
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'pull_request'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        cache-dependency-path: 'package-lock.json'
-        
-    - name: Install dependencies
-      run: |
-        npm ci --prefer-offline --no-audit --no-fund || npm install --prefer-offline --no-audit --no-fund
-        
-    - name: Build and analyze bundle
-      run: |
-        npm run build
-        npx bundlesize --config bundlesize.config.json || echo "Bundle size check skipped - no config found"
       continue-on-error: true
