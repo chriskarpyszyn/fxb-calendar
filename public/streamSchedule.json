@@ -153,9 +153,9 @@
       "time": "8:15am - 9:00am"
     },
     "31": {
-      "category": "Gaming",
-      "subject": "Spooky Games",
-      "time": "8:00am - 9:00am"
+      "category": "Five Nights At Freddy's",
+      "subject": "I hate scary games",
+      "time": "8:45pm - 9:45pm"
     }
   },
   "categories": {
@@ -218,6 +218,12 @@
       "border": "border-gray-400",
       "text": "text-gray-800",
       "dot": "bg-gray-500"
+    },
+    "Five Nights At Freddy's": {
+      "bg": "bg-red-100",
+      "border": "border-red-600",
+      "text": "text-red-900",
+      "dot": "bg-red-600"
     }
   }
 }
