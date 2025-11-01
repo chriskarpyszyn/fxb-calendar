@@ -11,12 +11,12 @@ export default function AdminLogin({ onLogin }) {
     setError('');
 
     try {
-      const response = await fetch('/api/admin-auth', {
+      const response = await fetch('/api/admin?action=auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ action: 'auth', password })
       });
 
       const data = await response.json();

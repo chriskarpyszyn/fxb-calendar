@@ -1,6 +1,14 @@
 {
-  "currentVersion": "v1.4",
+  "currentVersion": "v1.5",
   "releaseNotes": [
+    {
+      "version": "v1.5",
+      "date": "2025-10-29",
+      "title": "Version 1.5 - Stream Category Survey",
+      "changes": [
+        "Added stream category survey allowing viewers to select their favorite stream categories"
+      ]
+    },
     {
       "version": "v1.4",
       "date": "2025-10-28",
