@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import './App.css';
 import IdeasList from './components/IdeasList';
 import LiveStreamBanner from './components/LiveStreamBanner';
-import VotingBanner from './components/VotingBanner';
 import useTwitchStatus from './hooks/useTwitchStatus';
+import VotingInstructionsModal from './components/VotingInstructionsModal';
 
 export default function Calendar() {
   const [scheduleData, setScheduleData] = useState(null);
@@ -20,6 +20,7 @@ export default function Calendar() {
   const twitchStatus = useTwitchStatus();
   const [versionData, setVersionData] = useState(null);
   const [showVersionModal, setShowVersionModal] = useState(false);
+  const [showVotingInstructions, setShowVotingInstructions] = useState(false);
 
   // Countdown timer state
   const [timeUntilStream, setTimeUntilStream] = useState({
@@ -505,9 +506,20 @@ export default function Calendar() {
 
         {/* Live Stream Banner */}
         <LiveStreamBanner twitchStatus={twitchStatus} />
-
-        {/* Voting Banner - Show when stream is live */}
-        <VotingBanner />
+        {/* Live-only help icon for voting instructions */}
+        {twitchStatus.isLive && (
+          <div className="flex justify-end mb-4">
+            <button
+              aria-label="How to vote"
+              title="How to vote"
+              onClick={() => setShowVotingInstructions(true)}
+              className="ml-2 inline-flex items-center justify-center w-8 h-8 rounded-full border border-gray-500 text-gray-200 hover:text-white hover:border-white"
+            >
+              ?
+            </button>
+          </div>
+        )}
+        
 
         {/* Survey Link Banner */}
         <div className="mb-6">
@@ -1056,6 +1068,11 @@ export default function Calendar() {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Voting Instructions Modal */}
+      {showVotingInstructions && (
+        <VotingInstructionsModal onClose={() => setShowVotingInstructions(false)} />
       )}
     </div>
   );
