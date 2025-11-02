@@ -14,6 +14,7 @@ export default function AdminDashboard({ onLogout }) {
   const [surveyError, setSurveyError] = useState('');
   const [surveyView, setSurveyView] = useState('aggregate'); // 'aggregate' or 'detailed'
   const [ipFilter, setIpFilter] = useState('');
+  const [deletingSurveyId, setDeletingSurveyId] = useState(null);
 
   // Fetch ideas from API
   const fetchIdeas = useCallback(async () => {
@@ -235,6 +236,48 @@ export default function AdminDashboard({ onLogout }) {
       .sort((a, b) => b[1] - a[1]);
 
     return { categoryCounts, sortedCategories, totalResponses, totalWithOther, otherTexts };
+  };
+
+  // Delete a survey response
+  const deleteSurvey = async (surveyId) => {
+    if (!window.confirm('Are you sure you want to delete this survey response? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingSurveyId(surveyId);
+      const token = localStorage.getItem('adminToken');
+      
+      const response = await fetch('/api/admin?action=delete-survey', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'delete-survey', surveyId })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Remove the survey response from local state
+        setSurveyResponses(prev => prev.filter(response => response.id !== surveyId));
+      } else {
+        if (response.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        alert(data.error || 'Failed to delete survey response');
+      }
+    } catch (err) {
+      console.error('Error deleting survey response:', err);
+      alert('Failed to delete survey response');
+    } finally {
+      setDeletingSurveyId(null);
+    }
   };
 
   // Filter survey responses by IP
@@ -651,6 +694,20 @@ export default function AdminDashboard({ onLogout }) {
                                   </div>
                                 )}
                               </div>
+                              <button
+                                onClick={() => deleteSurvey(response.id)}
+                                disabled={deletingSurveyId === response.id}
+                                className="ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {deletingSurveyId === response.id ? (
+                                  <div className="flex items-center">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                    Deleting...
+                                  </div>
+                                ) : (
+                                  'DELETE'
+                                )}
+                              </button>
                             </div>
                           </div>
                         ))}
