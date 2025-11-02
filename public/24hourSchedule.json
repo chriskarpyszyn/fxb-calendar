@@ -90,7 +90,7 @@
     {
       "hour": 10,
       "time": "10:00am - 11:00am",
-      "category": "Art",
+      "category": "Lego Stream",
       "activity": "Digital Art Creation",
       "description": "Creating pixel art and sprites for Typing Stars"
     },
@@ -132,7 +132,7 @@
     {
       "hour": 16,
       "time": "4:00pm - 5:00pm",
-      "category": "Art",
+      "category": "Lego Stream",
       "activity": "Asset Creation",
       "description": "Creating game assets including backgrounds and UI elements"
     },
@@ -198,7 +198,7 @@
       "text": "text-blue-800",
       "dot": "bg-blue-500"
     },
-    "Art": {
+    "Lego Stream": {
       "bg": "bg-yellow-100",
       "border": "border-yellow-400",
       "text": "text-yellow-800",
