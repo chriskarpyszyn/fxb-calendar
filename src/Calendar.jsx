@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import './App.css';
 import IdeasList from './components/IdeasList';
 import LiveStreamBanner from './components/LiveStreamBanner';
-import VotingBanner from './components/VotingBanner';
 import useTwitchStatus from './hooks/useTwitchStatus';
+import VotingInstructionsModal from './components/VotingInstructionsModal';
 
 export default function Calendar() {
   const [scheduleData, setScheduleData] = useState(null);
@@ -19,6 +20,7 @@ export default function Calendar() {
   const twitchStatus = useTwitchStatus();
   const [versionData, setVersionData] = useState(null);
   const [showVersionModal, setShowVersionModal] = useState(false);
+  const [showVotingInstructions, setShowVotingInstructions] = useState(false);
 
   // Countdown timer state
   const [timeUntilStream, setTimeUntilStream] = useState({
@@ -504,9 +506,37 @@ export default function Calendar() {
 
         {/* Live Stream Banner */}
         <LiveStreamBanner twitchStatus={twitchStatus} />
+        {/* Live-only help icon for voting instructions */}
+        {twitchStatus.isLive && (
+          <div className="flex justify-end mb-4">
+            <button
+              aria-label="How to vote"
+              title="How to vote"
+              onClick={() => setShowVotingInstructions(true)}
+              className="ml-2 inline-flex items-center justify-center w-8 h-8 rounded-full border border-gray-500 text-gray-200 hover:text-white hover:border-white"
+            >
+              ?
+            </button>
+          </div>
+        )}
+        
 
-        {/* Voting Banner - Show when stream is live */}
-        <VotingBanner />
+        {/* Survey Link Banner */}
+        <div className="mb-6">
+          <Link
+            to="/survey"
+            className="block retro-container p-4 retro-glow hover:shadow-glow transition-all duration-200 hover:scale-[1.02]"
+          >
+            <div className="text-center">
+              <h3 className="retro-title text-lg font-bold text-retro-cyan mb-1">
+                📊 Stream Category Survey
+              </h3>
+              <p className="retro-text text-retro-muted text-sm">
+                Tell us what stream categories you want to see more of!
+              </p>
+            </div>
+          </Link>
+        </div>
 
         {/* Stream Status Card - Shows live status if live, otherwise shows next stream */}
         {nextStream && (
@@ -1038,6 +1068,11 @@ export default function Calendar() {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Voting Instructions Modal */}
+      {showVotingInstructions && (
+        <VotingInstructionsModal onClose={() => setShowVotingInstructions(false)} />
       )}
     </div>
   );

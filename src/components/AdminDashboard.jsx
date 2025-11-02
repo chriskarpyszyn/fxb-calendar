@@ -7,6 +7,13 @@ export default function AdminDashboard({ onLogout }) {
   const [deletingId, setDeletingId] = useState(null);
   const [expandedVoters, setExpandedVoters] = useState(new Set());
   const [resettingVotes, setResettingVotes] = useState(false);
+  
+  // Survey results state
+  const [surveyResponses, setSurveyResponses] = useState([]);
+  const [surveyLoading, setSurveyLoading] = useState(false);
+  const [surveyError, setSurveyError] = useState('');
+  const [surveyView, setSurveyView] = useState('aggregate'); // 'aggregate' or 'detailed'
+  const [ipFilter, setIpFilter] = useState('');
 
   // Fetch ideas from API
   const fetchIdeas = useCallback(async () => {
@@ -19,7 +26,7 @@ export default function AdminDashboard({ onLogout }) {
         return;
       }
 
-      const response = await fetch('/api/admin-get-ideas', {
+      const response = await fetch('/api/admin?action=get-ideas', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -58,13 +65,13 @@ export default function AdminDashboard({ onLogout }) {
       setDeletingId(ideaId);
       const token = localStorage.getItem('adminToken');
       
-      const response = await fetch('/api/admin-delete-idea', {
+      const response = await fetch('/api/admin?action=delete-idea', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ ideaId })
+        body: JSON.stringify({ action: 'delete-idea', ideaId })
       });
       
       const data = await response.json();
@@ -100,12 +107,13 @@ export default function AdminDashboard({ onLogout }) {
       setResettingVotes(true);
       const token = localStorage.getItem('adminToken');
       
-      const response = await fetch('/api/admin-reset-votes', {
+      const response = await fetch('/api/admin?action=reset-votes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ action: 'reset-votes' })
       });
       
       const data = await response.json();
@@ -163,6 +171,78 @@ export default function AdminDashboard({ onLogout }) {
     return date.toLocaleDateString();
   };
 
+  // Fetch survey responses from API
+  const fetchSurveys = useCallback(async () => {
+    try {
+      setSurveyLoading(true);
+      const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        onLogout();
+        return;
+      }
+
+      const response = await fetch('/api/admin?action=get-surveys', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSurveyResponses(data.responses || []);
+        setSurveyError('');
+      } else {
+        if (response.status === 401) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        setSurveyError(data.error || 'Failed to load survey responses');
+      }
+    } catch (err) {
+      console.error('Error fetching survey responses:', err);
+      setSurveyError('Failed to load survey responses');
+    } finally {
+      setSurveyLoading(false);
+    }
+  }, [onLogout]);
+
+  // Calculate aggregate statistics for survey responses
+  const calculateSurveyStats = () => {
+    const categoryCounts = {};
+    let totalResponses = surveyResponses.length;
+    let totalWithOther = 0;
+    const otherTexts = [];
+
+    surveyResponses.forEach(response => {
+      response.categories.forEach(category => {
+        if (category === 'Other') {
+          totalWithOther++;
+          if (response.otherText) {
+            otherTexts.push(response.otherText);
+          }
+        } else {
+          categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+        }
+      });
+    });
+
+    // Sort categories by count (descending)
+    const sortedCategories = Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1]);
+
+    return { categoryCounts, sortedCategories, totalResponses, totalWithOther, otherTexts };
+  };
+
+  // Filter survey responses by IP
+  const filteredSurveyResponses = surveyResponses.filter(response => {
+    if (!ipFilter) return true;
+    return response.ip.toLowerCase().includes(ipFilter.toLowerCase());
+  });
+
   // Check if session is still valid
   useEffect(() => {
     const expiresAt = localStorage.getItem('adminExpiresAt');
@@ -174,7 +254,8 @@ export default function AdminDashboard({ onLogout }) {
     }
 
     fetchIdeas();
-  }, [onLogout, fetchIdeas]);
+    fetchSurveys();
+  }, [onLogout, fetchIdeas, fetchSurveys]);
 
   return (
     <div className="min-h-screen bg-retro-bg retro-grid scanline p-4">
@@ -369,6 +450,216 @@ export default function AdminDashboard({ onLogout }) {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* Survey Results Section */}
+        <div className="retro-container p-6 retro-glow mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="retro-title text-xl font-bold text-retro-cyan">
+              SURVEY RESULTS
+            </h2>
+            <button
+              onClick={fetchSurveys}
+              disabled={surveyLoading}
+              className="px-3 py-1 bg-retro-cyan text-retro-bg font-semibold rounded hover:bg-retro-cyan/80 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {surveyLoading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+
+          {/* View Toggle */}
+          <div className="mb-4 flex gap-2">
+            <button
+              onClick={() => setSurveyView('aggregate')}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                surveyView === 'aggregate'
+                  ? 'bg-retro-cyan text-retro-bg'
+                  : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+              }`}
+            >
+              Aggregate View
+            </button>
+            <button
+              onClick={() => setSurveyView('detailed')}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                surveyView === 'detailed'
+                  ? 'bg-retro-cyan text-retro-bg'
+                  : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+              }`}
+            >
+              Detailed View
+            </button>
+          </div>
+
+          {surveyLoading && (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-retro-cyan border-t-transparent mb-4"></div>
+              <p className="retro-text text-retro-muted">Loading survey responses...</p>
+            </div>
+          )}
+
+          {surveyError && (
+            <div className="text-center py-8 bg-red-900/20 border-2 border-red-500 rounded-lg p-6 mb-4">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-xl font-bold text-red-400 mb-2">Error Loading Survey Results</h3>
+              <p className="text-red-300 mb-4">{surveyError}</p>
+              <button 
+                onClick={fetchSurveys} 
+                className="retro-button hover:scale-105 active:scale-95"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {!surveyLoading && !surveyError && (
+            <>
+              {surveyView === 'aggregate' ? (
+                <div>
+                  {surveyResponses.length === 0 ? (
+                    <div className="text-center py-12">
+                      <h3 className="text-2xl font-bold text-retro-text mb-2">
+                        No Survey Responses Yet
+                      </h3>
+                      <p className="text-retro-muted">
+                        No one has submitted a survey response yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-6">
+                        <div className="text-center mb-4">
+                          <div className="text-3xl font-bold text-retro-cyan">{surveyResponses.length}</div>
+                          <div className="text-sm text-retro-muted">Total Responses</div>
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const stats = calculateSurveyStats();
+                        return (
+                          <div className="space-y-4">
+                            <h3 className="text-lg font-bold text-retro-text mb-3">Category Votes</h3>
+                            {stats.sortedCategories.length > 0 ? (
+                              <div className="space-y-2">
+                                {stats.sortedCategories.map(([category, count]) => (
+                                  <div key={category} className="retro-card p-4">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-lg font-semibold text-retro-text">{category}</span>
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-2xl font-bold text-retro-cyan">{count}</span>
+                                        <span className="text-sm text-retro-muted">votes</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-retro-muted">No category votes yet</p>
+                            )}
+
+                            {stats.totalWithOther > 0 && (
+                              <div className="mt-4 retro-card p-4">
+                                <div className="mb-3">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-lg font-semibold text-retro-text">Other</span>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-2xl font-bold text-retro-cyan">{stats.totalWithOther}</span>
+                                      <span className="text-sm text-retro-muted">votes</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                {stats.otherTexts.length > 0 && (
+                                  <div className="mt-3 space-y-2">
+                                    <p className="text-sm font-semibold text-retro-muted mb-2">Other Suggestions:</p>
+                                    {stats.otherTexts.map((text, index) => (
+                                      <div key={index} className="text-sm text-retro-text bg-retro-bg/20 p-2 rounded">
+                                        "{text}"
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  {/* Detailed View */}
+                  {filteredSurveyResponses.length === 0 ? (
+                    <div className="text-center py-12">
+                      <h3 className="text-2xl font-bold text-retro-text mb-2">
+                        {ipFilter ? 'No Matching Responses' : 'No Survey Responses Yet'}
+                      </h3>
+                      <p className="text-retro-muted">
+                        {ipFilter ? 'Try a different IP filter.' : 'No one has submitted a survey response yet.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* IP Filter */}
+                      <div className="mb-4">
+                        <input
+                          type="text"
+                          value={ipFilter}
+                          onChange={(e) => setIpFilter(e.target.value)}
+                          placeholder="Filter by IP address..."
+                          className="w-full px-4 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text placeholder-retro-muted focus:outline-none focus:ring-2 focus:ring-retro-cyan"
+                        />
+                      </div>
+
+                      <div className="space-y-4">
+                        {filteredSurveyResponses.map((response) => (
+                          <div 
+                            key={response.id} 
+                            className="retro-card p-4 hover:shadow-glow transition-all duration-200"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-grow">
+                                <div className="flex items-center gap-4 text-sm text-retro-muted flex-wrap mb-3">
+                                  <span className="font-mono">IP: {response.ip}</span>
+                                  <span>•</span>
+                                  <span>{formatTimestamp(response.timestamp)}</span>
+                                  <span>•</span>
+                                  <span>ID: {response.id.slice(-8)}</span>
+                                </div>
+                                
+                                <div className="mb-2">
+                                  <span className="text-sm font-semibold text-retro-muted mb-1 block">Selected Categories:</span>
+                                  <div className="flex flex-wrap gap-2">
+                                    {response.categories.map((category, index) => (
+                                      <span
+                                        key={index}
+                                        className="px-3 py-1 bg-retro-cyan text-retro-bg rounded text-sm font-semibold"
+                                      >
+                                        {category}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {response.otherText && (
+                                  <div className="mt-2">
+                                    <span className="text-sm font-semibold text-retro-muted mb-1 block">Other:</span>
+                                    <p className="text-retro-text bg-retro-bg/20 p-2 rounded">
+                                      "{response.otherText}"
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
