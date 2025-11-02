@@ -93,7 +93,7 @@
       "time": "11:00am - 2:00pm"
     },
     "12": {
-      "category": "Art",
+      "category": "Lego Stream",
       "subject": "Lego Break",
       "time": "11:00am - 12:00pm"
     },
@@ -123,7 +123,7 @@
       "time": "12:00pm - 1:00pm"
     },
     "19": {
-      "category": "Art",
+      "category": "Lego Stream",
       "subject": "Lego Break",
       "time": "11:00am - 12:00pm"
     },
@@ -138,7 +138,7 @@
       "time": "12:00pm - 1:00pm"
     },
     "26": {
-      "category": "Art",
+      "category": "Lego Stream",
       "subject": "Lofi Lego Stream",
       "time": "11:00am - 12:00pm"
     },
@@ -195,7 +195,7 @@
       "text": "text-blue-800",
       "dot": "bg-blue-500"
     },
-    "Art": {
+    "Lego Stream": {
       "bg": "bg-yellow-100",
       "border": "border-yellow-400",
       "text": "text-yellow-800",
