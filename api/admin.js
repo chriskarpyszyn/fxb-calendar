@@ -1,5 +1,5 @@
 // Consolidated Admin API route
-// Handles all admin operations: auth, get-ideas, get-surveys, delete-idea, reset-votes
+// Handles all admin operations: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes
 
 const { createClient } = require('redis');
 const { verifySessionToken, createSession } = require('./admin-utils');
@@ -313,6 +313,108 @@ async function handleDeleteIdea(req, res) {
   }
 }
 
+// Handle delete-survey
+async function handleDeleteSurvey(req, res) {
+  if (req.method !== 'DELETE') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Invalid or expired session' 
+    });
+  }
+
+  const { surveyId } = req.body;
+
+  if (!surveyId) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'Survey ID is required' 
+    });
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    const rawResponses = await redis.lRange('survey:responses', 0, -1);
+    let surveyToDelete = null;
+    let surveyIndex = -1;
+    
+    for (let i = 0; i < rawResponses.length; i++) {
+      try {
+        const response = JSON.parse(rawResponses[i]);
+        if (response.id === surveyId) {
+          surveyToDelete = response;
+          surveyIndex = i;
+          break;
+        }
+      } catch (parseError) {
+        console.warn('Skipping invalid JSON survey response:', rawResponses[i], parseError.message);
+        continue;
+      }
+    }
+    
+    if (!surveyToDelete) {
+      return res.status(404).json({
+        success: false,
+        error: 'Survey response not found'
+      });
+    }
+    
+    const remainingResponses = [];
+    for (let i = 0; i < rawResponses.length; i++) {
+      if (i !== surveyIndex) {
+        remainingResponses.push(rawResponses[i]);
+      }
+    }
+    
+    await redis.del('survey:responses');
+    if (remainingResponses.length > 0) {
+      await redis.lPush('survey:responses', ...remainingResponses);
+    }
+    
+    console.log('Survey response deleted:', surveyToDelete.id, 'from IP:', surveyToDelete.ip);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Survey response deleted successfully',
+      deletedSurvey: {
+        id: surveyToDelete.id,
+        ip: surveyToDelete.ip,
+        timestamp: surveyToDelete.timestamp
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error deleting survey response:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete survey response',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
 // Handle reset-votes
 async function handleResetVotes(req, res) {
   if (req.method !== 'POST') {
@@ -418,12 +520,14 @@ module.exports = async function handler(req, res) {
       return handleGetSurveys(req, res);
     case 'delete-idea':
       return handleDeleteIdea(req, res);
+    case 'delete-survey':
+      return handleDeleteSurvey(req, res);
     case 'reset-votes':
       return handleResetVotes(req, res);
     default:
       return res.status(400).json({
         success: false,
-        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, reset-votes`
+        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes`
       });
   }
 };
