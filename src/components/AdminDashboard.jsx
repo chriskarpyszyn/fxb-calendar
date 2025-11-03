@@ -540,6 +540,8 @@ export default function AdminDashboard({ onLogout }) {
             </div>
           )}
         </div>
+          </>
+        )}
 
         {activeTab === 'surveys' && (
           <>
@@ -762,11 +764,13 @@ export default function AdminDashboard({ onLogout }) {
                     </>
                   )}
                 </div>
-            <div>
-              <h1 className="retro-title text-2xl font-bold text-retro-cyan mb-2">
-                ADMIN DASHBOARD
-              </h1>
-              <p className="retro-text text-retro-muted">
-                Manage submitted stream ideas and schedules
-              </p>
-            </div>
+              )}
+            </>
+          )}
+        </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
