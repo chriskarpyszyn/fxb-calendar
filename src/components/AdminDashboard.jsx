@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import AdminSchedule24Hour from './AdminSchedule24Hour';
 
 export default function AdminDashboard({ onLogout }) {
   const [ideas, setIdeas] = useState([]);
@@ -7,6 +8,7 @@ export default function AdminDashboard({ onLogout }) {
   const [deletingId, setDeletingId] = useState(null);
   const [expandedVoters, setExpandedVoters] = useState(new Set());
   const [resettingVotes, setResettingVotes] = useState(false);
+  const [activeTab, setActiveTab] = useState('ideas'); // 'ideas', 'surveys', 'schedule'
   
   // Survey results state
   const [surveyResponses, setSurveyResponses] = useState([]);
@@ -14,6 +16,7 @@ export default function AdminDashboard({ onLogout }) {
   const [surveyError, setSurveyError] = useState('');
   const [surveyView, setSurveyView] = useState('aggregate'); // 'aggregate' or 'detailed'
   const [ipFilter, setIpFilter] = useState('');
+  const [deletingSurveyId, setDeletingSurveyId] = useState(null);
 
   // Fetch ideas from API
   const fetchIdeas = useCallback(async () => {
@@ -237,6 +240,48 @@ export default function AdminDashboard({ onLogout }) {
     return { categoryCounts, sortedCategories, totalResponses, totalWithOther, otherTexts };
   };
 
+  // Delete a survey response
+  const deleteSurvey = async (surveyId) => {
+    if (!window.confirm('Are you sure you want to delete this survey response? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingSurveyId(surveyId);
+      const token = localStorage.getItem('adminToken');
+      
+      const response = await fetch('/api/admin?action=delete-survey', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'delete-survey', surveyId })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Remove the survey response from local state
+        setSurveyResponses(prev => prev.filter(response => response.id !== surveyId));
+      } else {
+        if (response.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        alert(data.error || 'Failed to delete survey response');
+      }
+    } catch (err) {
+      console.error('Error deleting survey response:', err);
+      alert('Failed to delete survey response');
+    } finally {
+      setDeletingSurveyId(null);
+    }
+  };
+
   // Filter survey responses by IP
   const filteredSurveyResponses = surveyResponses.filter(response => {
     if (!ipFilter) return true;
@@ -268,24 +313,26 @@ export default function AdminDashboard({ onLogout }) {
                 ADMIN DASHBOARD
               </h1>
               <p className="retro-text text-retro-muted">
-                Manage submitted stream ideas
+                Manage submitted stream ideas and schedules
               </p>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={resetVotes}
-                disabled={resettingVotes}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {resettingVotes ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                    Resetting...
-                  </div>
-                ) : (
-                  'RESET VOTES'
-                )}
-              </button>
+              {activeTab === 'ideas' && (
+                <button
+                  onClick={resetVotes}
+                  disabled={resettingVotes}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resettingVotes ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      Resetting...
+                    </div>
+                  ) : (
+                    'RESET VOTES'
+                  )}
+                </button>
+              )}
               <button
                 onClick={onLogout}
                 className="retro-button hover:scale-105 active:scale-95"
@@ -296,41 +343,82 @@ export default function AdminDashboard({ onLogout }) {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Tabs */}
         <div className="retro-container p-4 retro-glow mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-retro-cyan">{ideas.length}</div>
-              <div className="text-sm text-retro-muted">Total Ideas</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-retro-cyan">
-                {ideas.filter(idea => idea.status === 'pending').length}
-              </div>
-              <div className="text-sm text-retro-muted">Pending</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-retro-cyan">
-                {ideas.reduce((sum, idea) => sum + (idea.votes || 0), 0)}
-              </div>
-              <div className="text-sm text-retro-muted">Total Votes</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-retro-cyan">
-                {ideas.reduce((sum, idea) => sum + ((idea.voters && idea.voters.length) || 0), 0)}
-              </div>
-              <div className="text-sm text-retro-muted">Unique Voters</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-retro-cyan">
-                {ideas.length > 0 ? Math.round(ideas.reduce((sum, idea) => sum + (idea.votes || 0), 0) / ideas.length * 10) / 10 : 0}
-              </div>
-              <div className="text-sm text-retro-muted">Avg Votes/Idea</div>
-            </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('ideas')}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                activeTab === 'ideas'
+                  ? 'bg-retro-cyan text-retro-bg'
+                  : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+              }`}
+            >
+              Ideas
+            </button>
+            <button
+              onClick={() => setActiveTab('surveys')}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                activeTab === 'surveys'
+                  ? 'bg-retro-cyan text-retro-bg'
+                  : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+              }`}
+            >
+              Surveys
+            </button>
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                activeTab === 'schedule'
+                  ? 'bg-retro-cyan text-retro-bg'
+                  : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+              }`}
+            >
+              24-Hour Schedule
+            </button>
           </div>
         </div>
 
-        {/* Ideas List */}
+        {/* Tab Content */}
+        {activeTab === 'schedule' && (
+          <AdminSchedule24Hour onLogout={onLogout} />
+        )}
+
+        {activeTab === 'ideas' && (
+          <>
+            {/* Stats */}
+            <div className="retro-container p-4 retro-glow mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-retro-cyan">{ideas.length}</div>
+                  <div className="text-sm text-retro-muted">Total Ideas</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-retro-cyan">
+                    {ideas.filter(idea => idea.status === 'pending').length}
+                  </div>
+                  <div className="text-sm text-retro-muted">Pending</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-retro-cyan">
+                    {ideas.reduce((sum, idea) => sum + (idea.votes || 0), 0)}
+                  </div>
+                  <div className="text-sm text-retro-muted">Total Votes</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-retro-cyan">
+                    {ideas.reduce((sum, idea) => sum + ((idea.voters && idea.voters.length) || 0), 0)}
+                  </div>
+                  <div className="text-sm text-retro-muted">Unique Voters</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-retro-cyan">
+                    {ideas.length > 0 ? Math.round(ideas.reduce((sum, idea) => sum + (idea.votes || 0), 0) / ideas.length * 10) / 10 : 0}
+                  </div>
+                  <div className="text-sm text-retro-muted">Avg Votes/Idea</div>
+                </div>
+              </div>
+            </div>
         <div className="retro-container p-6 retro-glow">
           {loading && (
             <div className="text-center py-8">
@@ -453,8 +541,10 @@ export default function AdminDashboard({ onLogout }) {
           )}
         </div>
 
-        {/* Survey Results Section */}
-        <div className="retro-container p-6 retro-glow mt-6">
+        {activeTab === 'surveys' && (
+          <>
+            {/* Survey Results Section */}
+            <div className="retro-container p-6 retro-glow">
           <div className="flex items-center justify-between mb-4">
             <h2 className="retro-title text-xl font-bold text-retro-cyan">
               SURVEY RESULTS
@@ -651,6 +741,20 @@ export default function AdminDashboard({ onLogout }) {
                                   </div>
                                 )}
                               </div>
+                              <button
+                                onClick={() => deleteSurvey(response.id)}
+                                disabled={deletingSurveyId === response.id}
+                                className="ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {deletingSurveyId === response.id ? (
+                                  <div className="flex items-center">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                    Deleting...
+                                  </div>
+                                ) : (
+                                  'DELETE'
+                                )}
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -658,11 +762,11 @@ export default function AdminDashboard({ onLogout }) {
                     </>
                   )}
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+            <div>
+              <h1 className="retro-title text-2xl font-bold text-retro-cyan mb-2">
+                ADMIN DASHBOARD
+              </h1>
+              <p className="retro-text text-retro-muted">
+                Manage submitted stream ideas and schedules
+              </p>
+            </div>
