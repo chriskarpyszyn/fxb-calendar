@@ -161,27 +161,37 @@ export default function TwentyFourHourSchedule() {
     // Debug logging
     console.log('Schedule data:', { startDate, startTime, endDate, endTime, timeSlotsCount: timeSlots?.length });
 
-    // If we have startDate and startTime, generate full schedule
-    // If endDate/endTime are missing, default to 24 hours from start
-    if (!startDate || !startTime) {
-      console.log('Missing startDate or startTime, falling back to filled slots only');
-      return timeSlots || [];
-    }
-
-    // Calculate total hours
+    // Determine total hours to generate
     let totalHours = 0;
-    if (endDate && endTime) {
-      totalHours = calculateHoursBetween(startDate, startTime, endDate, endTime);
-      console.log('Calculated hours from start to end:', totalHours);
+    let useMetadata = false;
+
+    // If we have startDate and startTime, use metadata to calculate range
+    if (startDate && startTime) {
+      useMetadata = true;
+      if (endDate && endTime) {
+        totalHours = calculateHoursBetween(startDate, startTime, endDate, endTime);
+        console.log('Calculated hours from start to end:', totalHours);
+      } else {
+        // Default to 24 hours if end time is not specified
+        totalHours = 24;
+        console.log('End time not specified, defaulting to 24 hours');
+      }
     } else {
-      // Default to 24 hours if end time is not specified
+      // If no metadata, always generate 24 hours (starting from hour 0)
       totalHours = 24;
-      console.log('End time not specified, defaulting to 24 hours');
+      console.log('No metadata found, defaulting to 24 hours from hour 0');
     }
     
+    // Ensure we always have at least 24 hours if we have any schedule data
     if (totalHours === 0) {
-      console.log('Total hours is 0, falling back to filled slots only');
-      return timeSlots || [];
+      totalHours = 24;
+      console.log('Total hours was 0, defaulting to 24 hours');
+    }
+    
+    // Ensure minimum of 24 hours
+    if (totalHours < 24) {
+      console.log('Total hours less than 24, setting to 24');
+      totalHours = 24;
     }
 
     // Create a map of existing slots by hour offset
@@ -199,16 +209,43 @@ export default function TwentyFourHourSchedule() {
       
       if (existingSlot) {
         // Use existing slot data
+        let slotTime = existingSlot.time;
+        // If we have metadata, recalculate time to ensure consistency
+        if (useMetadata && startDate && startTime) {
+          slotTime = calculateSlotTimeRange(hourOffset, startDate, startTime);
+        }
+        // If existing slot doesn't have time, generate one
+        if (!slotTime && useMetadata && startDate && startTime) {
+          slotTime = calculateSlotTimeRange(hourOffset, startDate, startTime);
+        } else if (!slotTime) {
+          // Fallback: generate hour-based time
+          slotTime = `Hour ${hourOffset}`;
+        }
+        
         completeSchedule.push({
           ...existingSlot,
           hour: hourOffset,
-          time: calculateSlotTimeRange(hourOffset, startDate, startTime)
+          time: slotTime
         });
       } else {
         // Create placeholder slot
+        let slotTime;
+        if (useMetadata && startDate && startTime) {
+          slotTime = calculateSlotTimeRange(hourOffset, startDate, startTime);
+        } else {
+          // Generate a simple hour-based time string
+          const hour = hourOffset % 24;
+          const period = hour >= 12 ? 'pm' : 'am';
+          const displayHour = hour % 12 || 12;
+          const nextHour = (hourOffset + 1) % 24;
+          const nextPeriod = nextHour >= 12 ? 'pm' : 'am';
+          const nextDisplayHour = nextHour % 12 || 12;
+          slotTime = `${displayHour}:00${period} - ${nextDisplayHour}:00${nextPeriod}`;
+        }
+        
         completeSchedule.push({
           hour: hourOffset,
-          time: calculateSlotTimeRange(hourOffset, startDate, startTime),
+          time: slotTime,
           category: '',
           activity: 'TBD',
           description: 'Open slot',
