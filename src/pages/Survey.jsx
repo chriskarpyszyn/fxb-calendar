@@ -17,7 +17,7 @@ export default function Survey() {
             </p>
           </div>
           <Link
-            to="/"
+            to="/calendar"
             className="inline-block retro-button hover:scale-105 active:scale-95"
           >
             ← Back to Calendar
