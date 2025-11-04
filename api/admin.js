@@ -1051,11 +1051,7 @@ module.exports = async function handler(req, res) {
     default:
       return res.status(400).json({
         success: false,
-<<<<<<< HEAD
-        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes`
-=======
         error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes, get-24hour-schedule, add-24hour-slot, update-24hour-slot, delete-24hour-slot, update-24hour-metadata, update-24hour-categories`
->>>>>>> origin/main
       });
   }
 };
