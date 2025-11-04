@@ -19,21 +19,16 @@ export default function TwentyFourHourSchedule() {
         return response.json();
       })
       .then(data => {
-        // Handle empty schedule gracefully
-        if (data && data.timeSlots && data.timeSlots.length > 0) {
-          setScheduleData(data);
-        } else {
-          // Set empty schedule structure
-          setScheduleData({
-            date: data.date || '',
-            startDate: data.startDate || '',
-            endDate: data.endDate || '',
-            startTime: data.startTime || '',
-            endTime: data.endTime || '',
-            timeSlots: [],
-            categories: data.categories || {}
-          });
-        }
+        // Always preserve all metadata fields
+        setScheduleData({
+          date: data?.date || '',
+          startDate: data?.startDate || '',
+          endDate: data?.endDate || '',
+          startTime: data?.startTime || '',
+          endTime: data?.endTime || '',
+          timeSlots: data?.timeSlots || [],
+          categories: data?.categories || {}
+        });
         setLoading(false);
       })
       .catch(err => {
@@ -50,27 +45,52 @@ export default function TwentyFourHourSchedule() {
   // Calculate the number of hours between start and end times
   const calculateHoursBetween = (startDate, startTime, endDate, endTime) => {
     if (!startDate || !startTime || !endDate || !endTime) {
+      console.log('Missing date/time values:', { startDate, startTime, endDate, endTime });
       return 0;
     }
 
     try {
       // Parse start date and time (format: "HH:MM" in 24-hour format)
       const [startHour, startMinute] = startTime.split(':').map(Number);
-      const startDateTime = new Date(startDate);
-      startDateTime.setHours(startHour, startMinute, 0, 0);
+      if (isNaN(startHour) || isNaN(startMinute)) {
+        console.error('Invalid startTime format:', startTime);
+        return 0;
+      }
+      
+      // Create date string in ISO format to avoid timezone issues
+      const startDateStr = `${startDate}T${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}:00`;
+      const startDateTime = new Date(startDateStr);
 
       // Parse end date and time
       const [endHour, endMinute] = endTime.split(':').map(Number);
-      const endDateTime = new Date(endDate);
-      endDateTime.setHours(endHour, endMinute, 0, 0);
+      if (isNaN(endHour) || isNaN(endMinute)) {
+        console.error('Invalid endTime format:', endTime);
+        return 0;
+      }
+      
+      const endDateStr = `${endDate}T${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}:00`;
+      const endDateTime = new Date(endDateStr);
+
+      // Check if dates are valid
+      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        console.error('Invalid dates created:', { startDateStr, endDateStr, startDateTime, endDateTime });
+        return 0;
+      }
 
       // Calculate difference in milliseconds, then convert to hours
       const diffMs = endDateTime.getTime() - startDateTime.getTime();
       const diffHours = Math.ceil(diffMs / (1000 * 60 * 60)); // Round up to include partial hours
 
+      console.log('Date calculation:', {
+        startDateStr,
+        endDateStr,
+        diffMs,
+        diffHours
+      });
+
       return Math.max(0, diffHours);
     } catch (error) {
-      console.error('Error calculating hours between:', error);
+      console.error('Error calculating hours between:', error, { startDate, startTime, endDate, endTime });
       return 0;
     }
   };
@@ -84,8 +104,17 @@ export default function TwentyFourHourSchedule() {
     try {
       // Parse start date and time (format: "HH:MM" in 24-hour format)
       const [startHour, startMinute] = startTime.split(':').map(Number);
-      const startDateTime = new Date(startDate);
-      startDateTime.setHours(startHour, startMinute, 0, 0);
+      if (isNaN(startHour) || isNaN(startMinute)) {
+        return `Hour ${hourOffset}`;
+      }
+      
+      // Create date string in ISO format to avoid timezone issues
+      const startDateStr = `${startDate}T${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}:00`;
+      const startDateTime = new Date(startDateStr);
+      
+      if (isNaN(startDateTime.getTime())) {
+        return `Hour ${hourOffset}`;
+      }
 
       // Calculate the start time for this hour slot (hour offset from start)
       const slotStartTime = new Date(startDateTime);
@@ -129,15 +158,29 @@ export default function TwentyFourHourSchedule() {
 
     const { startDate, startTime, endDate, endTime, timeSlots } = scheduleData;
 
-    // If metadata is missing, fall back to current behavior (show only filled slots)
-    if (!startDate || !startTime || !endDate || !endTime) {
+    // Debug logging
+    console.log('Schedule data:', { startDate, startTime, endDate, endTime, timeSlotsCount: timeSlots?.length });
+
+    // If we have startDate and startTime, generate full schedule
+    // If endDate/endTime are missing, default to 24 hours from start
+    if (!startDate || !startTime) {
+      console.log('Missing startDate or startTime, falling back to filled slots only');
       return timeSlots || [];
     }
 
     // Calculate total hours
-    const totalHours = calculateHoursBetween(startDate, startTime, endDate, endTime);
+    let totalHours = 0;
+    if (endDate && endTime) {
+      totalHours = calculateHoursBetween(startDate, startTime, endDate, endTime);
+      console.log('Calculated hours from start to end:', totalHours);
+    } else {
+      // Default to 24 hours if end time is not specified
+      totalHours = 24;
+      console.log('End time not specified, defaulting to 24 hours');
+    }
     
     if (totalHours === 0) {
+      console.log('Total hours is 0, falling back to filled slots only');
       return timeSlots || [];
     }
 
@@ -174,6 +217,7 @@ export default function TwentyFourHourSchedule() {
       }
     }
 
+    console.log('Generated complete schedule with', completeSchedule.length, 'slots');
     return completeSchedule;
   };
 
