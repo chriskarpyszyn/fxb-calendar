@@ -9,6 +9,8 @@ export default function AdminSchedule24Hour({ onLogout }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingMetadata, setEditingMetadata] = useState(false);
   const [showCategoryEditor, setShowCategoryEditor] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [newCategoryName, setNewCategoryName] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -17,6 +19,14 @@ export default function AdminSchedule24Hour({ onLogout }) {
     category: '',
     activity: '',
     description: ''
+  });
+  
+  // Category form state
+  const [categoryForm, setCategoryForm] = useState({
+    bg: '',
+    border: '',
+    text: '',
+    dot: ''
   });
   
   const [metadataForm, setMetadataForm] = useState({
@@ -244,8 +254,61 @@ export default function AdminSchedule24Hour({ onLogout }) {
     }
   };
 
-  // Update categories
-  const updateCategories = async () => {
+  // Add new category
+  const addCategory = () => {
+    if (!newCategoryName.trim()) {
+      alert('Category name is required');
+      return;
+    }
+    
+    const updatedCategories = {
+      ...scheduleData.categories,
+      [newCategoryName]: {
+        bg: categoryForm.bg || 'bg-gray-100',
+        border: categoryForm.border || 'border-gray-400',
+        text: categoryForm.text || 'text-gray-800',
+        dot: categoryForm.dot || 'bg-gray-500'
+      }
+    };
+    
+    setScheduleData({ ...scheduleData, categories: updatedCategories });
+    setNewCategoryName('');
+    setCategoryForm({ bg: '', border: '', text: '', dot: '' });
+  };
+
+  // Update category
+  const updateCategory = (categoryName) => {
+    const category = scheduleData.categories[categoryName];
+    if (!category) return;
+    
+    const updatedCategories = {
+      ...scheduleData.categories,
+      [categoryName]: {
+        bg: categoryForm.bg || category.bg,
+        border: categoryForm.border || category.border,
+        text: categoryForm.text || category.text,
+        dot: categoryForm.dot || category.dot
+      }
+    };
+    
+    setScheduleData({ ...scheduleData, categories: updatedCategories });
+    setEditingCategory(null);
+    setCategoryForm({ bg: '', border: '', text: '', dot: '' });
+  };
+
+  // Delete category
+  const deleteCategory = (categoryName) => {
+    if (!window.confirm(`Are you sure you want to delete category "${categoryName}"?`)) {
+      return;
+    }
+    
+    const updatedCategories = { ...scheduleData.categories };
+    delete updatedCategories[categoryName];
+    setScheduleData({ ...scheduleData, categories: updatedCategories });
+  };
+
+  // Save categories
+  const saveCategories = async () => {
     try {
       const token = localStorage.getItem('adminToken');
       
@@ -265,6 +328,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
       
       if (data.success) {
         setShowCategoryEditor(false);
+        setEditingCategory(null);
         await fetchSchedule();
       } else {
         if (response.status === 401) {
@@ -307,6 +371,37 @@ export default function AdminSchedule24Hour({ onLogout }) {
       Object.keys(scheduleData.categories).forEach(cat => categories.add(cat));
     }
     return Array.from(categories);
+  };
+
+  // Get slot for a specific hour
+  const getSlotForHour = (hour) => {
+    if (!scheduleData?.timeSlots) return null;
+    return scheduleData.timeSlots.find(slot => slot.hour === hour) || null;
+  };
+
+  // Get slot index for a specific hour
+  const getSlotIndexForHour = (hour) => {
+    if (!scheduleData?.timeSlots) return -1;
+    return scheduleData.timeSlots.findIndex(slot => slot.hour === hour);
+  };
+
+  // Handle hour click - edit existing or add new
+  const handleHourClick = (hour) => {
+    const existingSlot = getSlotForHour(hour);
+    if (existingSlot) {
+      const slotIndex = getSlotIndexForHour(hour);
+      setEditingSlot({ ...existingSlot, index: slotIndex });
+    } else {
+      // Create new slot for this hour
+      setFormData({
+        hour: hour.toString(),
+        time: '',
+        category: '',
+        activity: '',
+        description: ''
+      });
+      setShowAddForm(true);
+    }
   };
 
   return (
@@ -402,32 +497,160 @@ export default function AdminSchedule24Hour({ onLogout }) {
               <button
                 onClick={() => {
                   if (showCategoryEditor) {
-                    updateCategories();
+                    saveCategories();
                   } else {
                     setShowCategoryEditor(true);
                   }
                 }}
                 className="px-3 py-1 bg-retro-cyan text-retro-bg font-semibold rounded hover:bg-retro-cyan/80 transition-all duration-200"
               >
-                {showCategoryEditor ? 'Save' : 'Edit'}
+                {showCategoryEditor ? 'Save All' : 'Edit'}
               </button>
             </div>
             {showCategoryEditor ? (
-              <div className="space-y-2">
-                <p className="text-sm text-retro-muted mb-2">Edit categories JSON format:</p>
-                <textarea
-                  value={JSON.stringify(scheduleData.categories || {}, null, 2)}
-                  onChange={(e) => {
-                    try {
-                      const parsed = JSON.parse(e.target.value);
-                      setScheduleData({ ...scheduleData, categories: parsed });
-                    } catch (err) {
-                      // Invalid JSON, ignore
-                    }
-                  }}
-                  className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text font-mono text-sm"
-                  rows={10}
-                />
+              <div className="space-y-4">
+                {/* Add New Category */}
+                <div className="border-2 border-retro-cyan rounded p-4">
+                  <h4 className="text-md font-bold text-retro-text mb-3">Add New Category</h4>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Category Name"
+                      className="px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                    />
+                    <button
+                      onClick={addCategory}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded transition-all duration-200"
+                    >
+                      Add Category
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <input
+                      type="text"
+                      value={categoryForm.bg}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, bg: e.target.value })}
+                      placeholder="bg (e.g., bg-purple-100)"
+                      className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
+                    />
+                    <input
+                      type="text"
+                      value={categoryForm.border}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, border: e.target.value })}
+                      placeholder="border (e.g., border-purple-400)"
+                      className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
+                    />
+                    <input
+                      type="text"
+                      value={categoryForm.text}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, text: e.target.value })}
+                      placeholder="text (e.g., text-purple-800)"
+                      className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
+                    />
+                    <input
+                      type="text"
+                      value={categoryForm.dot}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, dot: e.target.value })}
+                      placeholder="dot (e.g., bg-purple-500)"
+                      className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Existing Categories */}
+                <div className="space-y-3">
+                  {Object.keys(scheduleData.categories || {}).map(cat => (
+                    <div key={cat} className="border border-gray-600 rounded p-3">
+                      {editingCategory === cat ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-retro-text">{cat}</span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => updateCategory(cat)}
+                                className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingCategory(null);
+                                  setCategoryForm({ bg: '', border: '', text: '', dot: '' });
+                                }}
+                                className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            <input
+                              type="text"
+                              value={categoryForm.bg || scheduleData.categories[cat].bg}
+                              onChange={(e) => setCategoryForm({ ...categoryForm, bg: e.target.value })}
+                              placeholder="bg"
+                              className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
+                            />
+                            <input
+                              type="text"
+                              value={categoryForm.border || scheduleData.categories[cat].border}
+                              onChange={(e) => setCategoryForm({ ...categoryForm, border: e.target.value })}
+                              placeholder="border"
+                              className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
+                            />
+                            <input
+                              type="text"
+                              value={categoryForm.text || scheduleData.categories[cat].text}
+                              onChange={(e) => setCategoryForm({ ...categoryForm, text: e.target.value })}
+                              placeholder="text"
+                              className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
+                            />
+                            <input
+                              type="text"
+                              value={categoryForm.dot || scheduleData.categories[cat].dot}
+                              onChange={(e) => setCategoryForm({ ...categoryForm, dot: e.target.value })}
+                              placeholder="dot"
+                              className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-retro-text">{cat}</span>
+                            <span className="text-xs text-retro-muted">
+                              {scheduleData.categories[cat].bg} • {scheduleData.categories[cat].text}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingCategory(cat);
+                                setCategoryForm({
+                                  bg: scheduleData.categories[cat].bg,
+                                  border: scheduleData.categories[cat].border,
+                                  text: scheduleData.categories[cat].text,
+                                  dot: scheduleData.categories[cat].dot
+                                });
+                              }}
+                              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteCategory(cat)}
+                              className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -443,201 +666,179 @@ export default function AdminSchedule24Hour({ onLogout }) {
             )}
           </div>
 
-          {/* Add Slot Form */}
-          {showAddForm && (
-            <div className="retro-card p-4 mb-6">
-              <h3 className="text-lg font-bold text-retro-text mb-3">Add New Slot</h3>
-              <div className="space-y-2">
-                <input
-                  type="number"
-                  value={formData.hour}
-                  onChange={(e) => setFormData({ ...formData, hour: e.target.value })}
-                  placeholder="Hour (0-23)"
-                  min="0"
-                  max="23"
-                  className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                />
-                <input
-                  type="text"
-                  value={formData.time}
-                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                  placeholder="Time (e.g., 11:00pm - 12:00am)"
-                  className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                />
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                >
-                  <option value="">Select Category</option>
-                  {getAvailableCategories().map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={formData.activity}
-                  onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
-                  placeholder="Activity"
-                  className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                />
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Description"
-                  className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                  rows={3}
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={addSlot}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95"
-                  >
-                    Add Slot
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddForm(false);
-                      setFormData({
-                        hour: '',
-                        time: '',
-                        category: '',
-                        activity: '',
-                        description: ''
-                      });
-                    }}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Slots List */}
+          {/* 24-Hour Schedule Grid */}
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-retro-text">
-                Time Slots ({scheduleData.timeSlots?.length || 0})
+                24-Hour Schedule ({scheduleData.timeSlots?.length || 0} slots filled)
               </h3>
               <button
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="px-4 py-2 bg-retro-cyan text-retro-bg font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95"
+                onClick={() => {
+                  setShowAddForm(false);
+                  setEditingSlot(null);
+                  setFormData({
+                    hour: '',
+                    time: '',
+                    category: '',
+                    activity: '',
+                    description: ''
+                  });
+                }}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95"
               >
-                {showAddForm ? 'Cancel' : 'Add Slot'}
+                Clear Selection
               </button>
             </div>
 
-            {scheduleData.timeSlots && scheduleData.timeSlots.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-retro-muted text-lg mb-4">No slots yet. Add your first slot!</p>
-              </div>
-            ) : (
-              scheduleData.timeSlots.map((slot, index) => (
-                <div key={index} className="retro-card p-4">
-                  {editingSlot === index ? (
-                    <div className="space-y-2">
-                      <input
-                        type="number"
-                        value={editingSlot.hour}
-                        onChange={(e) => setEditingSlot({ ...editingSlot, hour: e.target.value })}
-                        placeholder="Hour (0-23)"
-                        min="0"
-                        max="23"
-                        className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                      />
-                      <input
-                        type="text"
-                        value={editingSlot.time}
-                        onChange={(e) => setEditingSlot({ ...editingSlot, time: e.target.value })}
-                        placeholder="Time"
-                        className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                      />
-                      <select
-                        value={editingSlot.category}
-                        onChange={(e) => setEditingSlot({ ...editingSlot, category: e.target.value })}
-                        className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                      >
-                        <option value="">Select Category</option>
-                        {getAvailableCategories().map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                      <input
-                        type="text"
-                        value={editingSlot.activity}
-                        onChange={(e) => setEditingSlot({ ...editingSlot, activity: e.target.value })}
-                        placeholder="Activity"
-                        className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                      />
-                      <textarea
-                        value={editingSlot.description}
-                        onChange={(e) => setEditingSlot({ ...editingSlot, description: e.target.value })}
-                        placeholder="Description"
-                        className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                        rows={3}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => updateSlot(index)}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingSlot(null)}
-                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95"
-                        >
-                          Cancel
-                        </button>
+            {/* Hour Grid - Show all 24 hours */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 24 }, (_, i) => {
+                const hour = i;
+                const slot = getSlotForHour(hour);
+                const slotIndex = getSlotIndexForHour(hour);
+                const isEditing = editingSlot !== null && editingSlot.index === slotIndex;
+                const isInAddForm = showAddForm && parseInt(formData.hour) === hour;
+                
+                return (
+                  <div key={hour} className="retro-card p-4">
+                    {isEditing || isInAddForm ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-retro-text">Hour {hour}</span>
+                          <button
+                            onClick={() => {
+                              setEditingSlot(null);
+                              setShowAddForm(false);
+                              setFormData({
+                                hour: '',
+                                time: '',
+                                category: '',
+                                activity: '',
+                                description: ''
+                              });
+                            }}
+                            className="text-xs text-red-400 hover:text-red-300"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        {(isEditing || isInAddForm) && (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={isEditing ? editingSlot.time : formData.time}
+                              onChange={(e) => {
+                                if (isEditing) {
+                                  setEditingSlot({ ...editingSlot, time: e.target.value });
+                                } else {
+                                  setFormData({ ...formData, time: e.target.value });
+                                }
+                              }}
+                              placeholder="Time (e.g., 11:00pm - 12:00am)"
+                              className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                            />
+                            <select
+                              value={isEditing ? editingSlot.category : formData.category}
+                              onChange={(e) => {
+                                if (isEditing) {
+                                  setEditingSlot({ ...editingSlot, category: e.target.value });
+                                } else {
+                                  setFormData({ ...formData, category: e.target.value });
+                                }
+                              }}
+                              className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                            >
+                              <option value="">Select Category</option>
+                              {getAvailableCategories().map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="text"
+                              value={isEditing ? editingSlot.activity : formData.activity}
+                              onChange={(e) => {
+                                if (isEditing) {
+                                  setEditingSlot({ ...editingSlot, activity: e.target.value });
+                                } else {
+                                  setFormData({ ...formData, activity: e.target.value });
+                                }
+                              }}
+                              placeholder="Activity"
+                              className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                            />
+                            <textarea
+                              value={isEditing ? editingSlot.description : formData.description}
+                              onChange={(e) => {
+                                if (isEditing) {
+                                  setEditingSlot({ ...editingSlot, description: e.target.value });
+                                } else {
+                                  setFormData({ ...formData, description: e.target.value });
+                                }
+                              }}
+                              placeholder="Description"
+                              className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                              rows={2}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  if (isEditing) {
+                                    updateSlot(slotIndex);
+                                  } else {
+                                    addSlot();
+                                  }
+                                }}
+                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-semibold rounded transition-all duration-200"
+                              >
+                                Save
+                              </button>
+                              {slot && (
+                                <button
+                                  onClick={() => deleteSlot(slotIndex)}
+                                  disabled={deletingSlotIndex === slotIndex}
+                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50"
+                                >
+                                  {deletingSlotIndex === slotIndex ? 'Deleting...' : 'Delete'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start justify-between">
-                      <div className="flex-grow">
-                        <div className="grid grid-cols-12 gap-4">
-                          <div className="col-span-2">
-                            <div className="text-sm text-retro-muted">Hour</div>
-                            <div className="font-bold text-retro-text">{slot.hour}</div>
-                          </div>
-                          <div className="col-span-3">
-                            <div className="text-sm text-retro-muted">Time</div>
-                            <div className="font-bold text-retro-text">{slot.time}</div>
-                          </div>
-                          <div className="col-span-2">
-                            <div className="text-sm text-retro-muted">Category</div>
-                            <div className="font-semibold text-retro-text">{slot.category}</div>
-                          </div>
-                          <div className="col-span-5">
-                            <div className="text-sm text-retro-muted">Activity</div>
-                            <div className="font-bold text-retro-text">{slot.activity}</div>
+                    ) : (
+                      <div 
+                        onClick={() => handleHourClick(hour)}
+                        className="cursor-pointer hover:bg-retro-bg/20 transition-all duration-200 rounded p-2"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-retro-text">Hour {hour}</span>
+                          {slot ? (
+                            <span className="text-xs text-green-400">✓ Filled</span>
+                          ) : (
+                            <span className="text-xs text-retro-muted">Empty</span>
+                          )}
+                        </div>
+                        {slot ? (
+                          <div className="space-y-1">
+                            <div className="text-sm font-semibold text-retro-text">{slot.time}</div>
+                            <div className="text-xs text-retro-muted">{slot.category}</div>
+                            <div className="text-sm font-bold text-retro-text">{slot.activity}</div>
                             {slot.description && (
-                              <div className="text-sm text-retro-muted mt-1">{slot.description}</div>
+                              <div className="text-xs text-retro-muted">{slot.description}</div>
                             )}
                           </div>
-                        </div>
+                        ) : (
+                          <div className="text-center py-4 text-retro-muted">
+                            <div className="text-2xl mb-1">+</div>
+                            <div className="text-xs">Click to add</div>
+                          </div>
+                        )}
                       </div>
-                      <div className="ml-4 flex gap-2">
-                        <button
-                          onClick={() => setEditingSlot({ ...slot, index })}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded transition-all duration-200 hover:scale-105 active:scale-95"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => deleteSlot(index)}
-                          disabled={deletingSlotIndex === index}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold rounded transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {deletingSlotIndex === index ? 'Deleting...' : 'Delete'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </>
       )}
