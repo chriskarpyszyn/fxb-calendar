@@ -28,6 +28,8 @@ export default function TwentyFourHourSchedule() {
             date: data.date || '',
             startDate: data.startDate || '',
             endDate: data.endDate || '',
+            startTime: data.startTime || '',
+            endTime: data.endTime || '',
             timeSlots: [],
             categories: data.categories || {}
           });
@@ -43,6 +45,136 @@ export default function TwentyFourHourSchedule() {
   // Get user's timezone
   const getUserTimezone = () => {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  };
+
+  // Calculate the number of hours between start and end times
+  const calculateHoursBetween = (startDate, startTime, endDate, endTime) => {
+    if (!startDate || !startTime || !endDate || !endTime) {
+      return 0;
+    }
+
+    try {
+      // Parse start date and time (format: "HH:MM" in 24-hour format)
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+      const startDateTime = new Date(startDate);
+      startDateTime.setHours(startHour, startMinute, 0, 0);
+
+      // Parse end date and time
+      const [endHour, endMinute] = endTime.split(':').map(Number);
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(endHour, endMinute, 0, 0);
+
+      // Calculate difference in milliseconds, then convert to hours
+      const diffMs = endDateTime.getTime() - startDateTime.getTime();
+      const diffHours = Math.ceil(diffMs / (1000 * 60 * 60)); // Round up to include partial hours
+
+      return Math.max(0, diffHours);
+    } catch (error) {
+      console.error('Error calculating hours between:', error);
+      return 0;
+    }
+  };
+
+  // Calculate time range for a specific hour slot
+  const calculateSlotTimeRange = (hourOffset, startDate, startTime) => {
+    if (!startDate || !startTime) {
+      return `Hour ${hourOffset}`;
+    }
+
+    try {
+      // Parse start date and time (format: "HH:MM" in 24-hour format)
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+      const startDateTime = new Date(startDate);
+      startDateTime.setHours(startHour, startMinute, 0, 0);
+
+      // Calculate the start time for this hour slot (hour offset from start)
+      const slotStartTime = new Date(startDateTime);
+      slotStartTime.setHours(slotStartTime.getHours() + hourOffset);
+
+      // Calculate the end time for this hour slot (one hour later)
+      const slotEndTime = new Date(slotStartTime);
+      slotEndTime.setHours(slotEndTime.getHours() + 1);
+
+      // Convert to user's timezone
+      const userTimezone = getUserTimezone();
+
+      // Format times in 12-hour format with am/pm
+      const formatTime = (date) => {
+        try {
+          return new Intl.DateTimeFormat('en-US', {
+            timeZone: userTimezone,
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          }).format(date).replace(/\s/g, '');
+        } catch (error) {
+          console.error('Date formatting error:', error, date);
+          return '';
+        }
+      };
+
+      const startTimeLocal = formatTime(slotStartTime);
+      const endTimeLocal = formatTime(slotEndTime);
+
+      return `${startTimeLocal} - ${endTimeLocal}`;
+    } catch (error) {
+      console.error('Error calculating slot time range:', error);
+      return `Hour ${hourOffset}`;
+    }
+  };
+
+  // Generate complete schedule array with all slots from start to end
+  const generateCompleteSchedule = () => {
+    if (!scheduleData) return [];
+
+    const { startDate, startTime, endDate, endTime, timeSlots } = scheduleData;
+
+    // If metadata is missing, fall back to current behavior (show only filled slots)
+    if (!startDate || !startTime || !endDate || !endTime) {
+      return timeSlots || [];
+    }
+
+    // Calculate total hours
+    const totalHours = calculateHoursBetween(startDate, startTime, endDate, endTime);
+    
+    if (totalHours === 0) {
+      return timeSlots || [];
+    }
+
+    // Create a map of existing slots by hour offset
+    const slotsByHour = {};
+    if (timeSlots) {
+      timeSlots.forEach(slot => {
+        slotsByHour[slot.hour] = slot;
+      });
+    }
+
+    // Generate complete schedule array
+    const completeSchedule = [];
+    for (let hourOffset = 0; hourOffset < totalHours; hourOffset++) {
+      const existingSlot = slotsByHour[hourOffset];
+      
+      if (existingSlot) {
+        // Use existing slot data
+        completeSchedule.push({
+          ...existingSlot,
+          hour: hourOffset,
+          time: calculateSlotTimeRange(hourOffset, startDate, startTime)
+        });
+      } else {
+        // Create placeholder slot
+        completeSchedule.push({
+          hour: hourOffset,
+          time: calculateSlotTimeRange(hourOffset, startDate, startTime),
+          category: '',
+          activity: 'TBD',
+          description: 'Open slot',
+          isPlaceholder: true
+        });
+      }
+    }
+
+    return completeSchedule;
   };
 
   // Convert time to user's local timezone
@@ -154,86 +286,153 @@ export default function TwentyFourHourSchedule() {
 
         {/* Schedule Grid */}
         <div className="retro-container p-4 md:p-6 retro-glow">
-          {scheduleData.timeSlots.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-retro-muted text-lg">
-                No schedule slots yet. Check back soon!
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {scheduleData.timeSlots.map((slot, index) => {
-              const categoryColor = scheduleData.categories[slot.category];
-              const isNewDay = slot.hour === 0; // Midnight marks new day
-              const isFirstSlot = index === 0; // First slot gets Thursday heading
-              const isSixHourMark = slot.hour % 6 === 0; // Every 6 hours
-              
+          {(() => {
+            const completeSchedule = generateCompleteSchedule();
+            
+            if (completeSchedule.length === 0) {
               return (
-                <div key={index}>
-                  {/* Thursday heading for first slot */}
-                  {isFirstSlot && (
-                    <div className="text-center my-6">
-                      <div className="inline-block bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
-                        THURSDAY NOVEMBER 6TH
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Day separator at midnight */}
-                  {isNewDay && (
-                    <div className="text-center my-6">
-                      <div className="inline-block bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
-                        FRIDAY NOVEMBER 7TH
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* 6-hour separator */}
-                  {isSixHourMark && !isNewDay && (
-                    <div className="border-t border-gray-400 my-4"></div>
-                  )}
-                  
-                  {/* Time slot */}
-                  <div
-                    className={`p-4 rounded-lg border-2 transition-all duration-200 hover:shadow-lg ${
-                      categoryColor ? `${categoryColor.bg} ${categoryColor.border}` : 'bg-gray-50 border-gray-300'
-                    }`}
-                  >
-                    <div className="grid grid-cols-12 gap-4 items-start">
-                      {/* Time Column - 3 columns */}
-                      <div className="col-span-3">
-                        <div className="text-lg font-bold text-gray-800">
-                          {convertTimeToUserTimezone(slot.time)}
-                        </div>
-                      </div>
-                      
-                      {/* Category Column - 3 columns */}
-                      <div className="col-span-3">
-                        <div 
-                          className={`text-sm font-semibold ${
-                            categoryColor ? categoryColor.text : 'text-gray-800'
-                          }`}
-                        >
-                          {slot.category}
-                        </div>
-                      </div>
-                      
-                      {/* Activity/Subject Column - 6 columns */}
-                      <div className="col-span-6">
-                        <div className="text-base font-bold text-gray-800 mb-1">
-                          {slot.activity}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {slot.description}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="text-center py-12">
+                  <p className="text-retro-muted text-lg">
+                    No schedule slots yet. Check back soon!
+                  </p>
                 </div>
               );
-              })}
-            </div>
-          )}
+            }
+
+            return (
+              <div className="space-y-3">
+                {completeSchedule.map((slot, index) => {
+                  const categoryColor = scheduleData.categories[slot.category];
+                  const isPlaceholder = slot.isPlaceholder;
+                  const isFirstSlot = index === 0; // First slot gets day heading
+                  const isSixHourMark = slot.hour % 6 === 0 && slot.hour > 0; // Every 6 hours (but not hour 0)
+                  
+                  // Determine if this is a day boundary (crossing midnight)
+                  const previousSlot = index > 0 ? completeSchedule[index - 1] : null;
+                  let isDayBoundary = false;
+                  
+                  if (previousSlot && scheduleData.startDate && scheduleData.startTime) {
+                    try {
+                      // Calculate the actual dates for both slots to detect day boundary
+                      const [startHour, startMinute] = scheduleData.startTime.split(':').map(Number);
+                      const startDateTime = new Date(scheduleData.startDate);
+                      startDateTime.setHours(startHour, startMinute, 0, 0);
+                      
+                      const prevSlotDateTime = new Date(startDateTime);
+                      prevSlotDateTime.setHours(prevSlotDateTime.getHours() + previousSlot.hour);
+                      
+                      const currentSlotDateTime = new Date(startDateTime);
+                      currentSlotDateTime.setHours(currentSlotDateTime.getHours() + slot.hour);
+                      
+                      // Check if the date changed (day boundary crossed)
+                      const prevDate = prevSlotDateTime.toDateString();
+                      const currentDate = currentSlotDateTime.toDateString();
+                      isDayBoundary = prevDate !== currentDate;
+                    } catch (error) {
+                      // Fallback: check time string patterns
+                      const currentTime = slot.time;
+                      const prevTime = previousSlot?.time || '';
+                      isDayBoundary = prevTime.includes('pm') && currentTime.includes('12:00am');
+                    }
+                  }
+                  
+                  return (
+                    <div key={`slot-${slot.hour}-${index}`}>
+                      {/* Day heading for first slot */}
+                      {isFirstSlot && scheduleData.startDate && (
+                        <div className="text-center my-6">
+                          <div className="inline-block bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                            {new Date(scheduleData.startDate).toLocaleDateString('en-US', { 
+                              weekday: 'long', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            }).toUpperCase()}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Day separator at day boundary */}
+                      {isDayBoundary && scheduleData.startDate && scheduleData.startTime && (() => {
+                        try {
+                          // Calculate the actual date for this slot
+                          const [startHour, startMinute] = scheduleData.startTime.split(':').map(Number);
+                          const startDateTime = new Date(scheduleData.startDate);
+                          startDateTime.setHours(startHour, startMinute, 0, 0);
+                          
+                          const currentSlotDateTime = new Date(startDateTime);
+                          currentSlotDateTime.setHours(currentSlotDateTime.getHours() + slot.hour);
+                          
+                          return (
+                            <div className="text-center my-6">
+                              <div className="inline-block bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                                {currentSlotDateTime.toLocaleDateString('en-US', { 
+                                  weekday: 'long', 
+                                  month: 'long', 
+                                  day: 'numeric' 
+                                }).toUpperCase()}
+                              </div>
+                            </div>
+                          );
+                        } catch (error) {
+                          return null;
+                        }
+                      })()}
+                      
+                      {/* 6-hour separator */}
+                      {isSixHourMark && !isDayBoundary && (
+                        <div className="border-t border-gray-400 my-4"></div>
+                      )}
+                      
+                      {/* Time slot */}
+                      <div
+                        className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                          isPlaceholder 
+                            ? 'bg-gray-100 border-gray-300 border-dashed opacity-75' 
+                            : categoryColor 
+                              ? `${categoryColor.bg} ${categoryColor.border} hover:shadow-lg` 
+                              : 'bg-gray-50 border-gray-300 hover:shadow-lg'
+                        }`}
+                      >
+                        <div className="grid grid-cols-12 gap-4 items-start">
+                          {/* Time Column - 3 columns */}
+                          <div className="col-span-3">
+                            <div className={`text-lg font-bold ${isPlaceholder ? 'text-gray-500' : 'text-gray-800'}`}>
+                              {slot.time}
+                            </div>
+                          </div>
+                          
+                          {/* Category Column - 3 columns */}
+                          <div className="col-span-3">
+                            <div 
+                              className={`text-sm font-semibold ${
+                                isPlaceholder 
+                                  ? 'text-gray-400 italic' 
+                                  : categoryColor 
+                                    ? categoryColor.text 
+                                    : 'text-gray-800'
+                              }`}
+                            >
+                              {isPlaceholder ? '—' : slot.category || '—'}
+                            </div>
+                          </div>
+                          
+                          {/* Activity/Subject Column - 6 columns */}
+                          <div className="col-span-6">
+                            <div className={`text-base font-bold mb-1 ${isPlaceholder ? 'text-gray-400 italic' : 'text-gray-800'}`}>
+                              {slot.activity || '—'}
+                            </div>
+                            <div className={`text-sm ${isPlaceholder ? 'text-gray-400 italic' : 'text-gray-600'}`}>
+                              {slot.description || '—'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Footer */}
