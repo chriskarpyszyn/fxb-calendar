@@ -470,8 +470,8 @@ export default function AdminSchedule24Hour({ onLogout }) {
   };
 
   return (
-    <div className="retro-container p-6 retro-glow">
-      <div className="flex items-center justify-between mb-6">
+    <div className="retro-container p-3 retro-glow">
+      <div className="flex items-center justify-between mb-3">
         <h2 className="retro-title text-xl font-bold text-retro-cyan">
           24-HOUR SCHEDULE MANAGEMENT
         </h2>
@@ -485,17 +485,17 @@ export default function AdminSchedule24Hour({ onLogout }) {
       </div>
 
       {loading && (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-retro-cyan border-t-transparent mb-4"></div>
+        <div className="text-center py-4">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-retro-cyan border-t-transparent mb-2"></div>
           <p className="retro-text text-retro-muted">Loading schedule...</p>
         </div>
       )}
 
       {error && (
-        <div className="text-center py-8 bg-red-900/20 border-2 border-red-500 rounded-lg p-6 mb-4">
-          <div className="text-6xl mb-4">⚠️</div>
+        <div className="text-center py-4 bg-red-900/20 border-2 border-red-500 rounded-lg p-4 mb-3">
+          <div className="text-6xl mb-2">⚠️</div>
           <h3 className="text-xl font-bold text-red-400 mb-2">Error Loading Schedule</h3>
-          <p className="text-red-300 mb-4">{error}</p>
+          <p className="text-red-300 mb-2">{error}</p>
           <button 
             onClick={fetchSchedule} 
             className="retro-button hover:scale-105 active:scale-95"
@@ -508,7 +508,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
       {!loading && !error && scheduleData && (
         <>
           {/* Metadata Section */}
-          <div className="retro-card p-4 mb-6">
+          <div className="retro-card p-3 mb-3">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-bold text-retro-text">Schedule Metadata</h3>
               <button
@@ -576,7 +576,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
           </div>
 
           {/* Categories Section */}
-          <div className="retro-card p-4 mb-6">
+          <div className="retro-card p-3 mb-3">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-bold text-retro-text">Categories</h3>
               <button
@@ -593,9 +593,9 @@ export default function AdminSchedule24Hour({ onLogout }) {
               </button>
             </div>
             {showCategoryEditor ? (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {/* Add New Category */}
-                <div className="border-2 border-retro-cyan rounded p-4">
+                <div className="border-2 border-retro-cyan rounded p-3">
                   <h4 className="text-md font-bold text-retro-text mb-3">Add New Category</h4>
                   <div className="flex gap-2">
                     <input
@@ -728,8 +728,8 @@ export default function AdminSchedule24Hour({ onLogout }) {
           </div>
 
           {/* 24-Hour Schedule Grid */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-bold text-retro-text">
                 24-Hour Schedule ({scheduleData.timeSlots?.length || 0} slots filled)
               </h3>
@@ -752,7 +752,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
             </div>
 
             {/* Hour Grid - Show all 24 hours in vertical flow */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               {Array.from({ length: 24 }, (_, i) => {
                 const hour = i;
                 const slot = getSlotForHour(hour);
@@ -762,7 +762,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
                 const calculatedTime = calculateHourTime(hour, scheduleData.startDate, scheduleData.startTime);
                 
                 return (
-                  <div key={hour} className="retro-card p-4">
+                  <div key={hour} className="retro-card p-3">
                     {isEditing || isInAddForm ? (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between mb-2">
