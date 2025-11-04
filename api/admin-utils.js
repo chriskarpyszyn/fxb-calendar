@@ -37,8 +37,32 @@ function createSession() {
   return { sessionToken, expiresAt };
 }
 
+// Helper function to verify channel session token (checks Redis)
+async function verifyChannelSessionToken(token, channelName, redis) {
+  if (!token || !channelName || !redis) return false;
+  
+  try {
+    // Check if session exists in Redis
+    const expiresAt = await redis.get(`24hour:channel:${channelName}:session:${token}`);
+    if (!expiresAt) return false;
+    
+    // Check if expired
+    if (Date.now() > parseInt(expiresAt)) {
+      // Clean up expired session
+      await redis.del(`24hour:channel:${channelName}:session:${token}`);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error verifying channel session:', error);
+    return false;
+  }
+}
+
 module.exports = {
   verifySessionToken,
   createSession,
-  createSessionToken
+  createSessionToken,
+  verifyChannelSessionToken
 };

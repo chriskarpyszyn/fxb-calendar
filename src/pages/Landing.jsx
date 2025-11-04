@@ -69,6 +69,24 @@ export default function Landing() {
             </div>
           </Link>
         </div>
+
+        {/* Channels Listing Card */}
+        <div className="mt-6 text-center">
+          <Link
+            to="/channels"
+            className="inline-block retro-container p-6 retro-glow hover:shadow-glow transition-all duration-200 hover:scale-[1.02]"
+          >
+            <div className="text-center">
+              <div className="text-4xl mb-3">📺</div>
+              <h2 className="retro-title text-lg font-bold text-retro-cyan mb-2">
+                All Channel Schedules
+              </h2>
+              <p className="retro-text text-retro-muted text-sm">
+                Browse schedules from all channels
+              </p>
+            </div>
+          </Link>
+        </div>
       </div>
     </div>
   );

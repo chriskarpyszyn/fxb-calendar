@@ -110,6 +110,12 @@ async function getStreamStatusFromTwitch(channelName) {
   };
 }
 
+// Normalize channel name (lowercase, no spaces)
+function normalizeChannelName(channelName) {
+  if (!channelName) return null;
+  return channelName.toLowerCase().trim();
+}
+
 // Export the function for use in other modules
 module.exports = async function handler(req, res) {
   // Only allow GET requests
@@ -117,11 +123,20 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const channelName = process.env.TWITCH_CHANNEL_NAME || 'itsFlannelBeard';
+  // Get channelName from query parameter, fallback to env var or default
+  const channelName = normalizeChannelName(req.query.channelName) || 
+                      normalizeChannelName(process.env.TWITCH_CHANNEL_NAME) || 
+                      'itsflannelbeard';
 
   try {
     // First, try to get status from Redis (updated by webhooks)
+    // Note: Redis helper may need updating for multi-channel support
     let status = await getStreamStatus();
+    
+    // If Redis status doesn't match requested channel, fetch from API
+    if (status && status.channelName && normalizeChannelName(status.channelName) !== channelName) {
+      status = null; // Force API fetch for different channel
+    }
     
     // Check if status is stale (older than 2 minutes)
     const isStale = status?.updatedAt && 
@@ -129,7 +144,7 @@ module.exports = async function handler(req, res) {
     
     if (!status || isStale) {
       // Fallback to Twitch API if no data in Redis or data is stale
-      console.log('Status missing or stale, fetching from Twitch API');
+      console.log('Status missing or stale, fetching from Twitch API for channel:', channelName);
       status = await getStreamStatusFromTwitch(channelName);
       
       // Store the result in Redis for future requests
@@ -146,6 +161,9 @@ module.exports = async function handler(req, res) {
         channelName: channelName
       };
     }
+    
+    // Ensure channelName matches requested channel
+    status.channelName = channelName;
     
     // Set cache headers to force fresh checks and prevent stale cache
     res.setHeader('Cache-Control', 'public, s-maxage=30, max-age=0, must-revalidate');

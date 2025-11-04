@@ -8,7 +8,7 @@ export default function AdminDashboard({ onLogout }) {
   const [deletingId, setDeletingId] = useState(null);
   const [expandedVoters, setExpandedVoters] = useState(new Set());
   const [resettingVotes, setResettingVotes] = useState(false);
-  const [activeTab, setActiveTab] = useState('ideas'); // 'ideas', 'surveys', 'schedule'
+  const [activeTab, setActiveTab] = useState('ideas'); // 'ideas', 'surveys', 'schedule', 'channels'
   
   // Survey results state
   const [surveyResponses, setSurveyResponses] = useState([]);
@@ -17,6 +17,18 @@ export default function AdminDashboard({ onLogout }) {
   const [surveyView, setSurveyView] = useState('aggregate'); // 'aggregate' or 'detailed'
   const [ipFilter, setIpFilter] = useState('');
   const [deletingSurveyId, setDeletingSurveyId] = useState(null);
+  
+  // Channel management state
+  const [channels, setChannels] = useState([]);
+  const [channelsLoading, setChannelsLoading] = useState(false);
+  const [channelsError, setChannelsError] = useState('');
+  const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const [newChannelName, setNewChannelName] = useState('');
+  const [newChannelPassword, setNewChannelPassword] = useState('');
+  const [creatingChannel, setCreatingChannel] = useState(false);
+  const [resettingPasswordFor, setResettingPasswordFor] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [deletingChannel, setDeletingChannel] = useState(null);
 
   // Fetch ideas from API
   const fetchIdeas = useCallback(async () => {
@@ -288,6 +300,186 @@ export default function AdminDashboard({ onLogout }) {
     return response.ip.toLowerCase().includes(ipFilter.toLowerCase());
   });
 
+  // Fetch channels from API
+  const fetchChannels = useCallback(async () => {
+    try {
+      setChannelsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        onLogout();
+        return;
+      }
+
+      const response = await fetch('/api/admin?action=list-channels', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setChannels(data.channels || []);
+        setChannelsError('');
+      } else {
+        if (response.status === 401) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        setChannelsError(data.error || 'Failed to load channels');
+      }
+    } catch (err) {
+      console.error('Error fetching channels:', err);
+      setChannelsError('Failed to load channels');
+    } finally {
+      setChannelsLoading(false);
+    }
+  }, [onLogout]);
+
+  // Create new channel
+  const createChannel = async () => {
+    if (!newChannelName.trim() || !newChannelPassword.trim()) {
+      alert('Channel name and password are required');
+      return;
+    }
+
+    try {
+      setCreatingChannel(true);
+      const token = localStorage.getItem('adminToken');
+      
+      const response = await fetch('/api/admin?action=create-channel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'create-channel',
+          channelName: newChannelName.trim().toLowerCase(),
+          password: newChannelPassword
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setNewChannelName('');
+        setNewChannelPassword('');
+        setShowCreateChannel(false);
+        await fetchChannels();
+        alert(`Channel "${data.channelName}" created successfully!`);
+      } else {
+        if (response.status === 401) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        alert(data.error || 'Failed to create channel');
+      }
+    } catch (err) {
+      console.error('Error creating channel:', err);
+      alert('Failed to create channel');
+    } finally {
+      setCreatingChannel(false);
+    }
+  };
+
+  // Update channel password
+  const updateChannelPassword = async (channelName) => {
+    if (!newPassword.trim()) {
+      alert('Password is required');
+      return;
+    }
+
+    try {
+      setResettingPasswordFor(channelName);
+      const token = localStorage.getItem('adminToken');
+      
+      const response = await fetch('/api/admin?action=update-channel-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'update-channel-password',
+          channelName: channelName,
+          password: newPassword
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setNewPassword('');
+        setResettingPasswordFor(null);
+        await fetchChannels();
+        alert(`Password updated for "${channelName}"`);
+      } else {
+        if (response.status === 401) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        alert(data.error || 'Failed to update password');
+      }
+    } catch (err) {
+      console.error('Error updating password:', err);
+      alert('Failed to update password');
+    } finally {
+      setResettingPasswordFor(null);
+    }
+  };
+
+  // Delete channel
+  const deleteChannel = async (channelName) => {
+    if (!window.confirm(`Are you sure you want to delete channel "${channelName}"? This will delete all schedule data and cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setDeletingChannel(channelName);
+      const token = localStorage.getItem('adminToken');
+      
+      const response = await fetch('/api/admin?action=delete-channel', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'delete-channel',
+          channelName: channelName
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        await fetchChannels();
+        alert(`Channel "${channelName}" deleted successfully`);
+      } else {
+        if (response.status === 401) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        alert(data.error || 'Failed to delete channel');
+      }
+    } catch (err) {
+      console.error('Error deleting channel:', err);
+      alert('Failed to delete channel');
+    } finally {
+      setDeletingChannel(null);
+    }
+  };
+
   // Check if session is still valid
   useEffect(() => {
     const expiresAt = localStorage.getItem('adminExpiresAt');
@@ -300,7 +492,10 @@ export default function AdminDashboard({ onLogout }) {
 
     fetchIdeas();
     fetchSurveys();
-  }, [onLogout, fetchIdeas, fetchSurveys]);
+    if (activeTab === 'channels') {
+      fetchChannels();
+    }
+  }, [onLogout, fetchIdeas, fetchSurveys, fetchChannels, activeTab]);
 
   return (
     <div className="min-h-screen bg-retro-bg retro-grid scanline p-2">
@@ -376,12 +571,195 @@ export default function AdminDashboard({ onLogout }) {
             >
               24-Hour Schedule
             </button>
+            <button
+              onClick={() => {
+                setActiveTab('channels');
+                fetchChannels();
+              }}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                activeTab === 'channels'
+                  ? 'bg-retro-cyan text-retro-bg'
+                  : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+              }`}
+            >
+              Channels
+            </button>
           </div>
         </div>
 
         {/* Tab Content */}
+        {activeTab === 'channels' && (
+          <div className="retro-container p-3 retro-glow">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="retro-title text-xl font-bold text-retro-cyan">
+                CHANNEL MANAGEMENT
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={fetchChannels}
+                  disabled={channelsLoading}
+                  className="px-3 py-1 bg-retro-cyan text-retro-bg font-semibold rounded hover:bg-retro-cyan/80 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {channelsLoading ? 'Loading...' : 'Refresh'}
+                </button>
+                <button
+                  onClick={() => setShowCreateChannel(!showCreateChannel)}
+                  className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white font-semibold rounded transition-all duration-200"
+                >
+                  {showCreateChannel ? 'Cancel' : '+ Create Channel'}
+                </button>
+              </div>
+            </div>
+
+            {channelsError && (
+              <div className="bg-red-900/20 border-2 border-red-500 rounded-lg p-3 mb-3">
+                <p className="text-red-300">{channelsError}</p>
+              </div>
+            )}
+
+            {/* Create Channel Form */}
+            {showCreateChannel && (
+              <div className="retro-card p-4 mb-3 border-2 border-retro-cyan">
+                <h3 className="text-lg font-bold text-retro-text mb-3">Create New Channel</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-retro-text text-sm font-semibold mb-1">
+                      Channel Name (Twitch username)
+                    </label>
+                    <input
+                      type="text"
+                      value={newChannelName}
+                      onChange={(e) => setNewChannelName(e.target.value)}
+                      placeholder="e.g., itsflannelbeard"
+                      className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                      disabled={creatingChannel}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-retro-text text-sm font-semibold mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      value={newChannelPassword}
+                      onChange={(e) => setNewChannelPassword(e.target.value)}
+                      placeholder="Set password for this channel"
+                      className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                      disabled={creatingChannel}
+                    />
+                  </div>
+                  <button
+                    onClick={createChannel}
+                    disabled={creatingChannel || !newChannelName.trim() || !newChannelPassword.trim()}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {creatingChannel ? 'Creating...' : 'Create Channel'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {channelsLoading && (
+              <div className="text-center py-4">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-retro-cyan border-t-transparent mb-2"></div>
+                <p className="retro-text text-retro-muted">Loading channels...</p>
+              </div>
+            )}
+
+            {!channelsLoading && channels.length === 0 && (
+              <div className="text-center py-8">
+                <p className="retro-text text-retro-muted text-lg mb-4">
+                  No channels found.
+                </p>
+                <p className="retro-text text-retro-muted text-sm">
+                  Create your first channel to get started.
+                </p>
+              </div>
+            )}
+
+            {!channelsLoading && channels.length > 0 && (
+              <div className="space-y-3">
+                {channels.map((channel) => (
+                  <div key={channel.channelName} className="retro-card p-4 border border-gray-600">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-bold text-retro-text">
+                            {channel.channelName}
+                          </h3>
+                          {channel.hasPassword && (
+                            <span className="px-2 py-1 bg-green-600/20 text-green-400 text-xs rounded">
+                              Has Password
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-retro-muted space-y-1">
+                          {channel.date && (
+                            <p>Schedule Date: {channel.date}</p>
+                          )}
+                          <p>Slots Filled: {channel.slotCount}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {resettingPasswordFor === channel.channelName ? (
+                          <div className="flex gap-2 items-center">
+                            <input
+                              type="password"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              placeholder="New password"
+                              className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
+                            />
+                            <button
+                              onClick={() => updateChannelPassword(channel.channelName)}
+                              disabled={!newPassword.trim()}
+                              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded disabled:opacity-50"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => {
+                                setResettingPasswordFor(null);
+                                setNewPassword('');
+                              }}
+                              className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setResettingPasswordFor(channel.channelName)}
+                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-all duration-200"
+                            >
+                              Reset Password
+                            </button>
+                            <button
+                              onClick={() => deleteChannel(channel.channelName)}
+                              disabled={deletingChannel === channel.channelName}
+                              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded transition-all duration-200 disabled:opacity-50"
+                            >
+                              {deletingChannel === channel.channelName ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'schedule' && (
-          <AdminSchedule24Hour onLogout={onLogout} />
+          <div className="retro-container p-3 retro-glow">
+            <p className="text-retro-muted mb-3">
+              Note: To manage a specific channel's schedule, navigate to /schedule/:channelName/admin
+            </p>
+            <AdminSchedule24Hour channelName="itsflannelbeard" onLogout={onLogout} />
+          </div>
         )}
 
         {activeTab === 'ideas' && (
