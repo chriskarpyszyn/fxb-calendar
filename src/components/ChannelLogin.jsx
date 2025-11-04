@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 
-export default function ChannelLogin({ channelName, onLogin, onRegister }) {
+export default function ChannelLogin({ channelName, onLogin }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -12,14 +11,13 @@ export default function ChannelLogin({ channelName, onLogin, onRegister }) {
     setError('');
 
     try {
-      const action = isRegistering ? 'register' : 'login';
       const response = await fetch('/api/channel-auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          action,
+          action: 'login',
           channelName: channelName.toLowerCase().trim(),
           password 
         })
@@ -49,15 +47,13 @@ export default function ChannelLogin({ channelName, onLogin, onRegister }) {
       <div className="retro-container p-8 retro-glow max-w-md w-full">
         <div className="text-center mb-6">
           <h1 className="retro-title text-2xl font-bold text-retro-cyan mb-2">
-            {isRegistering ? 'CREATE SCHEDULE' : 'CHANNEL ACCESS'}
+            CHANNEL ACCESS
           </h1>
           <p className="retro-text text-retro-muted mb-2">
             Channel: <span className="font-bold">{channelName}</span>
           </p>
           <p className="retro-text text-retro-muted text-sm">
-            {isRegistering 
-              ? 'Create a password to manage your schedule'
-              : 'Enter password to manage schedule'}
+            Enter password to manage schedule
           </p>
         </div>
 
@@ -88,24 +84,8 @@ export default function ChannelLogin({ channelName, onLogin, onRegister }) {
             disabled={loading || !password}
             className="w-full retro-button hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Processing...' : (isRegistering ? 'Create Schedule' : 'Login')}
+            {loading ? 'Processing...' : 'Login'}
           </button>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegistering(!isRegistering);
-                setError('');
-                setPassword('');
-              }}
-              className="text-retro-cyan hover:text-retro-cyan/80 text-sm underline"
-            >
-              {isRegistering 
-                ? 'Already have an account? Login' 
-                : "Don't have an account? Register"}
-            </button>
-          </div>
         </form>
       </div>
     </div>

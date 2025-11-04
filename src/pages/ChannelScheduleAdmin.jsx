@@ -101,7 +101,6 @@ export default function ChannelScheduleAdmin() {
       <ChannelLogin 
         channelName={normalizedChannel} 
         onLogin={handleLogin}
-        onRegister={handleLogin}
       />
     );
   }

@@ -80,14 +80,11 @@ export default function ChannelsList() {
         {channels.length === 0 && !error ? (
           <div className="retro-container p-8 retro-glow text-center">
             <p className="retro-text text-retro-muted text-lg mb-4">
-              No channels found. Be the first to create a schedule!
+              No channels found.
             </p>
-            <Link
-              to="/schedule/new/admin"
-              className="inline-block retro-button hover:scale-105 active:scale-95"
-            >
-              Create New Schedule
-            </Link>
+            <p className="retro-text text-retro-muted text-sm">
+              Channel creation is admin-only. Contact admin to create a schedule.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -115,21 +112,6 @@ export default function ChannelsList() {
             ))}
           </div>
         )}
-
-        {/* Create New Schedule Link */}
-        <div className="text-center mt-8">
-          <div className="retro-container p-4 retro-glow inline-block">
-            <p className="retro-text text-retro-muted text-sm mb-3">
-              Want to create your own schedule?
-            </p>
-            <Link
-              to="/schedule/new/admin"
-              className="inline-block retro-button hover:scale-105 active:scale-95"
-            >
-              Create New Schedule
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );

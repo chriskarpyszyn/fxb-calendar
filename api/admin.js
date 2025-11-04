@@ -3,6 +3,7 @@
 
 const { createClient } = require('redis');
 const { verifySessionToken, createSession, verifyChannelSessionToken } = require('./admin-utils');
+const bcrypt = require('bcrypt');
 
 // Normalize channel name (lowercase, no spaces)
 function normalizeChannelName(channelName) {
@@ -1116,6 +1117,380 @@ async function handleUpdate24HourCategories(req, res) {
   }
 }
 
+// Handle create-channel (admin auth required)
+async function handleCreateChannel(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Admin access required' 
+    });
+  }
+
+  const { channelName, password } = req.body;
+
+  if (!channelName || !password) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'channelName and password are required' 
+    });
+  }
+
+  const normalizedChannel = normalizeChannelName(channelName);
+  if (!normalizedChannel) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'Invalid channel name' 
+    });
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Check if channel already exists
+    const existingPassword = await redis.get(`24hour:channel:${normalizedChannel}:password`);
+    if (existingPassword) {
+      return res.status(409).json({ 
+        success: false,
+        error: 'Channel already exists' 
+      });
+    }
+    
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    // Store channel password
+    await redis.set(`24hour:channel:${normalizedChannel}:password`, hashedPassword);
+    
+    // Add to channels set
+    await redis.sAdd('24hour:channels', normalizedChannel);
+    
+    // Initialize empty schedule metadata
+    await redis.set(`24hour:schedule:${normalizedChannel}:date`, '');
+    await redis.set(`24hour:schedule:${normalizedChannel}:startDate`, '');
+    await redis.set(`24hour:schedule:${normalizedChannel}:endDate`, '');
+    await redis.set(`24hour:schedule:${normalizedChannel}:startTime`, '');
+    await redis.set(`24hour:schedule:${normalizedChannel}:endTime`, '');
+    await redis.set(`24hour:schedule:${normalizedChannel}:categories`, '{}');
+    
+    console.log('Channel created by admin:', normalizedChannel);
+    
+    return res.status(201).json({
+      success: true,
+      message: 'Channel created successfully',
+      channelName: normalizedChannel
+    });
+    
+  } catch (error) {
+    console.error('Error creating channel:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to create channel',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle list-channels (admin auth required)
+async function handleListChannels(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Admin access required' 
+    });
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Get all channels from the set
+    const channels = await redis.sMembers('24hour:channels');
+    
+    // For each channel, get basic info
+    const channelsWithInfo = await Promise.all(
+      channels.map(async (channelName) => {
+        try {
+          const date = await redis.get(`24hour:schedule:${channelName}:date`) || '';
+          const slotIndices = await redis.lRange(`24hour:schedule:${channelName}:slots`, 0, -1);
+          const hasPassword = await redis.exists(`24hour:channel:${channelName}:password`);
+          
+          return {
+            channelName: channelName,
+            date: date,
+            slotCount: slotIndices.length,
+            hasPassword: hasPassword === 1
+          };
+        } catch (error) {
+          console.error(`Error getting info for channel ${channelName}:`, error);
+          return {
+            channelName: channelName,
+            date: '',
+            slotCount: 0,
+            hasPassword: false
+          };
+        }
+      })
+    );
+    
+    // Sort by channel name
+    channelsWithInfo.sort((a, b) => a.channelName.localeCompare(b.channelName));
+    
+    return res.status(200).json({
+      success: true,
+      channels: channelsWithInfo
+    });
+    
+  } catch (error) {
+    console.error('Error listing channels:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to list channels',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle update-channel-password (admin auth required)
+async function handleUpdateChannelPassword(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Admin access required' 
+    });
+  }
+
+  const { channelName, password } = req.body;
+
+  if (!channelName || !password) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'channelName and password are required' 
+    });
+  }
+
+  const normalizedChannel = normalizeChannelName(channelName);
+  if (!normalizedChannel) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'Invalid channel name' 
+    });
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Check if channel exists
+    const channelExists = await redis.sIsMember('24hour:channels', normalizedChannel);
+    if (!channelExists) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Channel not found' 
+      });
+    }
+    
+    // Hash new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    // Update channel password
+    await redis.set(`24hour:channel:${normalizedChannel}:password`, hashedPassword);
+    
+    // Invalidate all existing sessions for this channel
+    // Note: This is a simple approach - you might want to track sessions and delete them individually
+    const pattern = `24hour:channel:${normalizedChannel}:session:*`;
+    // We can't easily delete by pattern in Redis, so sessions will expire naturally
+    
+    console.log('Channel password updated by admin:', normalizedChannel);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Password updated successfully',
+      channelName: normalizedChannel
+    });
+    
+  } catch (error) {
+    console.error('Error updating channel password:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update password',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle delete-channel (admin auth required)
+async function handleDeleteChannel(req, res) {
+  if (req.method !== 'DELETE') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Admin access required' 
+    });
+  }
+
+  const { channelName } = req.body;
+
+  if (!channelName) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'channelName is required' 
+    });
+  }
+
+  const normalizedChannel = normalizeChannelName(channelName);
+  if (!normalizedChannel) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'Invalid channel name' 
+    });
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Check if channel exists
+    const channelExists = await redis.sIsMember('24hour:channels', normalizedChannel);
+    if (!channelExists) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Channel not found' 
+      });
+    }
+    
+    // Delete channel password
+    await redis.del(`24hour:channel:${normalizedChannel}:password`);
+    
+    // Delete schedule metadata
+    await redis.del(`24hour:schedule:${normalizedChannel}:date`);
+    await redis.del(`24hour:schedule:${normalizedChannel}:startDate`);
+    await redis.del(`24hour:schedule:${normalizedChannel}:endDate`);
+    await redis.del(`24hour:schedule:${normalizedChannel}:startTime`);
+    await redis.del(`24hour:schedule:${normalizedChannel}:endTime`);
+    await redis.del(`24hour:schedule:${normalizedChannel}:categories`);
+    
+    // Delete all slots
+    const slotIndices = await redis.lRange(`24hour:schedule:${normalizedChannel}:slots`, 0, -1);
+    for (const index of slotIndices) {
+      await redis.del(`24hour:schedule:${normalizedChannel}:slot:${index}:hour`);
+      await redis.del(`24hour:schedule:${normalizedChannel}:slot:${index}:time`);
+      await redis.del(`24hour:schedule:${normalizedChannel}:slot:${index}:category`);
+      await redis.del(`24hour:schedule:${normalizedChannel}:slot:${index}:activity`);
+      await redis.del(`24hour:schedule:${normalizedChannel}:slot:${index}:description`);
+    }
+    await redis.del(`24hour:schedule:${normalizedChannel}:slots`);
+    
+    // Remove from channels set
+    await redis.sRem('24hour:channels', normalizedChannel);
+    
+    console.log('Channel deleted by admin:', normalizedChannel);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Channel deleted successfully',
+      channelName: normalizedChannel
+    });
+    
+  } catch (error) {
+    console.error('Error deleting channel:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete channel',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
 // Main handler
 module.exports = async function handler(req, res) {
   // Get action from query parameter (for GET) or body (for POST/DELETE)
@@ -1160,10 +1535,18 @@ module.exports = async function handler(req, res) {
       return handleUpdate24HourMetadata(req, res);
     case 'update-24hour-categories':
       return handleUpdate24HourCategories(req, res);
+    case 'create-channel':
+      return handleCreateChannel(req, res);
+    case 'list-channels':
+      return handleListChannels(req, res);
+    case 'update-channel-password':
+      return handleUpdateChannelPassword(req, res);
+    case 'delete-channel':
+      return handleDeleteChannel(req, res);
     default:
       return res.status(400).json({
         success: false,
-        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes, get-24hour-schedule, add-24hour-slot, update-24hour-slot, delete-24hour-slot, update-24hour-metadata, update-24hour-categories`
+        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes, get-24hour-schedule, add-24hour-slot, update-24hour-slot, delete-24hour-slot, update-24hour-metadata, update-24hour-categories, create-channel, list-channels, update-channel-password, delete-channel`
       });
   }
 };

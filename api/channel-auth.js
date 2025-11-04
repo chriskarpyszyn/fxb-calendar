@@ -71,98 +71,50 @@ module.exports = async function handler(req, res) {
   try {
     redis = await getRedisClient();
     
+    // Only allow login action (registration is admin-only)
+    if (action && action !== 'login') {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid action. Only "login" is allowed. Channel creation is admin-only.' 
+      });
+    }
+    
     // Handle login action
-    if (action === 'login' || !action) {
-      // Check if channel exists
-      const hashedPassword = await redis.get(`24hour:channel:${normalizedChannel}:password`);
-      
-      if (!hashedPassword) {
-        return res.status(401).json({ 
-          success: false,
-          error: 'Channel not found or invalid credentials' 
-        });
-      }
-      
-      // Verify password
-      const isValid = await bcrypt.compare(password, hashedPassword);
-      
-      if (!isValid) {
-        return res.status(401).json({ 
-          success: false,
-          error: 'Invalid password' 
-        });
-      }
-      
-      // Create channel-specific session token
-      const sessionToken = createSessionToken();
-      const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
-      
-      // Store session info (optional - can also be stateless with JWT)
-      await redis.set(`24hour:channel:${normalizedChannel}:session:${sessionToken}`, expiresAt.toString(), {
-        EX: 24 * 60 * 60 // 24 hours expiry
-      });
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Authentication successful',
-        sessionToken: sessionToken,
-        expiresAt: expiresAt,
-        channelName: normalizedChannel
+    // Check if channel exists
+    const hashedPassword = await redis.get(`24hour:channel:${normalizedChannel}:password`);
+    
+    if (!hashedPassword) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Channel not found. Please contact admin to create your channel.' 
       });
     }
     
-    // Handle register action (for creating new channels)
-    if (action === 'register') {
-      // Check if channel already exists
-      const existingPassword = await redis.get(`24hour:channel:${normalizedChannel}:password`);
-      
-      if (existingPassword) {
-        return res.status(409).json({ 
-          success: false,
-          error: 'Channel already exists' 
-        });
-      }
-      
-      // Hash password
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      
-      // Store channel password
-      await redis.set(`24hour:channel:${normalizedChannel}:password`, hashedPassword);
-      
-      // Add to channels set
-      await redis.sAdd('24hour:channels', normalizedChannel);
-      
-      // Initialize empty schedule metadata
-      await redis.set(`24hour:schedule:${normalizedChannel}:date`, '');
-      await redis.set(`24hour:schedule:${normalizedChannel}:startDate`, '');
-      await redis.set(`24hour:schedule:${normalizedChannel}:endDate`, '');
-      await redis.set(`24hour:schedule:${normalizedChannel}:startTime`, '');
-      await redis.set(`24hour:schedule:${normalizedChannel}:endTime`, '');
-      await redis.set(`24hour:schedule:${normalizedChannel}:categories`, '{}');
-      
-      console.log('Channel registered:', normalizedChannel);
-      
-      // Auto-login after registration
-      const sessionToken = createSessionToken();
-      const expiresAt = Date.now() + (24 * 60 * 60 * 1000);
-      
-      await redis.set(`24hour:channel:${normalizedChannel}:session:${sessionToken}`, expiresAt.toString(), {
-        EX: 24 * 60 * 60
-      });
-      
-      return res.status(201).json({
-        success: true,
-        message: 'Channel registered successfully',
-        sessionToken: sessionToken,
-        expiresAt: expiresAt,
-        channelName: normalizedChannel
+    // Verify password
+    const isValid = await bcrypt.compare(password, hashedPassword);
+    
+    if (!isValid) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid password' 
       });
     }
     
-    return res.status(400).json({ 
-      success: false,
-      error: 'Invalid action. Use "login" or "register"' 
+    // Create channel-specific session token
+    const sessionToken = createSessionToken();
+    const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+    
+    // Store session info (optional - can also be stateless with JWT)
+    await redis.set(`24hour:channel:${normalizedChannel}:session:${sessionToken}`, expiresAt.toString(), {
+      EX: 24 * 60 * 60 // 24 hours expiry
+    });
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Authentication successful',
+      sessionToken: sessionToken,
+      expiresAt: expiresAt,
+      channelName: normalizedChannel
     });
     
   } catch (error) {
