@@ -48,6 +48,8 @@ module.exports = async function handler(req, res) {
     const date = await redis.get('24hour:schedule:date') || '';
     const startDate = await redis.get('24hour:schedule:startDate') || '';
     const endDate = await redis.get('24hour:schedule:endDate') || '';
+    const startTime = await redis.get('24hour:schedule:startTime') || '';
+    const endTime = await redis.get('24hour:schedule:endTime') || '';
     
     // Get categories (stored as JSON)
     const categoriesJson = await redis.get('24hour:schedule:categories') || '{}';
@@ -82,6 +84,8 @@ module.exports = async function handler(req, res) {
       date,
       startDate,
       endDate,
+      startTime,
+      endTime,
       timeSlots,
       categories
     });

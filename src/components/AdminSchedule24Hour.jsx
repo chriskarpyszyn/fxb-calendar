@@ -32,7 +32,9 @@ export default function AdminSchedule24Hour({ onLogout }) {
   const [metadataForm, setMetadataForm] = useState({
     date: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    startTime: '',
+    endTime: ''
   });
 
   // Fetch schedule from API
@@ -59,13 +61,17 @@ export default function AdminSchedule24Hour({ onLogout }) {
           date: '',
           startDate: '',
           endDate: '',
+          startTime: '',
+          endTime: '',
           timeSlots: [],
           categories: {}
         });
         setMetadataForm({
           date: data.schedule?.date || '',
           startDate: data.schedule?.startDate || '',
-          endDate: data.schedule?.endDate || ''
+          endDate: data.schedule?.endDate || '',
+          startTime: data.schedule?.startTime || '',
+          endTime: data.schedule?.endTime || ''
         });
         setError('');
       } else {
@@ -230,7 +236,9 @@ export default function AdminSchedule24Hour({ onLogout }) {
           action: 'update-24hour-metadata',
           date: metadataForm.date,
           startDate: metadataForm.startDate,
-          endDate: metadataForm.endDate
+          endDate: metadataForm.endDate,
+          startTime: metadataForm.startTime,
+          endTime: metadataForm.endTime
         })
       });
       
@@ -254,6 +262,28 @@ export default function AdminSchedule24Hour({ onLogout }) {
     }
   };
 
+  // Generate category colors from category name
+  const generateCategoryColors = (categoryName) => {
+    const colors = ['purple', 'blue', 'green', 'orange', 'pink', 'cyan', 'yellow', 'red', 'indigo', 'teal', 'amber', 'rose'];
+    
+    // Simple hash function to consistently map category name to color index
+    let hash = 0;
+    for (let i = 0; i < categoryName.length; i++) {
+      hash = ((hash << 5) - hash) + categoryName.charCodeAt(i);
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    
+    const colorIndex = Math.abs(hash) % colors.length;
+    const color = colors[colorIndex];
+    
+    return {
+      bg: `bg-${color}-100`,
+      border: `border-${color}-400`,
+      text: `text-${color}-800`,
+      dot: `bg-${color}-500`
+    };
+  };
+
   // Add new category
   const addCategory = () => {
     if (!newCategoryName.trim()) {
@@ -261,14 +291,11 @@ export default function AdminSchedule24Hour({ onLogout }) {
       return;
     }
     
+    const colors = generateCategoryColors(newCategoryName);
+    
     const updatedCategories = {
       ...scheduleData.categories,
-      [newCategoryName]: {
-        bg: categoryForm.bg || 'bg-gray-100',
-        border: categoryForm.border || 'border-gray-400',
-        text: categoryForm.text || 'text-gray-800',
-        dot: categoryForm.dot || 'bg-gray-500'
-      }
+      [newCategoryName]: colors
     };
     
     setScheduleData({ ...scheduleData, categories: updatedCategories });
@@ -385,6 +412,44 @@ export default function AdminSchedule24Hour({ onLogout }) {
     return scheduleData.timeSlots.findIndex(slot => slot.hour === hour);
   };
 
+  // Calculate actual time for each hour based on start date/time
+  const calculateHourTime = (hour, startDate, startTime) => {
+    if (!startDate || !startTime) {
+      return `Hour ${hour}`;
+    }
+
+    try {
+      // Parse start date and time
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+      const startDateTime = new Date(startDate);
+      startDateTime.setHours(startHour, startMinute, 0, 0);
+
+      // Calculate the start time for this hour slot (hour offset from start)
+      const slotStartTime = new Date(startDateTime);
+      slotStartTime.setHours(slotStartTime.getHours() + hour);
+
+      // Calculate the end time for this hour slot (one hour later)
+      const slotEndTime = new Date(slotStartTime);
+      slotEndTime.setHours(slotEndTime.getHours() + 1);
+
+      // Format times in 12-hour format with am/pm
+      const formatTime = (date) => {
+        let hours = date.getHours();
+        const minutes = date.getMinutes();
+        const period = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        const minutesStr = minutes.toString().padStart(2, '0');
+        return `${hours}:${minutesStr}${period}`;
+      };
+
+      return `${formatTime(slotStartTime)} - ${formatTime(slotEndTime)}`;
+    } catch (error) {
+      console.error('Error calculating hour time:', error);
+      return `Hour ${hour}`;
+    }
+  };
+
   // Handle hour click - edit existing or add new
   const handleHourClick = (hour) => {
     const existingSlot = getSlotForHour(hour);
@@ -468,24 +533,44 @@ export default function AdminSchedule24Hour({ onLogout }) {
                   placeholder="Date (e.g., November 6-7, 2025)"
                   className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
                 />
-                <input
-                  type="date"
-                  value={metadataForm.startDate}
-                  onChange={(e) => setMetadataForm({ ...metadataForm, startDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                />
-                <input
-                  type="date"
-                  value={metadataForm.endDate}
-                  onChange={(e) => setMetadataForm({ ...metadataForm, endDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={metadataForm.startDate}
+                    onChange={(e) => setMetadataForm({ ...metadataForm, startDate: e.target.value })}
+                    className="px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                    placeholder="Start Date"
+                  />
+                  <input
+                    type="time"
+                    value={metadataForm.startTime}
+                    onChange={(e) => setMetadataForm({ ...metadataForm, startTime: e.target.value })}
+                    className="px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                    placeholder="Start Time"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={metadataForm.endDate}
+                    onChange={(e) => setMetadataForm({ ...metadataForm, endDate: e.target.value })}
+                    className="px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                    placeholder="End Date"
+                  />
+                  <input
+                    type="time"
+                    value={metadataForm.endTime}
+                    onChange={(e) => setMetadataForm({ ...metadataForm, endTime: e.target.value })}
+                    className="px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                    placeholder="End Time"
+                  />
+                </div>
               </div>
             ) : (
               <div className="text-retro-muted">
                 <p><strong>Date:</strong> {scheduleData.date || 'Not set'}</p>
-                <p><strong>Start Date:</strong> {scheduleData.startDate || 'Not set'}</p>
-                <p><strong>End Date:</strong> {scheduleData.endDate || 'Not set'}</p>
+                <p><strong>Start:</strong> {scheduleData.startDate || 'Not set'} {scheduleData.startTime ? `at ${scheduleData.startTime}` : ''}</p>
+                <p><strong>End:</strong> {scheduleData.endDate || 'Not set'} {scheduleData.endTime ? `at ${scheduleData.endTime}` : ''}</p>
               </div>
             )}
           </div>
@@ -512,13 +597,18 @@ export default function AdminSchedule24Hour({ onLogout }) {
                 {/* Add New Category */}
                 <div className="border-2 border-retro-cyan rounded p-4">
                   <h4 className="text-md font-bold text-retro-text mb-3">Add New Category</h4>
-                  <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div className="flex gap-2">
                     <input
                       type="text"
                       value={newCategoryName}
                       onChange={(e) => setNewCategoryName(e.target.value)}
                       placeholder="Category Name"
-                      className="px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                      className="flex-1 px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          addCategory();
+                        }
+                      }}
                     />
                     <button
                       onClick={addCategory}
@@ -527,36 +617,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
                       Add Category
                     </button>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    <input
-                      type="text"
-                      value={categoryForm.bg}
-                      onChange={(e) => setCategoryForm({ ...categoryForm, bg: e.target.value })}
-                      placeholder="bg (e.g., bg-purple-100)"
-                      className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
-                    />
-                    <input
-                      type="text"
-                      value={categoryForm.border}
-                      onChange={(e) => setCategoryForm({ ...categoryForm, border: e.target.value })}
-                      placeholder="border (e.g., border-purple-400)"
-                      className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
-                    />
-                    <input
-                      type="text"
-                      value={categoryForm.text}
-                      onChange={(e) => setCategoryForm({ ...categoryForm, text: e.target.value })}
-                      placeholder="text (e.g., text-purple-800)"
-                      className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
-                    />
-                    <input
-                      type="text"
-                      value={categoryForm.dot}
-                      onChange={(e) => setCategoryForm({ ...categoryForm, dot: e.target.value })}
-                      placeholder="dot (e.g., bg-purple-500)"
-                      className="px-2 py-1 bg-retro-bg border border-retro-cyan rounded text-retro-text text-sm"
-                    />
-                  </div>
+                  <p className="text-xs text-retro-muted mt-2">Colors will be automatically generated from the category name</p>
                 </div>
 
                 {/* Existing Categories */}
@@ -690,21 +751,22 @@ export default function AdminSchedule24Hour({ onLogout }) {
               </button>
             </div>
 
-            {/* Hour Grid - Show all 24 hours */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Hour Grid - Show all 24 hours in vertical flow */}
+            <div className="flex flex-col gap-4">
               {Array.from({ length: 24 }, (_, i) => {
                 const hour = i;
                 const slot = getSlotForHour(hour);
                 const slotIndex = getSlotIndexForHour(hour);
                 const isEditing = editingSlot !== null && editingSlot.index === slotIndex;
                 const isInAddForm = showAddForm && parseInt(formData.hour) === hour;
+                const calculatedTime = calculateHourTime(hour, scheduleData.startDate, scheduleData.startTime);
                 
                 return (
                   <div key={hour} className="retro-card p-4">
                     {isEditing || isInAddForm ? (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-bold text-retro-text">Hour {hour}</span>
+                          <span className="font-bold text-retro-text">Hour {hour} ({calculatedTime})</span>
                           <button
                             onClick={() => {
                               setEditingSlot(null);
@@ -811,7 +873,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
                         className="cursor-pointer hover:bg-retro-bg/20 transition-all duration-200 rounded p-2"
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-bold text-retro-text">Hour {hour}</span>
+                          <span className="font-bold text-retro-text">Hour {hour} ({calculatedTime})</span>
                           {slot ? (
                             <span className="text-xs text-green-400">✓ Filled</span>
                           ) : (

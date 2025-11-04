@@ -510,6 +510,8 @@ async function handleGet24HourSchedule(req, res) {
     const date = await redis.get('24hour:schedule:date') || '';
     const startDate = await redis.get('24hour:schedule:startDate') || '';
     const endDate = await redis.get('24hour:schedule:endDate') || '';
+    const startTime = await redis.get('24hour:schedule:startTime') || '';
+    const endTime = await redis.get('24hour:schedule:endTime') || '';
     
     // Get categories (stored as JSON)
     const categoriesJson = await redis.get('24hour:schedule:categories') || '{}';
@@ -546,6 +548,8 @@ async function handleGet24HourSchedule(req, res) {
         date,
         startDate,
         endDate,
+        startTime,
+        endTime,
         timeSlots,
         categories
       }
@@ -888,7 +892,7 @@ async function handleUpdate24HourMetadata(req, res) {
     });
   }
 
-  const { date, startDate, endDate } = req.body;
+  const { date, startDate, endDate, startTime, endTime } = req.body;
 
   let redis;
   
@@ -903,6 +907,12 @@ async function handleUpdate24HourMetadata(req, res) {
     }
     if (endDate !== undefined) {
       await redis.set('24hour:schedule:endDate', endDate);
+    }
+    if (startTime !== undefined) {
+      await redis.set('24hour:schedule:startTime', startTime);
+    }
+    if (endTime !== undefined) {
+      await redis.set('24hour:schedule:endTime', endTime);
     }
     
     console.log('24-hour schedule metadata updated');
