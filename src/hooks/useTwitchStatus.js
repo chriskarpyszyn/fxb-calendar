@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 
-export default function useTwitchStatus() {
+export default function useTwitchStatus(channelName = 'itsflannelbeard') {
+  const normalizedChannel = channelName?.toLowerCase().trim() || 'itsflannelbeard';
   const [twitchStatus, setTwitchStatus] = useState({
     isLive: false,
     loading: true,
-    channelName: 'itsFlannelBeard'
+    channelName: normalizedChannel
   });
 
   useEffect(() => {
@@ -16,7 +17,7 @@ export default function useTwitchStatus() {
         // Create new abort controller for this request
         abortController = new AbortController();
         
-        const response = await fetch('/api/twitch-status', {
+        const response = await fetch(`/api/twitch-status?channelName=${encodeURIComponent(normalizedChannel)}`, {
           signal: abortController.signal,
           cache: 'no-cache' // Force fresh requests
         });
@@ -29,7 +30,8 @@ export default function useTwitchStatus() {
         if (mounted) {
           setTwitchStatus({
             ...data,
-            loading: false
+            loading: false,
+            channelName: normalizedChannel
           });
         }
       } catch (err) {
@@ -43,7 +45,8 @@ export default function useTwitchStatus() {
         if (mounted) {
           setTwitchStatus(prev => ({
             ...prev,
-            loading: false
+            loading: false,
+            channelName: normalizedChannel
           }));
         }
       }
@@ -70,7 +73,7 @@ export default function useTwitchStatus() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [normalizedChannel]);
 
   return twitchStatus;
 }

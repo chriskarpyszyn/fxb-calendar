@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import './App.css';
 import LiveStreamBanner from './components/LiveStreamBanner';
 import useTwitchStatus from './hooks/useTwitchStatus';
 
 export default function TwentyFourHourSchedule() {
+  const { channelName } = useParams();
+  // Default to 'itsflannelbeard' for backward compatibility with /24hour-schedule route
+  const normalizedChannel = channelName?.toLowerCase().trim() || 'itsflannelbeard';
   const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const twitchStatus = useTwitchStatus();
+  const twitchStatus = useTwitchStatus(normalizedChannel);
 
   // Load schedule data from API
   useEffect(() => {
-    fetch('/api/get-24hour-schedule')
+    fetch(`/api/get-24hour-schedule?channelName=${encodeURIComponent(normalizedChannel)}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to load 24-hour schedule');
@@ -21,6 +25,7 @@ export default function TwentyFourHourSchedule() {
       .then(data => {
         // Always preserve all metadata fields
         setScheduleData({
+          channelName: data?.channelName || normalizedChannel,
           date: data?.date || '',
           startDate: data?.startDate || '',
           endDate: data?.endDate || '',
@@ -35,7 +40,7 @@ export default function TwentyFourHourSchedule() {
         setError(err.message);
         setLoading(false);
       });
-  }, []);
+  }, [normalizedChannel]);
 
   // Get user's timezone
   const getUserTimezone = () => {
@@ -350,8 +355,8 @@ export default function TwentyFourHourSchedule() {
         <div className="text-center mb-4 sm:mb-6 md:mb-8">
           <div className="retro-container p-6 retro-glow mb-4">
             <h1 className="retro-title text-lg sm:text-xl md:text-2xl lg:text-3xl mb-2 leading-tight">
-              EXTRA LIFE 24 HOUR<br />
-              STREAM SCHEDULE
+              {normalizedChannel.toUpperCase()}'S<br />
+              24 HOUR STREAM SCHEDULE
             </h1>
             <p className="retro-text text-retro-muted text-sm sm:text-base md:text-lg font-mono">
               {scheduleData.date}
@@ -359,6 +364,14 @@ export default function TwentyFourHourSchedule() {
             <p className="retro-text text-retro-muted text-xs sm:text-sm font-mono mt-2">
               All times shown in your timezone: {getUserTimezone()}
             </p>
+            <div className="mt-4">
+              <Link
+                to={`/schedule/${normalizedChannel}/admin`}
+                className="inline-block retro-button hover:scale-105 active:scale-95 text-sm"
+              >
+                Manage Schedule
+              </Link>
+            </div>
           </div>
         </div>
 

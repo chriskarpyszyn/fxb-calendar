@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-export default function AdminSchedule24Hour({ onLogout }) {
+export default function AdminSchedule24Hour({ channelName, onLogout }) {
+  const normalizedChannel = channelName?.toLowerCase().trim() || 'itsflannelbeard';
   const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,18 +41,29 @@ export default function AdminSchedule24Hour({ onLogout }) {
     endTime: ''
   });
 
+  // Helper to get auth token (admin or channel-specific)
+  const getAuthToken = () => {
+    // Try admin token first
+    const adminToken = localStorage.getItem('adminToken');
+    if (adminToken) return adminToken;
+    
+    // Try channel-specific token
+    const channelToken = localStorage.getItem(`channelToken_${normalizedChannel}`);
+    return channelToken;
+  };
+
   // Fetch schedule from API
   const fetchSchedule = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
+      const token = getAuthToken();
       
       if (!token) {
         onLogout();
         return;
       }
 
-      const response = await fetch('/api/admin?action=get-24hour-schedule', {
+      const response = await fetch(`/api/admin?action=get-24hour-schedule&channelName=${encodeURIComponent(normalizedChannel)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -79,8 +91,11 @@ export default function AdminSchedule24Hour({ onLogout }) {
         setError('');
       } else {
         if (response.status === 401) {
+          // Clear both admin and channel tokens
           localStorage.removeItem('adminToken');
           localStorage.removeItem('adminExpiresAt');
+          localStorage.removeItem(`channelToken_${normalizedChannel}`);
+          localStorage.removeItem(`channelExpiresAt_${normalizedChannel}`);
           onLogout();
           return;
         }
@@ -92,12 +107,17 @@ export default function AdminSchedule24Hour({ onLogout }) {
     } finally {
       setLoading(false);
     }
-  }, [onLogout]);
+  }, [onLogout, normalizedChannel]);
 
   // Add new slot
   const addSlot = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = getAuthToken();
+      
+      if (!token) {
+        onLogout();
+        return;
+      }
       
       // Auto-generate time from hour
       const generatedTime = calculateHourTime(
@@ -114,6 +134,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
         },
         body: JSON.stringify({
           action: 'add-24hour-slot',
+          channelName: normalizedChannel,
           hour: parseInt(formData.hour),
           time: generatedTime,
           category: formData.category,
@@ -139,6 +160,8 @@ export default function AdminSchedule24Hour({ onLogout }) {
         if (response.status === 401) {
           localStorage.removeItem('adminToken');
           localStorage.removeItem('adminExpiresAt');
+          localStorage.removeItem(`channelToken_${normalizedChannel}`);
+          localStorage.removeItem(`channelExpiresAt_${normalizedChannel}`);
           onLogout();
           return;
         }
@@ -153,7 +176,12 @@ export default function AdminSchedule24Hour({ onLogout }) {
   // Update slot
   const updateSlot = async (slotIndex) => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = getAuthToken();
+      
+      if (!token) {
+        onLogout();
+        return;
+      }
       
       // Auto-generate time from hour
       const hour = editingSlot.hour !== undefined ? parseInt(editingSlot.hour) : undefined;
@@ -169,6 +197,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
         },
         body: JSON.stringify({
           action: 'update-24hour-slot',
+          channelName: normalizedChannel,
           slotIndex,
           hour: hour,
           time: generatedTime,
@@ -189,6 +218,8 @@ export default function AdminSchedule24Hour({ onLogout }) {
         if (response.status === 401) {
           localStorage.removeItem('adminToken');
           localStorage.removeItem('adminExpiresAt');
+          localStorage.removeItem(`channelToken_${normalizedChannel}`);
+          localStorage.removeItem(`channelExpiresAt_${normalizedChannel}`);
           onLogout();
           return;
         }
@@ -208,7 +239,12 @@ export default function AdminSchedule24Hour({ onLogout }) {
 
     try {
       setDeletingSlotIndex(slotIndex);
-      const token = localStorage.getItem('adminToken');
+      const token = getAuthToken();
+      
+      if (!token) {
+        onLogout();
+        return;
+      }
       
       const response = await fetch('/api/admin?action=delete-24hour-slot', {
         method: 'DELETE',
@@ -216,7 +252,11 @@ export default function AdminSchedule24Hour({ onLogout }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ action: 'delete-24hour-slot', slotIndex })
+        body: JSON.stringify({ 
+          action: 'delete-24hour-slot', 
+          channelName: normalizedChannel,
+          slotIndex 
+        })
       });
       
       const data = await response.json();
@@ -227,6 +267,8 @@ export default function AdminSchedule24Hour({ onLogout }) {
         if (response.status === 401) {
           localStorage.removeItem('adminToken');
           localStorage.removeItem('adminExpiresAt');
+          localStorage.removeItem(`channelToken_${normalizedChannel}`);
+          localStorage.removeItem(`channelExpiresAt_${normalizedChannel}`);
           onLogout();
           return;
         }
@@ -243,7 +285,12 @@ export default function AdminSchedule24Hour({ onLogout }) {
   // Update metadata
   const updateMetadata = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = getAuthToken();
+      
+      if (!token) {
+        onLogout();
+        return;
+      }
       
       const response = await fetch('/api/admin?action=update-24hour-metadata', {
         method: 'POST',
@@ -253,6 +300,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
         },
         body: JSON.stringify({
           action: 'update-24hour-metadata',
+          channelName: normalizedChannel,
           date: metadataForm.date,
           startDate: metadataForm.startDate,
           endDate: metadataForm.endDate,
@@ -270,6 +318,8 @@ export default function AdminSchedule24Hour({ onLogout }) {
         if (response.status === 401) {
           localStorage.removeItem('adminToken');
           localStorage.removeItem('adminExpiresAt');
+          localStorage.removeItem(`channelToken_${normalizedChannel}`);
+          localStorage.removeItem(`channelExpiresAt_${normalizedChannel}`);
           onLogout();
           return;
         }
@@ -356,7 +406,12 @@ export default function AdminSchedule24Hour({ onLogout }) {
   // Save categories
   const saveCategories = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = getAuthToken();
+      
+      if (!token) {
+        onLogout();
+        return;
+      }
       
       const response = await fetch('/api/admin?action=update-24hour-categories', {
         method: 'POST',
@@ -366,6 +421,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
         },
         body: JSON.stringify({
           action: 'update-24hour-categories',
+          channelName: normalizedChannel,
           categories: scheduleData.categories
         })
       });
@@ -380,6 +436,8 @@ export default function AdminSchedule24Hour({ onLogout }) {
         if (response.status === 401) {
           localStorage.removeItem('adminToken');
           localStorage.removeItem('adminExpiresAt');
+          localStorage.removeItem(`channelToken_${normalizedChannel}`);
+          localStorage.removeItem(`channelExpiresAt_${normalizedChannel}`);
           onLogout();
           return;
         }
@@ -393,16 +451,28 @@ export default function AdminSchedule24Hour({ onLogout }) {
 
   // Check if session is still valid
   useEffect(() => {
-    const expiresAt = localStorage.getItem('adminExpiresAt');
-    if (expiresAt && Date.now() > parseInt(expiresAt)) {
+    // Check admin token first
+    const adminExpiresAt = localStorage.getItem('adminExpiresAt');
+    if (adminExpiresAt && Date.now() > parseInt(adminExpiresAt)) {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminExpiresAt');
+    }
+    
+    // Check channel token
+    const channelExpiresAt = localStorage.getItem(`channelExpiresAt_${normalizedChannel}`);
+    if (channelExpiresAt && Date.now() > parseInt(channelExpiresAt)) {
+      localStorage.removeItem(`channelToken_${normalizedChannel}`);
+      localStorage.removeItem(`channelExpiresAt_${normalizedChannel}`);
+    }
+    
+    // If no valid token, logout
+    if (!getAuthToken()) {
       onLogout();
       return;
     }
 
     fetchSchedule();
-  }, [onLogout, fetchSchedule]);
+  }, [onLogout, fetchSchedule, normalizedChannel]);
 
   // Get unique categories from slots
   const getAvailableCategories = () => {
@@ -442,7 +512,9 @@ export default function AdminSchedule24Hour({ onLogout }) {
     
     // Save to backend
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = getAuthToken();
+      if (!token) return;
+      
       const response = await fetch('/api/admin?action=update-24hour-categories', {
         method: 'POST',
         headers: {
@@ -451,6 +523,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
         },
         body: JSON.stringify({
           action: 'update-24hour-categories',
+          channelName: normalizedChannel,
           categories: updatedCategories
         })
       });

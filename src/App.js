@@ -5,6 +5,8 @@ import Landing from './pages/Landing';
 import Admin from './pages/Admin';
 import Survey from './pages/Survey';
 import TwentyFourHourSchedule from './TwentyFourHourSchedule';
+import ChannelsList from './pages/ChannelsList';
+import ChannelScheduleAdmin from './pages/ChannelScheduleAdmin';
 import './App.css';
 
 function App() {
@@ -16,6 +18,9 @@ function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/survey" element={<Survey />} />
         <Route path="/24hour-schedule" element={<TwentyFourHourSchedule />} />
+        <Route path="/channels" element={<ChannelsList />} />
+        <Route path="/schedule/:channelName" element={<TwentyFourHourSchedule />} />
+        <Route path="/schedule/:channelName/admin" element={<ChannelScheduleAdmin />} />
       </Routes>
     </Router>
   );

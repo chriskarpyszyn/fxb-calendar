@@ -2,7 +2,13 @@
 // Handles all admin operations: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes
 
 const { createClient } = require('redis');
-const { verifySessionToken, createSession } = require('./admin-utils');
+const { verifySessionToken, createSession, verifyChannelSessionToken } = require('./admin-utils');
+
+// Normalize channel name (lowercase, no spaces)
+function normalizeChannelName(channelName) {
+  if (!channelName) return null;
+  return channelName.toLowerCase().trim();
+}
 
 // Load environment variables for local development
 if (process.env.NODE_ENV !== 'production') {
@@ -492,7 +498,7 @@ async function handleResetVotes(req, res) {
   }
 }
 
-// Handle get-24hour-schedule (public access)
+// Handle get-24hour-schedule (admin access - can use channel auth or admin auth)
 async function handleGet24HourSchedule(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ 
@@ -501,20 +507,50 @@ async function handleGet24HourSchedule(req, res) {
     });
   }
 
+  // Get channelName from query parameter
+  const channelName = normalizeChannelName(req.query.channelName) || normalizeChannelName(req.body?.channelName);
+  
+  if (!channelName) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'channelName is required' 
+    });
+  }
+
+  // Verify either admin token or channel token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
   let redis;
   
   try {
     redis = await getRedisClient();
     
-    // Get metadata
-    const date = await redis.get('24hour:schedule:date') || '';
-    const startDate = await redis.get('24hour:schedule:startDate') || '';
-    const endDate = await redis.get('24hour:schedule:endDate') || '';
-    const startTime = await redis.get('24hour:schedule:startTime') || '';
-    const endTime = await redis.get('24hour:schedule:endTime') || '';
+    // Check admin token first (allows access to any channel)
+    const isAdmin = verifySessionToken(token);
+    
+    // If not admin, check channel-specific token
+    if (!isAdmin) {
+      const isValidChannel = await verifyChannelSessionToken(token, channelName, redis);
+      if (!isValidChannel) {
+        return res.status(401).json({ 
+          success: false,
+          error: 'Unauthorized - Invalid or expired session' 
+        });
+      }
+    }
+    
+    // Get metadata (channel-prefixed)
+    const date = await redis.get(`24hour:schedule:${channelName}:date`) || '';
+    const startDate = await redis.get(`24hour:schedule:${channelName}:startDate`) || '';
+    const endDate = await redis.get(`24hour:schedule:${channelName}:endDate`) || '';
+    const startTime = await redis.get(`24hour:schedule:${channelName}:startTime`) || '';
+    const endTime = await redis.get(`24hour:schedule:${channelName}:endTime`) || '';
     
     // Get categories (stored as JSON)
-    const categoriesJson = await redis.get('24hour:schedule:categories') || '{}';
+    const categoriesJson = await redis.get(`24hour:schedule:${channelName}:categories`) || '{}';
     let categories = {};
     try {
       categories = JSON.parse(categoriesJson);
@@ -522,16 +558,16 @@ async function handleGet24HourSchedule(req, res) {
       console.warn('Failed to parse categories:', parseError.message);
     }
     
-    // Get slots list
-    const slotIndices = await redis.lRange('24hour:schedule:slots', 0, -1);
+    // Get slots list (channel-prefixed)
+    const slotIndices = await redis.lRange(`24hour:schedule:${channelName}:slots`, 0, -1);
     const timeSlots = [];
     
     for (const index of slotIndices) {
-      const hour = await redis.get(`24hour:schedule:slot:${index}:hour`) || '';
-      const time = await redis.get(`24hour:schedule:slot:${index}:time`) || '';
-      const category = await redis.get(`24hour:schedule:slot:${index}:category`) || '';
-      const activity = await redis.get(`24hour:schedule:slot:${index}:activity`) || '';
-      const description = await redis.get(`24hour:schedule:slot:${index}:description`) || '';
+      const hour = await redis.get(`24hour:schedule:${channelName}:slot:${index}:hour`) || '';
+      const time = await redis.get(`24hour:schedule:${channelName}:slot:${index}:time`) || '';
+      const category = await redis.get(`24hour:schedule:${channelName}:slot:${index}:category`) || '';
+      const activity = await redis.get(`24hour:schedule:${channelName}:slot:${index}:activity`) || '';
+      const description = await redis.get(`24hour:schedule:${channelName}:slot:${index}:description`) || '';
       
       timeSlots.push({
         hour: hour ? parseInt(hour) : 0,
@@ -545,6 +581,7 @@ async function handleGet24HourSchedule(req, res) {
     return res.status(200).json({
       success: true,
       schedule: {
+        channelName: channelName,
         date,
         startDate,
         endDate,
@@ -573,7 +610,7 @@ async function handleGet24HourSchedule(req, res) {
   }
 }
 
-// Handle add-24hour-slot (admin auth required)
+// Handle add-24hour-slot (admin auth or channel auth required)
 async function handleAdd24HourSlot(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ 
@@ -582,20 +619,7 @@ async function handleAdd24HourSlot(req, res) {
     });
   }
 
-  // Verify admin session token
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.startsWith('Bearer ') 
-    ? authHeader.substring(7) 
-    : null;
-
-  if (!verifySessionToken(token)) {
-    return res.status(401).json({ 
-      success: false,
-      error: 'Unauthorized - Invalid or expired session' 
-    });
-  }
-
-  const { hour, time, category, activity, description } = req.body;
+  const { hour, time, category, activity, description, channelName } = req.body;
 
   if (hour === undefined || !time || !category || !activity) {
     return res.status(400).json({ 
@@ -604,26 +628,54 @@ async function handleAdd24HourSlot(req, res) {
     });
   }
 
+  const normalizedChannel = normalizeChannelName(channelName);
+  if (!normalizedChannel) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'channelName is required' 
+    });
+  }
+
+  // Verify admin session token or channel token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
   let redis;
   
   try {
     redis = await getRedisClient();
     
-    // Get current slots list to determine next index
-    const slotIndices = await redis.lRange('24hour:schedule:slots', 0, -1);
+    // Check admin token first (allows access to any channel)
+    const isAdmin = verifySessionToken(token);
+    
+    // If not admin, check channel-specific token
+    if (!isAdmin) {
+      const isValidChannel = await verifyChannelSessionToken(token, normalizedChannel, redis);
+      if (!isValidChannel) {
+        return res.status(401).json({ 
+          success: false,
+          error: 'Unauthorized - Invalid or expired session' 
+        });
+      }
+    }
+    
+    // Get current slots list to determine next index (channel-prefixed)
+    const slotIndices = await redis.lRange(`24hour:schedule:${normalizedChannel}:slots`, 0, -1);
     const nextIndex = slotIndices.length.toString();
     
     // Add slot to list
-    await redis.rPush('24hour:schedule:slots', nextIndex);
+    await redis.rPush(`24hour:schedule:${normalizedChannel}:slots`, nextIndex);
     
-    // Store slot data as hash fields
-    await redis.set(`24hour:schedule:slot:${nextIndex}:hour`, hour.toString());
-    await redis.set(`24hour:schedule:slot:${nextIndex}:time`, time);
-    await redis.set(`24hour:schedule:slot:${nextIndex}:category`, category);
-    await redis.set(`24hour:schedule:slot:${nextIndex}:activity`, activity);
-    await redis.set(`24hour:schedule:slot:${nextIndex}:description`, description || '');
+    // Store slot data as hash fields (channel-prefixed)
+    await redis.set(`24hour:schedule:${normalizedChannel}:slot:${nextIndex}:hour`, hour.toString());
+    await redis.set(`24hour:schedule:${normalizedChannel}:slot:${nextIndex}:time`, time);
+    await redis.set(`24hour:schedule:${normalizedChannel}:slot:${nextIndex}:category`, category);
+    await redis.set(`24hour:schedule:${normalizedChannel}:slot:${nextIndex}:activity`, activity);
+    await redis.set(`24hour:schedule:${normalizedChannel}:slot:${nextIndex}:description`, description || '');
     
-    console.log('24-hour slot added:', nextIndex);
+    console.log('24-hour slot added:', nextIndex, 'for channel:', normalizedChannel);
     
     return res.status(200).json({
       success: true,
@@ -656,7 +708,7 @@ async function handleAdd24HourSlot(req, res) {
   }
 }
 
-// Handle update-24hour-slot (admin auth required)
+// Handle update-24hour-slot (admin auth or channel auth required)
 async function handleUpdate24HourSlot(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ 
@@ -665,20 +717,7 @@ async function handleUpdate24HourSlot(req, res) {
     });
   }
 
-  // Verify admin session token
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.startsWith('Bearer ') 
-    ? authHeader.substring(7) 
-    : null;
-
-  if (!verifySessionToken(token)) {
-    return res.status(401).json({ 
-      success: false,
-      error: 'Unauthorized - Invalid or expired session' 
-    });
-  }
-
-  const { slotIndex, hour, time, category, activity, description } = req.body;
+  const { slotIndex, hour, time, category, activity, description, channelName } = req.body;
 
   if (slotIndex === undefined || slotIndex === null) {
     return res.status(400).json({ 
@@ -687,13 +726,41 @@ async function handleUpdate24HourSlot(req, res) {
     });
   }
 
+  const normalizedChannel = normalizeChannelName(channelName);
+  if (!normalizedChannel) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'channelName is required' 
+    });
+  }
+
+  // Verify admin session token or channel token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
   let redis;
   
   try {
     redis = await getRedisClient();
     
-    // Verify slot exists
-    const slotIndices = await redis.lRange('24hour:schedule:slots', 0, -1);
+    // Check admin token first (allows access to any channel)
+    const isAdmin = verifySessionToken(token);
+    
+    // If not admin, check channel-specific token
+    if (!isAdmin) {
+      const isValidChannel = await verifyChannelSessionToken(token, normalizedChannel, redis);
+      if (!isValidChannel) {
+        return res.status(401).json({ 
+          success: false,
+          error: 'Unauthorized - Invalid or expired session' 
+        });
+      }
+    }
+    
+    // Verify slot exists (channel-prefixed)
+    const slotIndices = await redis.lRange(`24hour:schedule:${normalizedChannel}:slots`, 0, -1);
     if (!slotIndices.includes(slotIndex.toString())) {
       return res.status(404).json({
         success: false,
@@ -701,24 +768,24 @@ async function handleUpdate24HourSlot(req, res) {
       });
     }
     
-    // Update slot fields
+    // Update slot fields (channel-prefixed)
     if (hour !== undefined) {
-      await redis.set(`24hour:schedule:slot:${slotIndex}:hour`, hour.toString());
+      await redis.set(`24hour:schedule:${normalizedChannel}:slot:${slotIndex}:hour`, hour.toString());
     }
     if (time !== undefined) {
-      await redis.set(`24hour:schedule:slot:${slotIndex}:time`, time);
+      await redis.set(`24hour:schedule:${normalizedChannel}:slot:${slotIndex}:time`, time);
     }
     if (category !== undefined) {
-      await redis.set(`24hour:schedule:slot:${slotIndex}:category`, category);
+      await redis.set(`24hour:schedule:${normalizedChannel}:slot:${slotIndex}:category`, category);
     }
     if (activity !== undefined) {
-      await redis.set(`24hour:schedule:slot:${slotIndex}:activity`, activity);
+      await redis.set(`24hour:schedule:${normalizedChannel}:slot:${slotIndex}:activity`, activity);
     }
     if (description !== undefined) {
-      await redis.set(`24hour:schedule:slot:${slotIndex}:description`, description);
+      await redis.set(`24hour:schedule:${normalizedChannel}:slot:${slotIndex}:description`, description);
     }
     
-    console.log('24-hour slot updated:', slotIndex);
+    console.log('24-hour slot updated:', slotIndex, 'for channel:', normalizedChannel);
     
     return res.status(200).json({
       success: true,
@@ -744,7 +811,7 @@ async function handleUpdate24HourSlot(req, res) {
   }
 }
 
-// Handle delete-24hour-slot (admin auth required)
+// Handle delete-24hour-slot (admin auth or channel auth required)
 async function handleDelete24HourSlot(req, res) {
   if (req.method !== 'DELETE') {
     return res.status(405).json({ 
@@ -753,20 +820,7 @@ async function handleDelete24HourSlot(req, res) {
     });
   }
 
-  // Verify admin session token
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.startsWith('Bearer ') 
-    ? authHeader.substring(7) 
-    : null;
-
-  if (!verifySessionToken(token)) {
-    return res.status(401).json({ 
-      success: false,
-      error: 'Unauthorized - Invalid or expired session' 
-    });
-  }
-
-  const { slotIndex } = req.body;
+  const { slotIndex, channelName } = req.body;
 
   if (slotIndex === undefined || slotIndex === null) {
     return res.status(400).json({ 
@@ -775,13 +829,41 @@ async function handleDelete24HourSlot(req, res) {
     });
   }
 
+  const normalizedChannel = normalizeChannelName(channelName);
+  if (!normalizedChannel) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'channelName is required' 
+    });
+  }
+
+  // Verify admin session token or channel token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
   let redis;
   
   try {
     redis = await getRedisClient();
     
-    // Get current slots list
-    const slotIndices = await redis.lRange('24hour:schedule:slots', 0, -1);
+    // Check admin token first (allows access to any channel)
+    const isAdmin = verifySessionToken(token);
+    
+    // If not admin, check channel-specific token
+    if (!isAdmin) {
+      const isValidChannel = await verifyChannelSessionToken(token, normalizedChannel, redis);
+      if (!isValidChannel) {
+        return res.status(401).json({ 
+          success: false,
+          error: 'Unauthorized - Invalid or expired session' 
+        });
+      }
+    }
+    
+    // Get current slots list (channel-prefixed)
+    const slotIndices = await redis.lRange(`24hour:schedule:${normalizedChannel}:slots`, 0, -1);
     const slotIndexStr = slotIndex.toString();
     
     if (!slotIndices.includes(slotIndexStr)) {
@@ -791,21 +873,21 @@ async function handleDelete24HourSlot(req, res) {
       });
     }
     
-    // Delete slot hash fields
-    await redis.del(`24hour:schedule:slot:${slotIndexStr}:hour`);
-    await redis.del(`24hour:schedule:slot:${slotIndexStr}:time`);
-    await redis.del(`24hour:schedule:slot:${slotIndexStr}:category`);
-    await redis.del(`24hour:schedule:slot:${slotIndexStr}:activity`);
-    await redis.del(`24hour:schedule:slot:${slotIndexStr}:description`);
+    // Delete slot hash fields (channel-prefixed)
+    await redis.del(`24hour:schedule:${normalizedChannel}:slot:${slotIndexStr}:hour`);
+    await redis.del(`24hour:schedule:${normalizedChannel}:slot:${slotIndexStr}:time`);
+    await redis.del(`24hour:schedule:${normalizedChannel}:slot:${slotIndexStr}:category`);
+    await redis.del(`24hour:schedule:${normalizedChannel}:slot:${slotIndexStr}:activity`);
+    await redis.del(`24hour:schedule:${normalizedChannel}:slot:${slotIndexStr}:description`);
     
     // Remove from slots list
-    await redis.lRem('24hour:schedule:slots', 0, slotIndexStr);
+    await redis.lRem(`24hour:schedule:${normalizedChannel}:slots`, 0, slotIndexStr);
     
     // Reindex remaining slots - rebuild list with sequential indices
     const remainingIndices = slotIndices.filter(idx => idx !== slotIndexStr);
     
     // Delete old list and rebuild
-    await redis.del('24hour:schedule:slots');
+    await redis.del(`24hour:schedule:${normalizedChannel}:slots`);
     
     if (remainingIndices.length > 0) {
       // Rebuild list with sequential indices 0, 1, 2, ...
@@ -814,37 +896,37 @@ async function handleDelete24HourSlot(req, res) {
         const oldIndex = remainingIndices[i];
         const newIndex = i.toString();
         
-        // Copy data from old index to new index
-        const hour = await redis.get(`24hour:schedule:slot:${oldIndex}:hour`);
-        const time = await redis.get(`24hour:schedule:slot:${oldIndex}:time`);
-        const category = await redis.get(`24hour:schedule:slot:${oldIndex}:category`);
-        const activity = await redis.get(`24hour:schedule:slot:${oldIndex}:activity`);
-        const description = await redis.get(`24hour:schedule:slot:${oldIndex}:description`);
+        // Copy data from old index to new index (channel-prefixed)
+        const hour = await redis.get(`24hour:schedule:${normalizedChannel}:slot:${oldIndex}:hour`);
+        const time = await redis.get(`24hour:schedule:${normalizedChannel}:slot:${oldIndex}:time`);
+        const category = await redis.get(`24hour:schedule:${normalizedChannel}:slot:${oldIndex}:category`);
+        const activity = await redis.get(`24hour:schedule:${normalizedChannel}:slot:${oldIndex}:activity`);
+        const description = await redis.get(`24hour:schedule:${normalizedChannel}:slot:${oldIndex}:description`);
         
         // Set new index
-        if (hour) await redis.set(`24hour:schedule:slot:${newIndex}:hour`, hour);
-        if (time) await redis.set(`24hour:schedule:slot:${newIndex}:time`, time);
-        if (category) await redis.set(`24hour:schedule:slot:${newIndex}:category`, category);
-        if (activity) await redis.set(`24hour:schedule:slot:${newIndex}:activity`, activity);
-        if (description !== null) await redis.set(`24hour:schedule:slot:${newIndex}:description`, description || '');
+        if (hour) await redis.set(`24hour:schedule:${normalizedChannel}:slot:${newIndex}:hour`, hour);
+        if (time) await redis.set(`24hour:schedule:${normalizedChannel}:slot:${newIndex}:time`, time);
+        if (category) await redis.set(`24hour:schedule:${normalizedChannel}:slot:${newIndex}:category`, category);
+        if (activity) await redis.set(`24hour:schedule:${normalizedChannel}:slot:${newIndex}:activity`, activity);
+        if (description !== null) await redis.set(`24hour:schedule:${normalizedChannel}:slot:${newIndex}:description`, description || '');
         
         // Delete old index if different
         if (oldIndex !== newIndex) {
-          await redis.del(`24hour:schedule:slot:${oldIndex}:hour`);
-          await redis.del(`24hour:schedule:slot:${oldIndex}:time`);
-          await redis.del(`24hour:schedule:slot:${oldIndex}:category`);
-          await redis.del(`24hour:schedule:slot:${oldIndex}:activity`);
-          await redis.del(`24hour:schedule:slot:${oldIndex}:description`);
+          await redis.del(`24hour:schedule:${normalizedChannel}:slot:${oldIndex}:hour`);
+          await redis.del(`24hour:schedule:${normalizedChannel}:slot:${oldIndex}:time`);
+          await redis.del(`24hour:schedule:${normalizedChannel}:slot:${oldIndex}:category`);
+          await redis.del(`24hour:schedule:${normalizedChannel}:slot:${oldIndex}:activity`);
+          await redis.del(`24hour:schedule:${normalizedChannel}:slot:${oldIndex}:description`);
         }
         
         newIndices.push(newIndex);
       }
       
       // Rebuild list
-      await redis.rPush('24hour:schedule:slots', ...newIndices);
+      await redis.rPush(`24hour:schedule:${normalizedChannel}:slots`, ...newIndices);
     }
     
-    console.log('24-hour slot deleted:', slotIndexStr);
+    console.log('24-hour slot deleted:', slotIndexStr, 'for channel:', normalizedChannel);
     
     return res.status(200).json({
       success: true,
@@ -870,7 +952,7 @@ async function handleDelete24HourSlot(req, res) {
   }
 }
 
-// Handle update-24hour-metadata (admin auth required)
+// Handle update-24hour-metadata (admin auth or channel auth required)
 async function handleUpdate24HourMetadata(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ 
@@ -879,43 +961,58 @@ async function handleUpdate24HourMetadata(req, res) {
     });
   }
 
-  // Verify admin session token
+  const { date, startDate, endDate, startTime, endTime, channelName } = req.body;
+
+  const normalizedChannel = normalizeChannelName(channelName);
+  if (!normalizedChannel) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'channelName is required' 
+    });
+  }
+
+  // Verify admin session token or channel token
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ') 
     ? authHeader.substring(7) 
     : null;
-
-  if (!verifySessionToken(token)) {
-    return res.status(401).json({ 
-      success: false,
-      error: 'Unauthorized - Invalid or expired session' 
-    });
-  }
-
-  const { date, startDate, endDate, startTime, endTime } = req.body;
 
   let redis;
   
   try {
     redis = await getRedisClient();
     
-    if (date !== undefined) {
-      await redis.set('24hour:schedule:date', date);
-    }
-    if (startDate !== undefined) {
-      await redis.set('24hour:schedule:startDate', startDate);
-    }
-    if (endDate !== undefined) {
-      await redis.set('24hour:schedule:endDate', endDate);
-    }
-    if (startTime !== undefined) {
-      await redis.set('24hour:schedule:startTime', startTime);
-    }
-    if (endTime !== undefined) {
-      await redis.set('24hour:schedule:endTime', endTime);
+    // Check admin token first (allows access to any channel)
+    const isAdmin = verifySessionToken(token);
+    
+    // If not admin, check channel-specific token
+    if (!isAdmin) {
+      const isValidChannel = await verifyChannelSessionToken(token, normalizedChannel, redis);
+      if (!isValidChannel) {
+        return res.status(401).json({ 
+          success: false,
+          error: 'Unauthorized - Invalid or expired session' 
+        });
+      }
     }
     
-    console.log('24-hour schedule metadata updated');
+    if (date !== undefined) {
+      await redis.set(`24hour:schedule:${normalizedChannel}:date`, date);
+    }
+    if (startDate !== undefined) {
+      await redis.set(`24hour:schedule:${normalizedChannel}:startDate`, startDate);
+    }
+    if (endDate !== undefined) {
+      await redis.set(`24hour:schedule:${normalizedChannel}:endDate`, endDate);
+    }
+    if (startTime !== undefined) {
+      await redis.set(`24hour:schedule:${normalizedChannel}:startTime`, startTime);
+    }
+    if (endTime !== undefined) {
+      await redis.set(`24hour:schedule:${normalizedChannel}:endTime`, endTime);
+    }
+    
+    console.log('24-hour schedule metadata updated for channel:', normalizedChannel);
     
     return res.status(200).json({
       success: true,
@@ -940,7 +1037,7 @@ async function handleUpdate24HourMetadata(req, res) {
   }
 }
 
-// Handle update-24hour-categories (admin auth required)
+// Handle update-24hour-categories (admin auth or channel auth required)
 async function handleUpdate24HourCategories(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ 
@@ -949,20 +1046,7 @@ async function handleUpdate24HourCategories(req, res) {
     });
   }
 
-  // Verify admin session token
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.startsWith('Bearer ') 
-    ? authHeader.substring(7) 
-    : null;
-
-  if (!verifySessionToken(token)) {
-    return res.status(401).json({ 
-      success: false,
-      error: 'Unauthorized - Invalid or expired session' 
-    });
-  }
-
-  const { categories } = req.body;
+  const { categories, channelName } = req.body;
 
   if (!categories || typeof categories !== 'object') {
     return res.status(400).json({ 
@@ -971,15 +1055,43 @@ async function handleUpdate24HourCategories(req, res) {
     });
   }
 
+  const normalizedChannel = normalizeChannelName(channelName);
+  if (!normalizedChannel) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'channelName is required' 
+    });
+  }
+
+  // Verify admin session token or channel token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
   let redis;
   
   try {
     redis = await getRedisClient();
     
-    // Store categories as JSON
-    await redis.set('24hour:schedule:categories', JSON.stringify(categories));
+    // Check admin token first (allows access to any channel)
+    const isAdmin = verifySessionToken(token);
     
-    console.log('24-hour schedule categories updated');
+    // If not admin, check channel-specific token
+    if (!isAdmin) {
+      const isValidChannel = await verifyChannelSessionToken(token, normalizedChannel, redis);
+      if (!isValidChannel) {
+        return res.status(401).json({ 
+          success: false,
+          error: 'Unauthorized - Invalid or expired session' 
+        });
+      }
+    }
+    
+    // Store categories as JSON (channel-prefixed)
+    await redis.set(`24hour:schedule:${normalizedChannel}:categories`, JSON.stringify(categories));
+    
+    console.log('24-hour schedule categories updated for channel:', normalizedChannel);
     
     return res.status(200).json({
       success: true,

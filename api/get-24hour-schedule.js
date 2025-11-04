@@ -30,6 +30,12 @@ async function getRedisClient() {
   return redis;
 }
 
+// Normalize channel name (lowercase, no spaces)
+function normalizeChannelName(channelName) {
+  if (!channelName) return null;
+  return channelName.toLowerCase().trim();
+}
+
 module.exports = async function handler(req, res) {
   // Only allow GET requests
   if (req.method !== 'GET') {
@@ -39,20 +45,23 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  // Get channelName from query parameter
+  const channelName = normalizeChannelName(req.query.channelName) || 'itsflannelbeard'; // Default for backward compatibility
+  
   let redis;
   
   try {
     redis = await getRedisClient();
     
-    // Get metadata
-    const date = await redis.get('24hour:schedule:date') || '';
-    const startDate = await redis.get('24hour:schedule:startDate') || '';
-    const endDate = await redis.get('24hour:schedule:endDate') || '';
-    const startTime = await redis.get('24hour:schedule:startTime') || '';
-    const endTime = await redis.get('24hour:schedule:endTime') || '';
+    // Get metadata (channel-prefixed)
+    const date = await redis.get(`24hour:schedule:${channelName}:date`) || '';
+    const startDate = await redis.get(`24hour:schedule:${channelName}:startDate`) || '';
+    const endDate = await redis.get(`24hour:schedule:${channelName}:endDate`) || '';
+    const startTime = await redis.get(`24hour:schedule:${channelName}:startTime`) || '';
+    const endTime = await redis.get(`24hour:schedule:${channelName}:endTime`) || '';
     
     // Get categories (stored as JSON)
-    const categoriesJson = await redis.get('24hour:schedule:categories') || '{}';
+    const categoriesJson = await redis.get(`24hour:schedule:${channelName}:categories`) || '{}';
     let categories = {};
     try {
       categories = JSON.parse(categoriesJson);
@@ -60,16 +69,16 @@ module.exports = async function handler(req, res) {
       console.warn('Failed to parse categories:', parseError.message);
     }
     
-    // Get slots list
-    const slotIndices = await redis.lRange('24hour:schedule:slots', 0, -1);
+    // Get slots list (channel-prefixed)
+    const slotIndices = await redis.lRange(`24hour:schedule:${channelName}:slots`, 0, -1);
     const timeSlots = [];
     
     for (const index of slotIndices) {
-      const hour = await redis.get(`24hour:schedule:slot:${index}:hour`) || '';
-      const time = await redis.get(`24hour:schedule:slot:${index}:time`) || '';
-      const category = await redis.get(`24hour:schedule:slot:${index}:category`) || '';
-      const activity = await redis.get(`24hour:schedule:slot:${index}:activity`) || '';
-      const description = await redis.get(`24hour:schedule:slot:${index}:description`) || '';
+      const hour = await redis.get(`24hour:schedule:${channelName}:slot:${index}:hour`) || '';
+      const time = await redis.get(`24hour:schedule:${channelName}:slot:${index}:time`) || '';
+      const category = await redis.get(`24hour:schedule:${channelName}:slot:${index}:category`) || '';
+      const activity = await redis.get(`24hour:schedule:${channelName}:slot:${index}:activity`) || '';
+      const description = await redis.get(`24hour:schedule:${channelName}:slot:${index}:description`) || '';
       
       timeSlots.push({
         hour: hour ? parseInt(hour) : 0,
@@ -81,6 +90,7 @@ module.exports = async function handler(req, res) {
     }
     
     return res.status(200).json({
+      channelName: channelName,
       date,
       startDate,
       endDate,
