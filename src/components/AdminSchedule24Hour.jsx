@@ -12,10 +12,13 @@ export default function AdminSchedule24Hour({ onLogout }) {
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   
+  // Category search input state (for form instances)
+  const [categorySearchInput, setCategorySearchInput] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  
   // Form state
   const [formData, setFormData] = useState({
     hour: '',
-    time: '',
     category: '',
     activity: '',
     description: ''
@@ -96,6 +99,13 @@ export default function AdminSchedule24Hour({ onLogout }) {
     try {
       const token = localStorage.getItem('adminToken');
       
+      // Auto-generate time from hour
+      const generatedTime = calculateHourTime(
+        parseInt(formData.hour),
+        scheduleData.startDate,
+        scheduleData.startTime
+      );
+      
       const response = await fetch('/api/admin?action=add-24hour-slot', {
         method: 'POST',
         headers: {
@@ -105,7 +115,7 @@ export default function AdminSchedule24Hour({ onLogout }) {
         body: JSON.stringify({
           action: 'add-24hour-slot',
           hour: parseInt(formData.hour),
-          time: formData.time,
+          time: generatedTime,
           category: formData.category,
           activity: formData.activity,
           description: formData.description
@@ -117,11 +127,12 @@ export default function AdminSchedule24Hour({ onLogout }) {
       if (data.success) {
         setFormData({
           hour: '',
-          time: '',
           category: '',
           activity: '',
           description: ''
         });
+        setCategorySearchInput('');
+        setShowCategoryDropdown(false);
         setShowAddForm(false);
         await fetchSchedule();
       } else {
@@ -144,6 +155,12 @@ export default function AdminSchedule24Hour({ onLogout }) {
     try {
       const token = localStorage.getItem('adminToken');
       
+      // Auto-generate time from hour
+      const hour = editingSlot.hour !== undefined ? parseInt(editingSlot.hour) : undefined;
+      const generatedTime = hour !== undefined
+        ? calculateHourTime(hour, scheduleData.startDate, scheduleData.startTime)
+        : editingSlot.time;
+      
       const response = await fetch('/api/admin?action=update-24hour-slot', {
         method: 'POST',
         headers: {
@@ -153,8 +170,8 @@ export default function AdminSchedule24Hour({ onLogout }) {
         body: JSON.stringify({
           action: 'update-24hour-slot',
           slotIndex,
-          hour: editingSlot.hour !== undefined ? parseInt(editingSlot.hour) : undefined,
-          time: editingSlot.time,
+          hour: hour,
+          time: generatedTime,
           category: editingSlot.category,
           activity: editingSlot.activity,
           description: editingSlot.description
@@ -165,6 +182,8 @@ export default function AdminSchedule24Hour({ onLogout }) {
       
       if (data.success) {
         setEditingSlot(null);
+        setCategorySearchInput('');
+        setShowCategoryDropdown(false);
         await fetchSchedule();
       } else {
         if (response.status === 401) {
@@ -400,6 +419,51 @@ export default function AdminSchedule24Hour({ onLogout }) {
     return Array.from(categories);
   };
 
+  // Create and save category on the fly
+  const createCategoryOnTheFly = async (categoryName) => {
+    if (!categoryName.trim()) return;
+    
+    // Check if category already exists
+    const availableCategories = getAvailableCategories();
+    if (availableCategories.includes(categoryName)) {
+      return; // Category already exists
+    }
+    
+    // Generate colors for the new category
+    const colors = generateCategoryColors(categoryName);
+    
+    // Add to local state
+    const updatedCategories = {
+      ...scheduleData.categories,
+      [categoryName]: colors
+    };
+    
+    setScheduleData({ ...scheduleData, categories: updatedCategories });
+    
+    // Save to backend
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch('/api/admin?action=update-24hour-categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'update-24hour-categories',
+          categories: updatedCategories
+        })
+      });
+      
+      const data = await response.json();
+      if (!data.success && response.status !== 401) {
+        console.error('Failed to save new category:', data.error);
+      }
+    } catch (err) {
+      console.error('Error saving new category:', err);
+    }
+  };
+
   // Get slot for a specific hour
   const getSlotForHour = (hour) => {
     if (!scheduleData?.timeSlots) return null;
@@ -460,11 +524,12 @@ export default function AdminSchedule24Hour({ onLogout }) {
       // Create new slot for this hour
       setFormData({
         hour: hour.toString(),
-        time: '',
         category: '',
         activity: '',
         description: ''
       });
+      setCategorySearchInput('');
+      setShowCategoryDropdown(false);
       setShowAddForm(true);
     }
   };
@@ -739,11 +804,12 @@ export default function AdminSchedule24Hour({ onLogout }) {
                   setEditingSlot(null);
                   setFormData({
                     hour: '',
-                    time: '',
                     category: '',
                     activity: '',
                     description: ''
                   });
+                  setCategorySearchInput('');
+                  setShowCategoryDropdown(false);
                 }}
                 className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95"
               >
@@ -773,11 +839,12 @@ export default function AdminSchedule24Hour({ onLogout }) {
                               setShowAddForm(false);
                               setFormData({
                                 hour: '',
-                                time: '',
                                 category: '',
                                 activity: '',
                                 description: ''
                               });
+                              setCategorySearchInput('');
+                              setShowCategoryDropdown(false);
                             }}
                             className="text-xs text-red-400 hover:text-red-300"
                           >
@@ -786,35 +853,124 @@ export default function AdminSchedule24Hour({ onLogout }) {
                         </div>
                         {(isEditing || isInAddForm) && (
                           <div className="space-y-2">
-                            <input
-                              type="text"
-                              value={isEditing ? editingSlot.time : formData.time}
-                              onChange={(e) => {
-                                if (isEditing) {
-                                  setEditingSlot({ ...editingSlot, time: e.target.value });
-                                } else {
-                                  setFormData({ ...formData, time: e.target.value });
+                            {/* Searchable/Creatable Category Input */}
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={categorySearchInput !== '' 
+                                  ? categorySearchInput
+                                  : (isEditing ? (editingSlot.category || '') : (formData.category || ''))
                                 }
-                              }}
-                              placeholder="Time (e.g., 11:00pm - 12:00am)"
-                              className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                            />
-                            <select
-                              value={isEditing ? editingSlot.category : formData.category}
-                              onChange={(e) => {
-                                if (isEditing) {
-                                  setEditingSlot({ ...editingSlot, category: e.target.value });
-                                } else {
-                                  setFormData({ ...formData, category: e.target.value });
-                                }
-                              }}
-                              className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                            >
-                              <option value="">Select Category</option>
-                              {getAvailableCategories().map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                              ))}
-                            </select>
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setCategorySearchInput(value);
+                                  setShowCategoryDropdown(true);
+                                  
+                                  // Check if it matches an existing category exactly
+                                  const availableCategories = getAvailableCategories();
+                                  const exactMatch = availableCategories.find(cat => 
+                                    cat.toLowerCase() === value.toLowerCase()
+                                  );
+                                  
+                                  if (exactMatch) {
+                                    if (isEditing) {
+                                      setEditingSlot({ ...editingSlot, category: exactMatch });
+                                    } else {
+                                      setFormData({ ...formData, category: exactMatch });
+                                    }
+                                    setCategorySearchInput('');
+                                  } else {
+                                    // Clear category if no exact match
+                                    if (isEditing) {
+                                      setEditingSlot({ ...editingSlot, category: '' });
+                                    } else {
+                                      setFormData({ ...formData, category: '' });
+                                    }
+                                  }
+                                }}
+                                onFocus={() => {
+                                  const currentCategory = isEditing ? editingSlot.category : formData.category;
+                                  setCategorySearchInput(currentCategory || '');
+                                  setShowCategoryDropdown(true);
+                                }}
+                                onBlur={() => {
+                                  // Delay to allow click on dropdown items
+                                  setTimeout(() => {
+                                    setShowCategoryDropdown(false);
+                                    const currentCategory = isEditing ? editingSlot.category : formData.category;
+                                    setCategorySearchInput(currentCategory || '');
+                                  }, 200);
+                                }}
+                                placeholder="Type to search or create category"
+                                className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                              />
+                              {showCategoryDropdown && (
+                                <div className="absolute z-10 w-full mt-1 bg-retro-bg border-2 border-retro-cyan rounded shadow-lg max-h-60 overflow-y-auto">
+                                  {(() => {
+                                    const searchValue = categorySearchInput.toLowerCase();
+                                    const availableCategories = getAvailableCategories();
+                                    const filteredCategories = availableCategories.filter(cat =>
+                                      cat.toLowerCase().includes(searchValue)
+                                    );
+                                    const currentCategory = isEditing ? editingSlot.category : formData.category;
+                                    const hasExactMatch = availableCategories.some(cat =>
+                                      cat.toLowerCase() === searchValue.toLowerCase()
+                                    );
+                                    const canCreateNew = searchValue && 
+                                      !hasExactMatch && 
+                                      searchValue.trim().length > 0;
+                                    
+                                    return (
+                                      <>
+                                        {filteredCategories.length > 0 ? (
+                                          filteredCategories.map(cat => (
+                                            <div
+                                              key={cat}
+                                              onClick={() => {
+                                                if (isEditing) {
+                                                  setEditingSlot({ ...editingSlot, category: cat });
+                                                } else {
+                                                  setFormData({ ...formData, category: cat });
+                                                }
+                                                setCategorySearchInput('');
+                                                setShowCategoryDropdown(false);
+                                              }}
+                                              className={`px-3 py-2 cursor-pointer hover:bg-retro-cyan/20 ${
+                                                currentCategory === cat ? 'bg-retro-cyan/30' : ''
+                                              }`}
+                                            >
+                                              {cat}
+                                            </div>
+                                          ))
+                                        ) : searchValue && !hasExactMatch ? (
+                                          <div className="px-3 py-2 text-retro-muted text-sm">
+                                            No matching categories
+                                          </div>
+                                        ) : null}
+                                        {canCreateNew && (
+                                          <div
+                                            onClick={async () => {
+                                              const newCategory = categorySearchInput.trim();
+                                              await createCategoryOnTheFly(newCategory);
+                                              if (isEditing) {
+                                                setEditingSlot({ ...editingSlot, category: newCategory });
+                                              } else {
+                                                setFormData({ ...formData, category: newCategory });
+                                              }
+                                              setCategorySearchInput('');
+                                              setShowCategoryDropdown(false);
+                                            }}
+                                            className="px-3 py-2 cursor-pointer hover:bg-green-600/20 border-t-2 border-retro-cyan bg-green-600/10"
+                                          >
+                                            <span className="text-green-400">+</span> Create new category: "{categorySearchInput.trim()}"
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              )}
+                            </div>
                             <input
                               type="text"
                               value={isEditing ? editingSlot.activity : formData.activity}
