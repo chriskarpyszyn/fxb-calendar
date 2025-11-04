@@ -492,6 +492,518 @@ async function handleResetVotes(req, res) {
   }
 }
 
+// Handle get-24hour-schedule (public access)
+async function handleGet24HourSchedule(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Get metadata
+    const date = await redis.get('24hour:schedule:date') || '';
+    const startDate = await redis.get('24hour:schedule:startDate') || '';
+    const endDate = await redis.get('24hour:schedule:endDate') || '';
+    const startTime = await redis.get('24hour:schedule:startTime') || '';
+    const endTime = await redis.get('24hour:schedule:endTime') || '';
+    
+    // Get categories (stored as JSON)
+    const categoriesJson = await redis.get('24hour:schedule:categories') || '{}';
+    let categories = {};
+    try {
+      categories = JSON.parse(categoriesJson);
+    } catch (parseError) {
+      console.warn('Failed to parse categories:', parseError.message);
+    }
+    
+    // Get slots list
+    const slotIndices = await redis.lRange('24hour:schedule:slots', 0, -1);
+    const timeSlots = [];
+    
+    for (const index of slotIndices) {
+      const hour = await redis.get(`24hour:schedule:slot:${index}:hour`) || '';
+      const time = await redis.get(`24hour:schedule:slot:${index}:time`) || '';
+      const category = await redis.get(`24hour:schedule:slot:${index}:category`) || '';
+      const activity = await redis.get(`24hour:schedule:slot:${index}:activity`) || '';
+      const description = await redis.get(`24hour:schedule:slot:${index}:description`) || '';
+      
+      timeSlots.push({
+        hour: hour ? parseInt(hour) : 0,
+        time,
+        category,
+        activity,
+        description
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      schedule: {
+        date,
+        startDate,
+        endDate,
+        startTime,
+        endTime,
+        timeSlots,
+        categories
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error retrieving 24-hour schedule:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve schedule',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle add-24hour-slot (admin auth required)
+async function handleAdd24HourSlot(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Invalid or expired session' 
+    });
+  }
+
+  const { hour, time, category, activity, description } = req.body;
+
+  if (hour === undefined || !time || !category || !activity) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'hour, time, category, and activity are required' 
+    });
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Get current slots list to determine next index
+    const slotIndices = await redis.lRange('24hour:schedule:slots', 0, -1);
+    const nextIndex = slotIndices.length.toString();
+    
+    // Add slot to list
+    await redis.rPush('24hour:schedule:slots', nextIndex);
+    
+    // Store slot data as hash fields
+    await redis.set(`24hour:schedule:slot:${nextIndex}:hour`, hour.toString());
+    await redis.set(`24hour:schedule:slot:${nextIndex}:time`, time);
+    await redis.set(`24hour:schedule:slot:${nextIndex}:category`, category);
+    await redis.set(`24hour:schedule:slot:${nextIndex}:activity`, activity);
+    await redis.set(`24hour:schedule:slot:${nextIndex}:description`, description || '');
+    
+    console.log('24-hour slot added:', nextIndex);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Slot added successfully',
+      slotIndex: nextIndex,
+      slot: {
+        hour: parseInt(hour),
+        time,
+        category,
+        activity,
+        description: description || ''
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error adding 24-hour slot:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to add slot',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle update-24hour-slot (admin auth required)
+async function handleUpdate24HourSlot(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Invalid or expired session' 
+    });
+  }
+
+  const { slotIndex, hour, time, category, activity, description } = req.body;
+
+  if (slotIndex === undefined || slotIndex === null) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'slotIndex is required' 
+    });
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Verify slot exists
+    const slotIndices = await redis.lRange('24hour:schedule:slots', 0, -1);
+    if (!slotIndices.includes(slotIndex.toString())) {
+      return res.status(404).json({
+        success: false,
+        error: 'Slot not found'
+      });
+    }
+    
+    // Update slot fields
+    if (hour !== undefined) {
+      await redis.set(`24hour:schedule:slot:${slotIndex}:hour`, hour.toString());
+    }
+    if (time !== undefined) {
+      await redis.set(`24hour:schedule:slot:${slotIndex}:time`, time);
+    }
+    if (category !== undefined) {
+      await redis.set(`24hour:schedule:slot:${slotIndex}:category`, category);
+    }
+    if (activity !== undefined) {
+      await redis.set(`24hour:schedule:slot:${slotIndex}:activity`, activity);
+    }
+    if (description !== undefined) {
+      await redis.set(`24hour:schedule:slot:${slotIndex}:description`, description);
+    }
+    
+    console.log('24-hour slot updated:', slotIndex);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Slot updated successfully',
+      slotIndex: slotIndex.toString()
+    });
+    
+  } catch (error) {
+    console.error('Error updating 24-hour slot:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update slot',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle delete-24hour-slot (admin auth required)
+async function handleDelete24HourSlot(req, res) {
+  if (req.method !== 'DELETE') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Invalid or expired session' 
+    });
+  }
+
+  const { slotIndex } = req.body;
+
+  if (slotIndex === undefined || slotIndex === null) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'slotIndex is required' 
+    });
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Get current slots list
+    const slotIndices = await redis.lRange('24hour:schedule:slots', 0, -1);
+    const slotIndexStr = slotIndex.toString();
+    
+    if (!slotIndices.includes(slotIndexStr)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Slot not found'
+      });
+    }
+    
+    // Delete slot hash fields
+    await redis.del(`24hour:schedule:slot:${slotIndexStr}:hour`);
+    await redis.del(`24hour:schedule:slot:${slotIndexStr}:time`);
+    await redis.del(`24hour:schedule:slot:${slotIndexStr}:category`);
+    await redis.del(`24hour:schedule:slot:${slotIndexStr}:activity`);
+    await redis.del(`24hour:schedule:slot:${slotIndexStr}:description`);
+    
+    // Remove from slots list
+    await redis.lRem('24hour:schedule:slots', 0, slotIndexStr);
+    
+    // Reindex remaining slots - rebuild list with sequential indices
+    const remainingIndices = slotIndices.filter(idx => idx !== slotIndexStr);
+    
+    // Delete old list and rebuild
+    await redis.del('24hour:schedule:slots');
+    
+    if (remainingIndices.length > 0) {
+      // Rebuild list with sequential indices 0, 1, 2, ...
+      const newIndices = [];
+      for (let i = 0; i < remainingIndices.length; i++) {
+        const oldIndex = remainingIndices[i];
+        const newIndex = i.toString();
+        
+        // Copy data from old index to new index
+        const hour = await redis.get(`24hour:schedule:slot:${oldIndex}:hour`);
+        const time = await redis.get(`24hour:schedule:slot:${oldIndex}:time`);
+        const category = await redis.get(`24hour:schedule:slot:${oldIndex}:category`);
+        const activity = await redis.get(`24hour:schedule:slot:${oldIndex}:activity`);
+        const description = await redis.get(`24hour:schedule:slot:${oldIndex}:description`);
+        
+        // Set new index
+        if (hour) await redis.set(`24hour:schedule:slot:${newIndex}:hour`, hour);
+        if (time) await redis.set(`24hour:schedule:slot:${newIndex}:time`, time);
+        if (category) await redis.set(`24hour:schedule:slot:${newIndex}:category`, category);
+        if (activity) await redis.set(`24hour:schedule:slot:${newIndex}:activity`, activity);
+        if (description !== null) await redis.set(`24hour:schedule:slot:${newIndex}:description`, description || '');
+        
+        // Delete old index if different
+        if (oldIndex !== newIndex) {
+          await redis.del(`24hour:schedule:slot:${oldIndex}:hour`);
+          await redis.del(`24hour:schedule:slot:${oldIndex}:time`);
+          await redis.del(`24hour:schedule:slot:${oldIndex}:category`);
+          await redis.del(`24hour:schedule:slot:${oldIndex}:activity`);
+          await redis.del(`24hour:schedule:slot:${oldIndex}:description`);
+        }
+        
+        newIndices.push(newIndex);
+      }
+      
+      // Rebuild list
+      await redis.rPush('24hour:schedule:slots', ...newIndices);
+    }
+    
+    console.log('24-hour slot deleted:', slotIndexStr);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Slot deleted successfully',
+      deletedSlotIndex: slotIndexStr
+    });
+    
+  } catch (error) {
+    console.error('Error deleting 24-hour slot:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete slot',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle update-24hour-metadata (admin auth required)
+async function handleUpdate24HourMetadata(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Invalid or expired session' 
+    });
+  }
+
+  const { date, startDate, endDate, startTime, endTime } = req.body;
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    if (date !== undefined) {
+      await redis.set('24hour:schedule:date', date);
+    }
+    if (startDate !== undefined) {
+      await redis.set('24hour:schedule:startDate', startDate);
+    }
+    if (endDate !== undefined) {
+      await redis.set('24hour:schedule:endDate', endDate);
+    }
+    if (startTime !== undefined) {
+      await redis.set('24hour:schedule:startTime', startTime);
+    }
+    if (endTime !== undefined) {
+      await redis.set('24hour:schedule:endTime', endTime);
+    }
+    
+    console.log('24-hour schedule metadata updated');
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Metadata updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error updating 24-hour metadata:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update metadata',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle update-24hour-categories (admin auth required)
+async function handleUpdate24HourCategories(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Invalid or expired session' 
+    });
+  }
+
+  const { categories } = req.body;
+
+  if (!categories || typeof categories !== 'object') {
+    return res.status(400).json({ 
+      success: false,
+      error: 'categories object is required' 
+    });
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Store categories as JSON
+    await redis.set('24hour:schedule:categories', JSON.stringify(categories));
+    
+    console.log('24-hour schedule categories updated');
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Categories updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error updating 24-hour categories:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update categories',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
 // Main handler
 module.exports = async function handler(req, res) {
   // Get action from query parameter (for GET) or body (for POST/DELETE)
@@ -524,10 +1036,22 @@ module.exports = async function handler(req, res) {
       return handleDeleteSurvey(req, res);
     case 'reset-votes':
       return handleResetVotes(req, res);
+    case 'get-24hour-schedule':
+      return handleGet24HourSchedule(req, res);
+    case 'add-24hour-slot':
+      return handleAdd24HourSlot(req, res);
+    case 'update-24hour-slot':
+      return handleUpdate24HourSlot(req, res);
+    case 'delete-24hour-slot':
+      return handleDelete24HourSlot(req, res);
+    case 'update-24hour-metadata':
+      return handleUpdate24HourMetadata(req, res);
+    case 'update-24hour-categories':
+      return handleUpdate24HourCategories(req, res);
     default:
       return res.status(400).json({
         success: false,
-        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes`
+        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes, get-24hour-schedule, add-24hour-slot, update-24hour-slot, delete-24hour-slot, update-24hour-metadata, update-24hour-categories`
       });
   }
 };

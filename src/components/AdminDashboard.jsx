@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import AdminSchedule24Hour from './AdminSchedule24Hour';
 
 export default function AdminDashboard({ onLogout }) {
   const [ideas, setIdeas] = useState([]);
@@ -7,6 +8,7 @@ export default function AdminDashboard({ onLogout }) {
   const [deletingId, setDeletingId] = useState(null);
   const [expandedVoters, setExpandedVoters] = useState(new Set());
   const [resettingVotes, setResettingVotes] = useState(false);
+  const [activeTab, setActiveTab] = useState('ideas'); // 'ideas', 'surveys', 'schedule'
   
   // Survey results state
   const [surveyResponses, setSurveyResponses] = useState([]);
@@ -301,34 +303,36 @@ export default function AdminDashboard({ onLogout }) {
   }, [onLogout, fetchIdeas, fetchSurveys]);
 
   return (
-    <div className="min-h-screen bg-retro-bg retro-grid scanline p-4">
+    <div className="min-h-screen bg-retro-bg retro-grid scanline p-2">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="retro-container p-6 retro-glow mb-6">
+        <div className="retro-container p-3 retro-glow mb-3">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="retro-title text-2xl font-bold text-retro-cyan mb-2">
                 ADMIN DASHBOARD
               </h1>
               <p className="retro-text text-retro-muted">
-                Manage submitted stream ideas
+                Manage submitted stream ideas and schedules
               </p>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={resetVotes}
-                disabled={resettingVotes}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {resettingVotes ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                    Resetting...
-                  </div>
-                ) : (
-                  'RESET VOTES'
-                )}
-              </button>
+              {activeTab === 'ideas' && (
+                <button
+                  onClick={resetVotes}
+                  disabled={resettingVotes}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resettingVotes ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      Resetting...
+                    </div>
+                  ) : (
+                    'RESET VOTES'
+                  )}
+                </button>
+              )}
               <button
                 onClick={onLogout}
                 className="retro-button hover:scale-105 active:scale-95"
@@ -339,54 +343,95 @@ export default function AdminDashboard({ onLogout }) {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="retro-container p-4 retro-glow mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-retro-cyan">{ideas.length}</div>
-              <div className="text-sm text-retro-muted">Total Ideas</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-retro-cyan">
-                {ideas.filter(idea => idea.status === 'pending').length}
-              </div>
-              <div className="text-sm text-retro-muted">Pending</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-retro-cyan">
-                {ideas.reduce((sum, idea) => sum + (idea.votes || 0), 0)}
-              </div>
-              <div className="text-sm text-retro-muted">Total Votes</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-retro-cyan">
-                {ideas.reduce((sum, idea) => sum + ((idea.voters && idea.voters.length) || 0), 0)}
-              </div>
-              <div className="text-sm text-retro-muted">Unique Voters</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-retro-cyan">
-                {ideas.length > 0 ? Math.round(ideas.reduce((sum, idea) => sum + (idea.votes || 0), 0) / ideas.length * 10) / 10 : 0}
-              </div>
-              <div className="text-sm text-retro-muted">Avg Votes/Idea</div>
-            </div>
+        {/* Tabs */}
+        <div className="retro-container p-2 retro-glow mb-3">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('ideas')}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                activeTab === 'ideas'
+                  ? 'bg-retro-cyan text-retro-bg'
+                  : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+              }`}
+            >
+              Ideas
+            </button>
+            <button
+              onClick={() => setActiveTab('surveys')}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                activeTab === 'surveys'
+                  ? 'bg-retro-cyan text-retro-bg'
+                  : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+              }`}
+            >
+              Surveys
+            </button>
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                activeTab === 'schedule'
+                  ? 'bg-retro-cyan text-retro-bg'
+                  : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+              }`}
+            >
+              24-Hour Schedule
+            </button>
           </div>
         </div>
 
-        {/* Ideas List */}
-        <div className="retro-container p-6 retro-glow">
+        {/* Tab Content */}
+        {activeTab === 'schedule' && (
+          <AdminSchedule24Hour onLogout={onLogout} />
+        )}
+
+        {activeTab === 'ideas' && (
+          <>
+            {/* Stats */}
+            <div className="retro-container p-3 retro-glow mb-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-retro-cyan">{ideas.length}</div>
+                  <div className="text-sm text-retro-muted">Total Ideas</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-retro-cyan">
+                    {ideas.filter(idea => idea.status === 'pending').length}
+                  </div>
+                  <div className="text-sm text-retro-muted">Pending</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-retro-cyan">
+                    {ideas.reduce((sum, idea) => sum + (idea.votes || 0), 0)}
+                  </div>
+                  <div className="text-sm text-retro-muted">Total Votes</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-retro-cyan">
+                    {ideas.reduce((sum, idea) => sum + ((idea.voters && idea.voters.length) || 0), 0)}
+                  </div>
+                  <div className="text-sm text-retro-muted">Unique Voters</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-retro-cyan">
+                    {ideas.length > 0 ? Math.round(ideas.reduce((sum, idea) => sum + (idea.votes || 0), 0) / ideas.length * 10) / 10 : 0}
+                  </div>
+                  <div className="text-sm text-retro-muted">Avg Votes/Idea</div>
+                </div>
+              </div>
+            </div>
+        <div className="retro-container p-3 retro-glow">
           {loading && (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-retro-cyan border-t-transparent mb-4"></div>
+            <div className="text-center py-4">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-retro-cyan border-t-transparent mb-2"></div>
               <p className="retro-text text-retro-muted">Loading ideas...</p>
             </div>
           )}
 
           {error && (
-            <div className="text-center py-8 bg-red-900/20 border-2 border-red-500 rounded-lg p-6">
-              <div className="text-6xl mb-4">⚠️</div>
+            <div className="text-center py-4 bg-red-900/20 border-2 border-red-500 rounded-lg p-4">
+              <div className="text-6xl mb-2">⚠️</div>
               <h3 className="text-xl font-bold text-red-400 mb-2">Error Loading Ideas</h3>
-              <p className="text-red-300 mb-4">{error}</p>
+              <p className="text-red-300 mb-2">{error}</p>
               <button 
                 onClick={fetchIdeas} 
                 className="retro-button hover:scale-105 active:scale-95"
@@ -397,7 +442,7 @@ export default function AdminDashboard({ onLogout }) {
           )}
 
           {!loading && !error && ideas.length === 0 && (
-            <div className="text-center py-12">
+            <div className="text-center py-6">
               <h3 className="text-2xl font-bold text-retro-text mb-2">
                 No Ideas Found
               </h3>
@@ -408,18 +453,18 @@ export default function AdminDashboard({ onLogout }) {
           )}
 
           {!loading && !error && ideas.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {ideas.map((idea) => (
                 <div 
                   key={idea.id} 
-                  className="retro-card p-4 hover:shadow-glow transition-all duration-200"
+                  className="retro-card p-3 hover:shadow-glow transition-all duration-200"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-grow">
-                      <p className="text-lg font-bold text-retro-text mb-2 leading-tight">
+                      <p className="text-lg font-bold text-retro-text mb-1 leading-tight">
                         {idea.idea}
                       </p>
-                      <div className="flex items-center gap-4 text-sm text-retro-muted flex-wrap mb-3">
+                      <div className="flex items-center gap-4 text-sm text-retro-muted flex-wrap mb-2">
                         <span className="font-mono">@{idea.username}</span>
                         <span>•</span>
                         <span>{formatTimestamp(idea.timestamp)}</span>
@@ -495,10 +540,14 @@ export default function AdminDashboard({ onLogout }) {
             </div>
           )}
         </div>
+          </>
+        )}
 
-        {/* Survey Results Section */}
-        <div className="retro-container p-6 retro-glow mt-6">
-          <div className="flex items-center justify-between mb-4">
+        {activeTab === 'surveys' && (
+          <>
+            {/* Survey Results Section */}
+            <div className="retro-container p-3 retro-glow">
+          <div className="flex items-center justify-between mb-3">
             <h2 className="retro-title text-xl font-bold text-retro-cyan">
               SURVEY RESULTS
             </h2>
@@ -512,7 +561,7 @@ export default function AdminDashboard({ onLogout }) {
           </div>
 
           {/* View Toggle */}
-          <div className="mb-4 flex gap-2">
+          <div className="mb-3 flex gap-2">
             <button
               onClick={() => setSurveyView('aggregate')}
               className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
@@ -536,17 +585,17 @@ export default function AdminDashboard({ onLogout }) {
           </div>
 
           {surveyLoading && (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-retro-cyan border-t-transparent mb-4"></div>
+            <div className="text-center py-4">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-retro-cyan border-t-transparent mb-2"></div>
               <p className="retro-text text-retro-muted">Loading survey responses...</p>
             </div>
           )}
 
           {surveyError && (
-            <div className="text-center py-8 bg-red-900/20 border-2 border-red-500 rounded-lg p-6 mb-4">
-              <div className="text-6xl mb-4">⚠️</div>
+            <div className="text-center py-4 bg-red-900/20 border-2 border-red-500 rounded-lg p-4 mb-3">
+              <div className="text-6xl mb-2">⚠️</div>
               <h3 className="text-xl font-bold text-red-400 mb-2">Error Loading Survey Results</h3>
-              <p className="text-red-300 mb-4">{surveyError}</p>
+              <p className="text-red-300 mb-2">{surveyError}</p>
               <button 
                 onClick={fetchSurveys} 
                 className="retro-button hover:scale-105 active:scale-95"
@@ -561,7 +610,7 @@ export default function AdminDashboard({ onLogout }) {
               {surveyView === 'aggregate' ? (
                 <div>
                   {surveyResponses.length === 0 ? (
-                    <div className="text-center py-12">
+                    <div className="text-center py-6">
                       <h3 className="text-2xl font-bold text-retro-text mb-2">
                         No Survey Responses Yet
                       </h3>
@@ -571,8 +620,8 @@ export default function AdminDashboard({ onLogout }) {
                     </div>
                   ) : (
                     <>
-                      <div className="mb-6">
-                        <div className="text-center mb-4">
+                      <div className="mb-3">
+                        <div className="text-center mb-2">
                           <div className="text-3xl font-bold text-retro-cyan">{surveyResponses.length}</div>
                           <div className="text-sm text-retro-muted">Total Responses</div>
                         </div>
@@ -581,12 +630,12 @@ export default function AdminDashboard({ onLogout }) {
                       {(() => {
                         const stats = calculateSurveyStats();
                         return (
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-bold text-retro-text mb-3">Category Votes</h3>
+                          <div className="space-y-2">
+                            <h3 className="text-lg font-bold text-retro-text mb-2">Category Votes</h3>
                             {stats.sortedCategories.length > 0 ? (
-                              <div className="space-y-2">
+                              <div className="space-y-1">
                                 {stats.sortedCategories.map(([category, count]) => (
-                                  <div key={category} className="retro-card p-4">
+                                  <div key={category} className="retro-card p-3">
                                     <div className="flex items-center justify-between">
                                       <span className="text-lg font-semibold text-retro-text">{category}</span>
                                       <div className="flex items-center gap-3">
@@ -602,8 +651,8 @@ export default function AdminDashboard({ onLogout }) {
                             )}
 
                             {stats.totalWithOther > 0 && (
-                              <div className="mt-4 retro-card p-4">
-                                <div className="mb-3">
+                              <div className="mt-2 retro-card p-3">
+                                <div className="mb-2">
                                   <div className="flex items-center justify-between">
                                     <span className="text-lg font-semibold text-retro-text">Other</span>
                                     <div className="flex items-center gap-3">
@@ -613,7 +662,7 @@ export default function AdminDashboard({ onLogout }) {
                                   </div>
                                 </div>
                                 {stats.otherTexts.length > 0 && (
-                                  <div className="mt-3 space-y-2">
+                                  <div className="mt-2 space-y-1">
                                     <p className="text-sm font-semibold text-retro-muted mb-2">Other Suggestions:</p>
                                     {stats.otherTexts.map((text, index) => (
                                       <div key={index} className="text-sm text-retro-text bg-retro-bg/20 p-2 rounded">
@@ -634,7 +683,7 @@ export default function AdminDashboard({ onLogout }) {
                 <div>
                   {/* Detailed View */}
                   {filteredSurveyResponses.length === 0 ? (
-                    <div className="text-center py-12">
+                    <div className="text-center py-6">
                       <h3 className="text-2xl font-bold text-retro-text mb-2">
                         {ipFilter ? 'No Matching Responses' : 'No Survey Responses Yet'}
                       </h3>
@@ -645,25 +694,25 @@ export default function AdminDashboard({ onLogout }) {
                   ) : (
                     <>
                       {/* IP Filter */}
-                      <div className="mb-4">
+                      <div className="mb-3">
                         <input
                           type="text"
                           value={ipFilter}
                           onChange={(e) => setIpFilter(e.target.value)}
                           placeholder="Filter by IP address..."
-                          className="w-full px-4 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text placeholder-retro-muted focus:outline-none focus:ring-2 focus:ring-retro-cyan"
+                          className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text placeholder-retro-muted focus:outline-none focus:ring-2 focus:ring-retro-cyan"
                         />
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="space-y-2">
                         {filteredSurveyResponses.map((response) => (
                           <div 
                             key={response.id} 
-                            className="retro-card p-4 hover:shadow-glow transition-all duration-200"
+                            className="retro-card p-3 hover:shadow-glow transition-all duration-200"
                           >
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-grow">
-                                <div className="flex items-center gap-4 text-sm text-retro-muted flex-wrap mb-3">
+                                <div className="flex items-center gap-4 text-sm text-retro-muted flex-wrap mb-2">
                                   <span className="font-mono">IP: {response.ip}</span>
                                   <span>•</span>
                                   <span>{formatTimestamp(response.timestamp)}</span>
@@ -719,6 +768,8 @@ export default function AdminDashboard({ onLogout }) {
             </>
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );
