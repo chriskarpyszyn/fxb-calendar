@@ -9,9 +9,9 @@ export default function TwentyFourHourSchedule() {
   const [error, setError] = useState(null);
   const twitchStatus = useTwitchStatus();
 
-  // Load schedule data from JSON file
+  // Load schedule data from API
   useEffect(() => {
-    fetch('/24hourSchedule.json')
+    fetch('/api/get-24hour-schedule')
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to load 24-hour schedule');
@@ -19,7 +19,19 @@ export default function TwentyFourHourSchedule() {
         return response.json();
       })
       .then(data => {
-        setScheduleData(data);
+        // Handle empty schedule gracefully
+        if (data && data.timeSlots && data.timeSlots.length > 0) {
+          setScheduleData(data);
+        } else {
+          // Set empty schedule structure
+          setScheduleData({
+            date: data.date || '',
+            startDate: data.startDate || '',
+            endDate: data.endDate || '',
+            timeSlots: [],
+            categories: data.categories || {}
+          });
+        }
         setLoading(false);
       })
       .catch(err => {
@@ -142,8 +154,15 @@ export default function TwentyFourHourSchedule() {
 
         {/* Schedule Grid */}
         <div className="retro-container p-4 md:p-6 retro-glow">
-          <div className="space-y-3">
-            {scheduleData.timeSlots.map((slot, index) => {
+          {scheduleData.timeSlots.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-retro-muted text-lg">
+                No schedule slots yet. Check back soon!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {scheduleData.timeSlots.map((slot, index) => {
               const categoryColor = scheduleData.categories[slot.category];
               const isNewDay = slot.hour === 0; // Midnight marks new day
               const isFirstSlot = index === 0; // First slot gets Thursday heading
@@ -212,8 +231,9 @@ export default function TwentyFourHourSchedule() {
                   </div>
                 </div>
               );
-            })}
-          </div>
+              })}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
