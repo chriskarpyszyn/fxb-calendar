@@ -438,7 +438,6 @@ export default function TwentyFourHourSchedule() {
                   const categoryColor = scheduleData.categories[slot.category];
                   const isPlaceholder = slot.isPlaceholder;
                   const isFirstSlot = index === 0; // First slot gets day heading
-                  const isSixHourMark = slot.hour % 6 === 0 && slot.hour > 0; // Every 6 hours (but not hour 0)
                   
                   // Determine if this is a day boundary (crossing midnight)
                   const previousSlot = index > 0 ? completeSchedule[index - 1] : null;
@@ -447,9 +446,14 @@ export default function TwentyFourHourSchedule() {
                   if (previousSlot && scheduleData.startDate && scheduleData.startTime) {
                     try {
                       // Calculate the actual dates for both slots to detect day boundary
+                      // Use the same method as calculateSlotTimeRange to avoid timezone issues
                       const [startHour, startMinute] = scheduleData.startTime.split(':').map(Number);
-                      const startDateTime = new Date(scheduleData.startDate);
-                      startDateTime.setHours(startHour, startMinute, 0, 0);
+                      const startDateStr = `${scheduleData.startDate}T${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}:00`;
+                      const startDateTime = new Date(startDateStr);
+                      
+                      if (isNaN(startDateTime.getTime())) {
+                        throw new Error('Invalid start date/time');
+                      }
                       
                       const prevSlotDateTime = new Date(startDateTime);
                       prevSlotDateTime.setHours(prevSlotDateTime.getHours() + previousSlot.hour);
@@ -457,9 +461,22 @@ export default function TwentyFourHourSchedule() {
                       const currentSlotDateTime = new Date(startDateTime);
                       currentSlotDateTime.setHours(currentSlotDateTime.getHours() + slot.hour);
                       
-                      // Check if the date changed (day boundary crossed)
-                      const prevDate = prevSlotDateTime.toDateString();
-                      const currentDate = currentSlotDateTime.toDateString();
+                      // Format dates in user's timezone to check if day changed
+                      const userTimezone = getUserTimezone();
+                      const prevDate = new Intl.DateTimeFormat('en-US', {
+                        timeZone: userTimezone,
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                      }).format(prevSlotDateTime);
+                      
+                      const currentDate = new Intl.DateTimeFormat('en-US', {
+                        timeZone: userTimezone,
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                      }).format(currentSlotDateTime);
+                      
                       isDayBoundary = prevDate !== currentDate;
                     } catch (error) {
                       // Fallback: check time string patterns
@@ -472,37 +489,30 @@ export default function TwentyFourHourSchedule() {
                   return (
                     <div key={`slot-${slot.hour}-${index}`}>
                       {/* Day heading for first slot */}
-                      {isFirstSlot && scheduleData.startDate && (
-                        <div className="text-center my-6">
-                          <div className="inline-block bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
-                            {new Date(scheduleData.startDate).toLocaleDateString('en-US', { 
-                              weekday: 'long', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            }).toUpperCase()}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Day separator at day boundary */}
-                      {isDayBoundary && scheduleData.startDate && scheduleData.startTime && (() => {
+                      {isFirstSlot && scheduleData.startDate && scheduleData.startTime && (() => {
                         try {
-                          // Calculate the actual date for this slot
+                          // Calculate the actual date for the first slot using the same method as calculateSlotTimeRange
                           const [startHour, startMinute] = scheduleData.startTime.split(':').map(Number);
-                          const startDateTime = new Date(scheduleData.startDate);
-                          startDateTime.setHours(startHour, startMinute, 0, 0);
+                          const startDateStr = `${scheduleData.startDate}T${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}:00`;
+                          const startDateTime = new Date(startDateStr);
                           
-                          const currentSlotDateTime = new Date(startDateTime);
-                          currentSlotDateTime.setHours(currentSlotDateTime.getHours() + slot.hour);
+                          if (isNaN(startDateTime.getTime())) {
+                            return null;
+                          }
+                          
+                          // Format in user's timezone
+                          const userTimezone = getUserTimezone();
+                          const formattedDate = new Intl.DateTimeFormat('en-US', {
+                            timeZone: userTimezone,
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric'
+                          }).format(startDateTime);
                           
                           return (
                             <div className="text-center my-6">
                               <div className="inline-block bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
-                                {currentSlotDateTime.toLocaleDateString('en-US', { 
-                                  weekday: 'long', 
-                                  month: 'long', 
-                                  day: 'numeric' 
-                                }).toUpperCase()}
+                                {formattedDate.toUpperCase()}
                               </div>
                             </div>
                           );
@@ -511,10 +521,41 @@ export default function TwentyFourHourSchedule() {
                         }
                       })()}
                       
-                      {/* 6-hour separator */}
-                      {isSixHourMark && !isDayBoundary && (
-                        <div className="border-t border-gray-400 my-4"></div>
-                      )}
+                      {/* Day separator at day boundary */}
+                      {isDayBoundary && scheduleData.startDate && scheduleData.startTime && (() => {
+                        try {
+                          // Calculate the actual date for this slot using the same method as calculateSlotTimeRange
+                          const [startHour, startMinute] = scheduleData.startTime.split(':').map(Number);
+                          const startDateStr = `${scheduleData.startDate}T${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}:00`;
+                          const startDateTime = new Date(startDateStr);
+                          
+                          if (isNaN(startDateTime.getTime())) {
+                            return null;
+                          }
+                          
+                          const currentSlotDateTime = new Date(startDateTime);
+                          currentSlotDateTime.setHours(currentSlotDateTime.getHours() + slot.hour);
+                          
+                          // Format in user's timezone
+                          const userTimezone = getUserTimezone();
+                          const formattedDate = new Intl.DateTimeFormat('en-US', {
+                            timeZone: userTimezone,
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric'
+                          }).format(currentSlotDateTime);
+                          
+                          return (
+                            <div className="text-center my-6">
+                              <div className="inline-block bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                                {formattedDate.toUpperCase()}
+                              </div>
+                            </div>
+                          );
+                        } catch (error) {
+                          return null;
+                        }
+                      })()}
                       
                       {/* Time slot */}
                       <div
