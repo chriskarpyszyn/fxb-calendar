@@ -351,6 +351,16 @@ export default function TwentyFourHourSchedule() {
   return (
     <div className="min-h-screen bg-retro-bg retro-grid scanline p-2 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
+        {/* Admin Link - Top Right */}
+        <div className="flex justify-end mb-2">
+          <Link
+            to={`/schedule/${normalizedChannel}/admin`}
+            className="text-xs text-retro-muted hover:text-retro-cyan transition-colors duration-200"
+          >
+            schedule admin
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-4 sm:mb-6 md:mb-8">
           <div className="retro-container p-6 retro-glow mb-4">
@@ -364,14 +374,6 @@ export default function TwentyFourHourSchedule() {
             <p className="retro-text text-retro-muted text-xs sm:text-sm font-mono mt-2">
               All times shown in your timezone: {getUserTimezone()}
             </p>
-            <div className="mt-4">
-              <Link
-                to={`/schedule/${normalizedChannel}/admin`}
-                className="inline-block retro-button hover:scale-105 active:scale-95 text-sm"
-              >
-                Manage Schedule
-              </Link>
-            </div>
           </div>
         </div>
 
@@ -529,14 +531,6 @@ export default function TwentyFourHourSchedule() {
           })()}
         </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <div className="retro-container p-4 retro-glow">
-            <p className="text-sm text-gray-400">
-              Join the 24-hour stream adventure! 
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
