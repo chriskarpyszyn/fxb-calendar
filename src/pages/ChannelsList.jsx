@@ -7,6 +7,39 @@ export default function ChannelsList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Format starting date and time
+  const formatStartingDateTime = (startDate, startTime) => {
+    if (!startDate || !startTime) {
+      return null;
+    }
+
+    try {
+      // Parse the date and time
+      const [hour, minute] = startTime.split(':').map(Number);
+      const dateObj = new Date(startDate);
+      dateObj.setHours(hour, minute, 0, 0);
+
+      // Format date: "November 6, 2025"
+      const formattedDate = dateObj.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+
+      // Format time: "10:00pm"
+      const formattedTime = dateObj.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }).toLowerCase().replace(/\s/g, '');
+
+      return `${formattedDate} ${formattedTime}`;
+    } catch (error) {
+      console.error('Error formatting date/time:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchChannels();
   }, []);
@@ -104,9 +137,11 @@ export default function ChannelsList() {
                       {channel.date}
                     </p>
                   )}
-                  <p className="retro-text text-retro-muted text-xs">
-                    {channel.slotCount} {channel.slotCount === 1 ? 'slot' : 'slots'} filled
-                  </p>
+                  {formatStartingDateTime(channel.startDate, channel.startTime) && (
+                    <p className="retro-text text-retro-muted text-xs">
+                      Starting: {formatStartingDateTime(channel.startDate, channel.startTime)}
+                    </p>
+                  )}
                 </div>
               </Link>
             ))}

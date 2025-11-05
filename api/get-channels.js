@@ -46,16 +46,20 @@ module.exports = async function handler(req, res) {
     // Get all channels from the set
     const channels = await redis.sMembers('24hour:channels');
     
-    // For each channel, get basic info (date, slot count)
+    // For each channel, get basic info (date, slot count, start date/time)
     const channelsWithInfo = await Promise.all(
       channels.map(async (channelName) => {
         try {
           const date = await redis.get(`24hour:schedule:${channelName}:date`) || '';
+          const startDate = await redis.get(`24hour:schedule:${channelName}:startDate`) || '';
+          const startTime = await redis.get(`24hour:schedule:${channelName}:startTime`) || '';
           const slotIndices = await redis.lRange(`24hour:schedule:${channelName}:slots`, 0, -1);
           
           return {
             channelName: channelName,
             date: date,
+            startDate: startDate,
+            startTime: startTime,
             slotCount: slotIndices.length
           };
         } catch (error) {
@@ -63,6 +67,8 @@ module.exports = async function handler(req, res) {
           return {
             channelName: channelName,
             date: '',
+            startDate: '',
+            startTime: '',
             slotCount: 0
           };
         }
