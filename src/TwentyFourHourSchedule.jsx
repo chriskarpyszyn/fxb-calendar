@@ -404,13 +404,12 @@ export default function TwentyFourHourSchedule() {
                   <Link
                     key={channel.channelName}
                     to={`/schedule/${channel.channelName}`}
-                    className={`retro-card p-4 text-center hover:shadow-glow transition-all duration-200 hover:scale-105 ${
+                    className={`retro-card p-2 text-center hover:shadow-glow transition-all duration-200 hover:scale-105 ${
                       channel.channelName.toLowerCase() === normalizedChannel
                         ? 'border-retro-cyan bg-retro-cyan/10'
                         : ''
                     }`}
                   >
-                    <div className="text-2xl mb-2">📺</div>
                     <div className="text-xs sm:text-sm font-bold text-retro-cyan truncate">
                       {channel.channelName}
                     </div>

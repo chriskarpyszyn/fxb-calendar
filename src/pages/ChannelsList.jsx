@@ -128,15 +128,9 @@ export default function ChannelsList() {
                 className="block retro-container p-6 retro-glow hover:shadow-glow transition-all duration-200 hover:scale-[1.02]"
               >
                 <div className="text-center">
-                  <div className="text-4xl mb-3">📺</div>
                   <h2 className="retro-title text-lg font-bold text-retro-cyan mb-2">
                     {channel.channelName}
                   </h2>
-                  {channel.date && (
-                    <p className="retro-text text-retro-muted text-sm mb-2">
-                      {channel.date}
-                    </p>
-                  )}
                   {formatStartingDateTime(channel.startDate, channel.startTime) && (
                     <p className="retro-text text-retro-muted text-xs">
                       Starting: {formatStartingDateTime(channel.startDate, channel.startTime)}
