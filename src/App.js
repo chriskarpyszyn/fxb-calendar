@@ -7,6 +7,7 @@ import Survey from './pages/Survey';
 import TwentyFourHourSchedule from './TwentyFourHourSchedule';
 import ChannelsList from './pages/ChannelsList';
 import ChannelScheduleAdmin from './pages/ChannelScheduleAdmin';
+import StreamOverlay from './components/StreamOverlay';
 import './App.css';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
         <Route path="/channels" element={<ChannelsList />} />
         <Route path="/schedule/:channelName" element={<TwentyFourHourSchedule />} />
         <Route path="/schedule/:channelName/admin" element={<ChannelScheduleAdmin />} />
+        <Route path="/widget/:channelName" element={<StreamOverlay />} />
       </Routes>
     </Router>
   );
