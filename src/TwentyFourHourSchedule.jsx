@@ -11,6 +11,7 @@ export default function TwentyFourHourSchedule() {
   const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [allChannels, setAllChannels] = useState([]);
   const twitchStatus = useTwitchStatus(normalizedChannel);
 
   // Load schedule data from API
@@ -41,6 +42,20 @@ export default function TwentyFourHourSchedule() {
         setLoading(false);
       });
   }, [normalizedChannel]);
+
+  // Load all channels
+  useEffect(() => {
+    fetch('/api/get-channels')
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          setAllChannels(data.channels || []);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching channels:', err);
+      });
+  }, []);
 
   // Get user's timezone
   const getUserTimezone = () => {
@@ -379,6 +394,32 @@ export default function TwentyFourHourSchedule() {
 
         {/* Live Stream Banner */}
         <LiveStreamBanner twitchStatus={twitchStatus} />
+
+        {/* Channel Links */}
+        {allChannels.length > 0 && (
+          <div className="mb-4 sm:mb-6 md:mb-8">
+            <div className="retro-container p-4 retro-glow">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {allChannels.map((channel) => (
+                  <Link
+                    key={channel.channelName}
+                    to={`/schedule/${channel.channelName}`}
+                    className={`retro-card p-4 text-center hover:shadow-glow transition-all duration-200 hover:scale-105 ${
+                      channel.channelName.toLowerCase() === normalizedChannel
+                        ? 'border-retro-cyan bg-retro-cyan/10'
+                        : ''
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">📺</div>
+                    <div className="text-xs sm:text-sm font-bold text-retro-cyan truncate">
+                      {channel.channelName}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Schedule Grid */}
         <div className="retro-container p-4 md:p-6 retro-glow">
