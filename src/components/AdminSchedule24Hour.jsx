@@ -34,7 +34,6 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
   });
   
   const [metadataForm, setMetadataForm] = useState({
-    date: '',
     startDate: '',
     endDate: '',
     startTime: '',
@@ -82,7 +81,6 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
           categories: {}
         });
         setMetadataForm({
-          date: data.schedule?.date || '',
           startDate: data.schedule?.startDate || '',
           endDate: data.schedule?.endDate || '',
           startTime: data.schedule?.startTime || '',
@@ -301,7 +299,6 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
         body: JSON.stringify({
           action: 'update-24hour-metadata',
           channelName: normalizedChannel,
-          date: metadataForm.date,
           startDate: metadataForm.startDate,
           endDate: metadataForm.endDate,
           startTime: metadataForm.startTime,
@@ -664,13 +661,6 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
             </div>
             {editingMetadata ? (
               <div className="space-y-2">
-                <input
-                  type="text"
-                  value={metadataForm.date}
-                  onChange={(e) => setMetadataForm({ ...metadataForm, date: e.target.value })}
-                  placeholder="Date (e.g., November 6-7, 2025)"
-                  className="w-full px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
-                />
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="date"
@@ -706,7 +696,6 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
               </div>
             ) : (
               <div className="text-retro-muted">
-                <p><strong>Date:</strong> {scheduleData.date || 'Not set'}</p>
                 <p><strong>Start:</strong> {scheduleData.startDate || 'Not set'} {scheduleData.startTime ? `at ${scheduleData.startTime}` : ''}</p>
                 <p><strong>End:</strong> {scheduleData.endDate || 'Not set'} {scheduleData.endTime ? `at ${scheduleData.endTime}` : ''}</p>
               </div>

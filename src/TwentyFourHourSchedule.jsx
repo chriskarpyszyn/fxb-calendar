@@ -383,9 +383,6 @@ export default function TwentyFourHourSchedule() {
               {normalizedChannel.toUpperCase()}'S<br />
               24 HOUR STREAM SCHEDULE
             </h1>
-            <p className="retro-text text-retro-muted text-sm sm:text-base md:text-lg font-mono">
-              {scheduleData.date}
-            </p>
             <p className="retro-text text-retro-muted text-xs sm:text-sm font-mono mt-2">
               All times shown in your timezone: {getUserTimezone()}
             </p>
