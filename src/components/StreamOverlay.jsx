@@ -10,6 +10,7 @@ export default function StreamOverlay() {
   const [currentSlot, setCurrentSlot] = useState(null);
   const [upcomingSlots, setUpcomingSlots] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [displayedCardIndex, setDisplayedCardIndex] = useState(0);
 
   // Load schedule data from API
   useEffect(() => {
@@ -147,7 +148,35 @@ export default function StreamOverlay() {
 
     setCurrentSlot(current || null);
     setUpcomingSlots(upcoming);
+    
+    // Reset card index when slots change
+    setDisplayedCardIndex(0);
   }, [scheduleData, currentTime]);
+
+  // Rotate through cards every 8 seconds
+  useEffect(() => {
+    // Build array of all cards to display
+    const allCards = [];
+    if (currentSlot) {
+      allCards.push({ type: 'current', data: currentSlot });
+    }
+    upcomingSlots.forEach(slot => {
+      allCards.push({ type: 'upcoming', data: slot });
+    });
+
+    // Only rotate if we have more than one card
+    if (allCards.length <= 1) {
+      return;
+    }
+
+    const rotationInterval = setInterval(() => {
+      setDisplayedCardIndex(prevIndex => {
+        return (prevIndex + 1) % allCards.length;
+      });
+    }, 8000); // Rotate every 8 seconds
+
+    return () => clearInterval(rotationInterval);
+  }, [currentSlot, upcomingSlots]);
 
   // Update current time every minute and check for transitions
   useEffect(() => {
@@ -248,64 +277,51 @@ export default function StreamOverlay() {
     };
   };
 
+  // Build array of all cards to display
+  const allCards = [];
+  if (currentSlot) {
+    allCards.push({ type: 'current', data: currentSlot });
+  }
+  upcomingSlots.forEach(slot => {
+    allCards.push({ type: 'upcoming', data: slot });
+  });
+
+  // Get the currently displayed card
+  const displayedCard = allCards[displayedCardIndex] || null;
+
+  // If no cards, show nothing (as requested - no "no activity" message)
+  if (allCards.length === 0) {
+    return (
+      <div className="min-h-screen bg-transparent"></div>
+    );
+  }
+
+  const colors = displayedCard ? getCategoryColor(displayedCard.data.category) : null;
+
   return (
-    <div className="min-h-screen bg-transparent p-6 font-mono">
-      <div className="max-w-xl mx-auto space-y-4">
-        {/* Current Activity */}
-        {currentSlot ? (
-          <div className={`${getCategoryColor(currentSlot.category).bg} ${getCategoryColor(currentSlot.category).border} border-2 rounded-lg p-5 shadow-2xl backdrop-blur-md`}>
+    <div className="min-h-screen bg-transparent p-6 font-mono flex items-center justify-center">
+      <div className="max-w-xl w-full">
+        {displayedCard && (
+          <div className={`${colors.bg} ${colors.border} border-2 rounded-lg p-5 shadow-2xl backdrop-blur-md transition-opacity duration-500`}>
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-sm font-bold uppercase tracking-wider text-red-400 animate-pulse flex items-center gap-1">
-                <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
-                NOW
+              <span className={`text-sm font-bold uppercase tracking-wider flex items-center gap-1 ${
+                displayedCard.type === 'current' ? 'text-red-400 animate-pulse' : 'text-cyan-400'
+              }`}>
+                {displayedCard.type === 'current' && (
+                  <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                )}
+                {displayedCard.type === 'current' ? 'NOW' : 'UPCOMING'}
               </span>
-              <span className={`text-sm font-semibold ${getCategoryColor(currentSlot.category).accent}`}>
-                {formatTime(currentSlot.startTime)} - {formatTime(currentSlot.endTime)}
+              <span className={`text-sm font-semibold ${colors.accent}`}>
+                {formatTime(displayedCard.data.startTime)} - {formatTime(displayedCard.data.endTime)}
               </span>
             </div>
-            <div className={`text-sm font-semibold uppercase tracking-wide mb-2 ${getCategoryColor(currentSlot.category).accent}`}>
-              {currentSlot.category || '—'}
+            <div className={`text-sm font-semibold uppercase tracking-wide mb-2 ${colors.accent}`}>
+              {displayedCard.data.category || '—'}
             </div>
-            <div className={`text-2xl font-bold ${getCategoryColor(currentSlot.category).text} leading-tight`}>
-              {currentSlot.activity || '—'}
+            <div className={`text-2xl font-bold ${colors.text} leading-tight`}>
+              {displayedCard.data.activity || '—'}
             </div>
-          </div>
-        ) : (
-          <div className="bg-gray-900/95 border-2 border-gray-700 rounded-lg p-5 shadow-2xl backdrop-blur-md">
-            <div className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">NOW</div>
-            <div className="text-xl text-gray-300">No current activity</div>
-          </div>
-        )}
-
-        {/* Upcoming Activities */}
-        {upcomingSlots.length > 0 && (
-          <div className="space-y-3">
-            {upcomingSlots.map((slot, index) => {
-              const colors = getCategoryColor(slot.category);
-              return (
-                <div key={`upcoming-${slot.hour}-${index}`} className={`${colors.bg} ${colors.border} border-2 rounded-lg p-4 shadow-xl backdrop-blur-md`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">UPCOMING</span>
-                    <span className={`text-xs font-semibold ${colors.accent}`}>
-                      {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
-                    </span>
-                  </div>
-                  <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${colors.accent}`}>
-                    {slot.category || '—'}
-                  </div>
-                  <div className={`text-xl font-bold ${colors.text} leading-tight`}>
-                    {slot.activity || '—'}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* No upcoming activities message */}
-        {!currentSlot && upcomingSlots.length === 0 && (
-          <div className="bg-gray-900/95 border-2 border-gray-700 rounded-lg p-5 shadow-2xl backdrop-blur-md">
-            <div className="text-xl text-gray-300">No upcoming activities scheduled</div>
           </div>
         )}
       </div>
