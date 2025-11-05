@@ -13,6 +13,12 @@ module.exports = {
     'bg-blue-100', 'border-blue-400', 'text-blue-800', 'bg-blue-500',
     'bg-green-100', 'border-green-400', 'text-green-800', 'bg-green-500',
     'bg-orange-100', 'border-orange-400', 'text-orange-800', 'bg-orange-500',
+    'bg-amber-100', 'border-amber-400', 'text-amber-800', 'bg-amber-500',
+    'bg-indigo-100', 'border-indigo-400', 'text-indigo-800', 'bg-indigo-500',
+    'bg-teal-100', 'border-teal-400', 'text-teal-800', 'bg-teal-500',
+    'bg-cyan-100', 'border-cyan-400', 'text-cyan-800', 'bg-cyan-500',
+    'bg-rose-100', 'border-rose-400', 'text-rose-800', 'bg-rose-500',
+    'bg-gray-100', 'border-gray-400', 'text-gray-800', 'bg-gray-500',
   ],
   theme: {
     extend: {

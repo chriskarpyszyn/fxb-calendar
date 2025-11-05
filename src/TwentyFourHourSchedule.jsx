@@ -47,38 +47,6 @@ export default function TwentyFourHourSchedule() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   };
 
-  // Convert category colors to dark theme appropriate classes
-  const getDarkThemeCategoryStyles = (categoryColor) => {
-    if (!categoryColor) return null;
-    
-    // Extract color name from class strings like "bg-blue-100" or "border-blue-400"
-    const extractColorName = (className) => {
-      const match = className.match(/(?:bg|border|text)-(\w+)-/);
-      return match ? match[1] : null;
-    };
-    
-    const colorName = extractColorName(categoryColor.border || categoryColor.bg);
-    if (!colorName) return null;
-    
-    // Map color names to dark theme border and text colors
-    const colorMap = {
-      blue: { border: 'border-blue-400', text: 'text-blue-300' },
-      purple: { border: 'border-purple-400', text: 'text-purple-300' },
-      green: { border: 'border-green-400', text: 'text-green-300' },
-      orange: { border: 'border-orange-400', text: 'text-orange-300' },
-      pink: { border: 'border-pink-400', text: 'text-pink-300' },
-      cyan: { border: 'border-cyan-400', text: 'text-cyan-300' },
-      yellow: { border: 'border-yellow-400', text: 'text-yellow-300' },
-      red: { border: 'border-red-400', text: 'text-red-300' },
-      indigo: { border: 'border-indigo-400', text: 'text-indigo-300' },
-      teal: { border: 'border-teal-400', text: 'text-teal-300' },
-      amber: { border: 'border-amber-400', text: 'text-amber-300' },
-      rose: { border: 'border-rose-400', text: 'text-rose-300' }
-    };
-    
-    return colorMap[colorName] || { border: 'border-retro-cyan', text: 'text-retro-cyan' };
-  };
-
   // Calculate the number of hours between start and end times
   const calculateHoursBetween = (startDate, startTime, endDate, endTime) => {
     if (!startDate || !startTime || !endDate || !endTime) {
@@ -510,54 +478,49 @@ export default function TwentyFourHourSchedule() {
                       )}
                       
                       {/* Time slot */}
-                      {(() => {
-                        const darkThemeStyles = getDarkThemeCategoryStyles(categoryColor);
-                        return (
-                          <div
-                            className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                              isPlaceholder 
-                                ? 'bg-retro-surface/50 border-retro-border border-dashed opacity-60' 
-                                : darkThemeStyles 
-                                  ? `bg-retro-surface ${darkThemeStyles.border} hover:shadow-lg` 
-                                  : 'bg-retro-surface border-retro-border hover:shadow-lg'
-                            }`}
-                          >
-                            <div className="grid grid-cols-12 gap-4 items-start">
-                              {/* Time Column - 3 columns */}
-                              <div className="col-span-3">
-                                <div className={`text-lg font-bold ${isPlaceholder ? 'text-retro-muted' : 'text-retro-text'}`}>
-                                  {slot.time}
-                                </div>
-                              </div>
-                              
-                              {/* Category Column - 3 columns */}
-                              <div className="col-span-3">
-                                <div 
-                                  className={`text-sm font-semibold ${
-                                    isPlaceholder 
-                                      ? 'text-retro-muted italic' 
-                                      : darkThemeStyles 
-                                        ? darkThemeStyles.text 
-                                        : 'text-retro-text'
-                                  }`}
-                                >
-                                  {isPlaceholder ? '—' : slot.category || '—'}
-                                </div>
-                              </div>
-                              
-                              {/* Activity/Subject Column - 6 columns */}
-                              <div className="col-span-6">
-                                <div className={`text-base font-bold mb-1 ${isPlaceholder ? 'text-retro-muted italic' : 'text-retro-text'}`}>
-                                  {slot.activity || '—'}
-                                </div>
-                                <div className={`text-sm ${isPlaceholder ? 'text-retro-muted italic' : 'text-retro-muted'}`}>
-                                  {slot.description || '—'}
-                                </div>
-                              </div>
+                      <div
+                        className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                          isPlaceholder 
+                            ? 'bg-gray-100 border-gray-300 border-dashed opacity-75' 
+                            : categoryColor 
+                              ? `${categoryColor.bg} ${categoryColor.border} hover:shadow-lg` 
+                              : 'bg-gray-50 border-gray-300 hover:shadow-lg'
+                        }`}
+                      >
+                        <div className="grid grid-cols-12 gap-4 items-start">
+                          {/* Time Column - 3 columns */}
+                          <div className="col-span-3">
+                            <div className={`text-lg font-bold ${isPlaceholder ? 'text-gray-500' : 'text-gray-800'}`}>
+                              {slot.time}
                             </div>
                           </div>
-                        );
-                      })()}
+                          
+                          {/* Category Column - 3 columns */}
+                          <div className="col-span-3">
+                            <div 
+                              className={`text-sm font-semibold ${
+                                isPlaceholder 
+                                  ? 'text-gray-400 italic' 
+                                  : categoryColor 
+                                    ? categoryColor.text 
+                                    : 'text-gray-800'
+                              }`}
+                            >
+                              {isPlaceholder ? '—' : slot.category || '—'}
+                            </div>
+                          </div>
+                          
+                          {/* Activity/Subject Column - 6 columns */}
+                          <div className="col-span-6">
+                            <div className={`text-base font-bold mb-1 ${isPlaceholder ? 'text-gray-400 italic' : 'text-gray-800'}`}>
+                              {slot.activity || '—'}
+                            </div>
+                            <div className={`text-sm ${isPlaceholder ? 'text-gray-400 italic' : 'text-gray-600'}`}>
+                              {slot.description || '—'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
