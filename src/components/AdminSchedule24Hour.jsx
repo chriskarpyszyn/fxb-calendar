@@ -891,7 +891,7 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
             </div>
 
             {/* Hour Grid - Show all 24 hours in vertical flow */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
               {Array.from({ length: 24 }, (_, i) => {
                 const hour = i;
                 const slot = getSlotForHour(hour);
@@ -901,7 +901,7 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
                 const calculatedTime = calculateHourTime(hour, scheduleData.startDate, scheduleData.startTime);
                 
                 return (
-                  <div key={hour} className="retro-card p-3">
+                  <div key={hour} className="retro-card p-2">
                     {isEditing || isInAddForm ? (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between mb-2">
@@ -1099,9 +1099,9 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
                     ) : (
                       <div 
                         onClick={() => handleHourClick(hour)}
-                        className="cursor-pointer hover:bg-retro-bg/20 transition-all duration-200 rounded p-2"
+                        className="cursor-pointer hover:bg-retro-bg/20 transition-all duration-200 rounded p-1"
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-1">
                           <span className="font-bold text-retro-text">Hour {hour} ({calculatedTime})</span>
                           {slot ? (
                             <span className="text-xs text-green-400">✓ Filled</span>
@@ -1119,8 +1119,8 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
                             )}
                           </div>
                         ) : (
-                          <div className="text-center py-4 text-retro-muted">
-                            <div className="text-2xl mb-1">+</div>
+                          <div className="text-center py-1 text-retro-muted">
+                            <div className="text-lg mb-0.5">+</div>
                             <div className="text-xs">Click to add</div>
                           </div>
                         )}
