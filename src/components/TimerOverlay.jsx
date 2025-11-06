@@ -9,6 +9,7 @@ export default function TimerOverlay() {
   const [error, setError] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isCelebrating, setIsCelebrating] = useState(false);
+  const [isWaitingForStart, setIsWaitingForStart] = useState(false);
 
   // Load schedule data from API
   useEffect(() => {
@@ -64,12 +65,36 @@ export default function TimerOverlay() {
           return null;
         }
 
+        const now = new Date();
+        
+        // Check if we're waiting for the stream to start
+        if (now < startDateTime) {
+          // Count down to start time
+          setIsWaitingForStart(true);
+          setIsCelebrating(false);
+          
+          const diffMs = startDateTime.getTime() - now.getTime();
+          
+          const hours = Math.floor(diffMs / (1000 * 60 * 60));
+          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+          return {
+            hours,
+            minutes,
+            seconds,
+            totalMs: diffMs
+          };
+        }
+
+        // Stream has started, count down from start time + 24 hours
+        setIsWaitingForStart(false);
+        
         // Add 24 hours to start time
         const endDateTime = new Date(startDateTime);
         endDateTime.setHours(endDateTime.getHours() + 24);
 
         // Calculate remaining time
-        const now = new Date();
         const diffMs = endDateTime.getTime() - now.getTime();
 
         if (diffMs <= 0) {
@@ -200,11 +225,12 @@ export default function TimerOverlay() {
   }
 
   const timeString = formatTime(timeRemaining);
+  const labelText = isWaitingForStart ? '24 HOUR STREAM STARTS IN' : '24 HOUR COUNTDOWN';
 
   return (
     <div className="bg-transparent p-4 font-mono">
       <div className="timer-container">
-        <div className="timer-label">24 HOUR COUNTDOWN</div>
+        <div className="timer-label">{labelText}</div>
         <div className="timer-display">
           {timeString}
         </div>
