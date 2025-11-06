@@ -7,7 +7,9 @@ import Survey from './pages/Survey';
 import TwentyFourHourSchedule from './TwentyFourHourSchedule';
 import ChannelsList from './pages/ChannelsList';
 import ChannelScheduleAdmin from './pages/ChannelScheduleAdmin';
+import WidgetLanding from './pages/WidgetLanding';
 import StreamOverlay from './components/StreamOverlay';
+import TimerOverlay from './components/TimerOverlay';
 import './App.css';
 
 function App() {
@@ -22,7 +24,10 @@ function App() {
         <Route path="/channels" element={<ChannelsList />} />
         <Route path="/schedule/:channelName" element={<TwentyFourHourSchedule />} />
         <Route path="/schedule/:channelName/admin" element={<ChannelScheduleAdmin />} />
+        <Route path="/widgets" element={<WidgetLanding />} />
+        <Route path="/widgets/:channelName" element={<WidgetLanding />} />
         <Route path="/widget/:channelName" element={<StreamOverlay />} />
+        <Route path="/timer/:channelName" element={<TimerOverlay />} />
       </Routes>
     </Router>
   );
