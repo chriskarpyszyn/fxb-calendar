@@ -35,8 +35,8 @@ In the Browser Source properties window, configure the following:
   - Example: `http://localhost:3000/widget/itsflannelbeard`
   - Or production: `https://yourdomain.com/widget/itsflannelbeard`
 
-- **Width**: `600`
-- **Height**: `200`
+- **Width**: `500`
+- **Height**: `120`
 
 #### Advanced Settings
 
@@ -61,9 +61,9 @@ In the Browser Source properties window, configure the following:
 ### Step 4: Fine-tuning
 
 You can adjust the widget size in OBS:
-- **Recommended dimensions**: 600px × 200px
-- **Minimum**: 500px × 180px (may cut off text on smaller cards)
-- **Maximum**: 800px × 250px (for larger displays)
+- **Recommended dimensions**: 500px × 120px
+- **Minimum**: 400px × 100px (may cut off text on smaller cards)
+- **Maximum**: 600px × 150px (for larger displays)
 
 To resize:
 1. Right-click the Browser Source in your scene
@@ -130,7 +130,7 @@ For production use, make sure:
 ## Tips
 
 - **Position**: Place the widget in a corner where it won't obstruct important game content
-- **Size**: Start with 600×200 and adjust based on your stream layout
+- **Size**: Start with 500×120 and adjust based on your stream layout
 - **Testing**: Test the widget in a test scene before using it in your main stream
 - **Backup**: Keep a backup of your OBS scene file in case you need to restore settings
 
@@ -139,8 +139,8 @@ For production use, make sure:
 ```
 Browser Source Properties:
 ├── URL: https://yourdomain.com/widget/itsflannelbeard
-├── Width: 600
-├── Height: 200
+├── Width: 500
+├── Height: 120
 ├── FPS: 30
 ├── Shutdown source when not visible: ✅
 └── Refresh browser when scene becomes active: ✅

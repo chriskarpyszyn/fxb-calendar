@@ -11,7 +11,6 @@ export default function StreamOverlay() {
   const [upcomingSlots, setUpcomingSlots] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [displayedCardIndex, setDisplayedCardIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   // Load schedule data from API
   useEffect(() => {
@@ -150,9 +149,8 @@ export default function StreamOverlay() {
     setCurrentSlot(current || null);
     setUpcomingSlots(upcoming);
     
-    // Reset card index when slots change and ensure entry animation
+    // Reset card index when slots change
     setDisplayedCardIndex(0);
-    setIsAnimating(false); // Ensure we start with enter animation
   }, [scheduleData, currentTime]);
 
   // Rotate through cards every 8 seconds
@@ -172,19 +170,9 @@ export default function StreamOverlay() {
     }
 
     const rotationInterval = setInterval(() => {
-      // Trigger exit animation
-      setIsAnimating(true);
-      
-      // After exit animation completes, change card and trigger enter animation
-      setTimeout(() => {
-        setDisplayedCardIndex(prevIndex => {
-          return (prevIndex + 1) % allCards.length;
-        });
-        // Small delay before enter animation
-        setTimeout(() => {
-          setIsAnimating(false);
-        }, 50);
-      }, 400); // Half of transition duration
+      setDisplayedCardIndex(prevIndex => {
+        return (prevIndex + 1) % allCards.length;
+      });
     }, 8000); // Rotate every 8 seconds
 
     return () => clearInterval(rotationInterval);
@@ -225,24 +213,24 @@ export default function StreamOverlay() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
-        <div className="text-white text-lg font-semibold">Loading schedule...</div>
+      <div className="bg-transparent p-2">
+        <div className="text-white text-sm">Loading...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
-        <div className="text-red-400 text-lg font-semibold">Error: {error}</div>
+      <div className="bg-transparent p-2">
+        <div className="text-red-400 text-sm">Error: {error}</div>
       </div>
     );
   }
 
   if (!scheduleData || scheduleData.timeSlots.length === 0) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
-        <div className="text-gray-300 text-lg font-semibold">No schedule available</div>
+      <div className="bg-transparent p-2">
+        <div className="text-gray-300 text-sm">No schedule available</div>
       </div>
     );
   }
@@ -311,82 +299,53 @@ export default function StreamOverlay() {
   const colors = displayedCard ? getCategoryColor(displayedCard.data.category) : null;
 
   return (
-    <div className="min-h-screen bg-transparent p-6 font-mono flex items-center justify-center">
-      <div className="max-w-xl w-full relative" style={{ minHeight: '200px' }}>
+    <div className="bg-transparent p-2 font-mono">
+      <div className="w-full relative">
         {displayedCard && (
           <div 
             key={`card-${displayedCardIndex}-${displayedCard.data.hour}`}
-            className={`${colors.bg} ${colors.border} border-2 rounded-lg p-5 shadow-2xl backdrop-blur-md ${
-              isAnimating ? 'card-exit' : 'card-enter'
-            }`}
+            className={`${colors.bg} ${colors.border} border rounded-lg p-3 shadow-xl backdrop-blur-sm card-slide`}
           >
-            <div className="flex items-center gap-3 mb-3">
-              <span className={`text-sm font-bold uppercase tracking-wider flex items-center gap-1 ${
-                displayedCard.type === 'current' ? 'text-red-400 animate-pulse' : 'text-cyan-400'
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className={`text-xs font-bold uppercase tracking-wide flex items-center gap-1 ${
+                displayedCard.type === 'current' ? 'text-red-400' : 'text-cyan-400'
               }`}>
                 {displayedCard.type === 'current' && (
-                  <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                  <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
                 )}
                 {displayedCard.type === 'current' ? 'NOW' : 'UPCOMING'}
               </span>
-              <span className={`text-sm font-semibold ${colors.accent}`}>
+              <span className={`text-xs font-medium ${colors.accent}`}>
                 {formatTime(displayedCard.data.startTime)} - {formatTime(displayedCard.data.endTime)}
               </span>
             </div>
-            <div className={`text-sm font-semibold uppercase tracking-wide mb-2 ${colors.accent}`}>
+            <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${colors.accent}`}>
               {displayedCard.data.category || '—'}
             </div>
-            <div className={`text-2xl font-bold ${colors.text} leading-tight`}>
+            <div className={`text-lg font-bold ${colors.text} leading-tight`}>
               {displayedCard.data.activity || '—'}
             </div>
           </div>
         )}
       </div>
       <style>{`
-        .card-enter {
-          animation: cardEnter 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        .card-slide {
+          animation: cardSlide 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
         
-        .card-exit {
-          animation: cardExit 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-        
-        @keyframes cardEnter {
+        @keyframes cardSlide {
           0% {
             opacity: 0;
-            transform: translateX(40px) scale(0.9) rotateY(-5deg);
-            filter: blur(6px);
-          }
-          50% {
-            transform: translateX(-3px) scale(1.02) rotateY(1deg);
-          }
-          75% {
-            transform: translateX(1px) scale(0.99) rotateY(-0.5deg);
+            transform: translateX(20px) scale(0.96);
           }
           100% {
             opacity: 1;
-            transform: translateX(0) scale(1) rotateY(0deg);
-            filter: blur(0px);
-          }
-        }
-        
-        @keyframes cardExit {
-          0% {
-            opacity: 1;
-            transform: translateX(0) scale(1) rotateY(0deg);
-            filter: blur(0px);
-          }
-          50% {
-            transform: translateX(-20px) scale(0.98) rotateY(3deg);
-          }
-          100% {
-            opacity: 0;
-            transform: translateX(-40px) scale(0.9) rotateY(5deg);
-            filter: blur(6px);
+            transform: translateX(0) scale(1);
           }
         }
       `}</style>
     </div>
   );
 }
+
 
