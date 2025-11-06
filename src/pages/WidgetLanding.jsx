@@ -28,6 +28,7 @@ export default function WidgetLanding() {
     {
       name: 'Schedule Overlay',
       description: 'Shows current and upcoming schedule slots',
+      behavior: 'Displays the current activity and next 1-2 upcoming slots. Automatically rotates between cards every 8 seconds.',
       route: `/widget/${selectedChannel}`,
       icon: '📅',
       color: 'text-blue-400'
@@ -35,6 +36,7 @@ export default function WidgetLanding() {
     {
       name: '24-Hour Timer',
       description: 'Countdown timer from stream start time',
+      behavior: 'Before stream starts: shows "24 HOUR STREAM STARTS IN" countdown. After start: switches to "24 HOUR COUNTDOWN" timer. Shows celebration when complete.',
       route: `/timer/${selectedChannel}`,
       icon: '⏱️',
       color: 'text-cyan-400'
@@ -99,9 +101,14 @@ export default function WidgetLanding() {
                   <h2 className={`retro-title text-lg font-bold ${widget.color} mb-2`}>
                     {widget.name}
                   </h2>
-                  <p className="retro-text text-retro-muted text-sm mb-4">
+                  <p className="retro-text text-retro-muted text-sm mb-2">
                     {widget.description}
                   </p>
+                  {widget.behavior && (
+                    <p className="retro-text text-retro-muted text-xs italic mb-4">
+                      {widget.behavior}
+                    </p>
+                  )}
                 </div>
 
                 {/* URL Display and Copy */}
