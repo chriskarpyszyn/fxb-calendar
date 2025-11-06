@@ -29,6 +29,7 @@ export default function WidgetLanding() {
       name: 'Schedule Overlay',
       description: 'Shows current and upcoming schedule slots',
       behavior: 'Displays the current activity and next 1-2 upcoming slots. Automatically rotates between cards every 8 seconds.',
+      size: 'Recommended: 400px × 150px',
       route: `/widget/${selectedChannel}`,
       icon: '📅',
       color: 'text-blue-400'
@@ -37,6 +38,7 @@ export default function WidgetLanding() {
       name: '24-Hour Timer',
       description: 'Countdown timer from stream start time',
       behavior: 'Before stream starts: shows "24 HOUR STREAM STARTS IN" countdown. After start: switches to "24 HOUR COUNTDOWN" timer. Shows celebration when complete.',
+      size: 'Recommended: 400px × 200px',
       route: `/timer/${selectedChannel}`,
       icon: '⏱️',
       color: 'text-cyan-400'
@@ -105,8 +107,13 @@ export default function WidgetLanding() {
                     {widget.description}
                   </p>
                   {widget.behavior && (
-                    <p className="retro-text text-retro-muted text-xs italic mb-4">
+                    <p className="retro-text text-retro-muted text-xs italic mb-2">
                       {widget.behavior}
+                    </p>
+                  )}
+                  {widget.size && (
+                    <p className="retro-text text-retro-cyan text-xs font-semibold mb-4">
+                      📐 OBS Size: {widget.size}
                     </p>
                   )}
                 </div>
@@ -161,7 +168,7 @@ export default function WidgetLanding() {
             </li>
             <li className="flex items-start">
               <span className="text-retro-cyan mr-2">4.</span>
-              <span>Set width and height (recommended: 400x200 for timer, 400x150 for schedule)</span>
+              <span>Set width and height (see recommended size on each widget card above)</span>
             </li>
             <li className="flex items-start">
               <span className="text-retro-cyan mr-2">5.</span>
