@@ -11,6 +11,7 @@ export default function StreamOverlay() {
   const [upcomingSlots, setUpcomingSlots] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [displayedCardIndex, setDisplayedCardIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   // Load schedule data from API
   useEffect(() => {
@@ -149,8 +150,9 @@ export default function StreamOverlay() {
     setCurrentSlot(current || null);
     setUpcomingSlots(upcoming);
     
-    // Reset card index when slots change
+    // Reset card index when slots change and ensure entry animation
     setDisplayedCardIndex(0);
+    setIsAnimating(false); // Ensure we start with enter animation
   }, [scheduleData, currentTime]);
 
   // Rotate through cards every 8 seconds
@@ -170,9 +172,19 @@ export default function StreamOverlay() {
     }
 
     const rotationInterval = setInterval(() => {
-      setDisplayedCardIndex(prevIndex => {
-        return (prevIndex + 1) % allCards.length;
-      });
+      // Trigger exit animation
+      setIsAnimating(true);
+      
+      // After exit animation completes, change card and trigger enter animation
+      setTimeout(() => {
+        setDisplayedCardIndex(prevIndex => {
+          return (prevIndex + 1) % allCards.length;
+        });
+        // Small delay before enter animation
+        setTimeout(() => {
+          setIsAnimating(false);
+        }, 50);
+      }, 400); // Half of transition duration
     }, 8000); // Rotate every 8 seconds
 
     return () => clearInterval(rotationInterval);
@@ -300,9 +312,14 @@ export default function StreamOverlay() {
 
   return (
     <div className="min-h-screen bg-transparent p-6 font-mono flex items-center justify-center">
-      <div className="max-w-xl w-full">
+      <div className="max-w-xl w-full relative" style={{ minHeight: '200px' }}>
         {displayedCard && (
-          <div className={`${colors.bg} ${colors.border} border-2 rounded-lg p-5 shadow-2xl backdrop-blur-md transition-opacity duration-500`}>
+          <div 
+            key={`card-${displayedCardIndex}-${displayedCard.data.hour}`}
+            className={`${colors.bg} ${colors.border} border-2 rounded-lg p-5 shadow-2xl backdrop-blur-md ${
+              isAnimating ? 'card-exit' : 'card-enter'
+            }`}
+          >
             <div className="flex items-center gap-3 mb-3">
               <span className={`text-sm font-bold uppercase tracking-wider flex items-center gap-1 ${
                 displayedCard.type === 'current' ? 'text-red-400 animate-pulse' : 'text-cyan-400'
@@ -325,6 +342,50 @@ export default function StreamOverlay() {
           </div>
         )}
       </div>
+      <style>{`
+        .card-enter {
+          animation: cardEnter 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        
+        .card-exit {
+          animation: cardExit 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        @keyframes cardEnter {
+          0% {
+            opacity: 0;
+            transform: translateX(40px) scale(0.9) rotateY(-5deg);
+            filter: blur(6px);
+          }
+          50% {
+            transform: translateX(-3px) scale(1.02) rotateY(1deg);
+          }
+          75% {
+            transform: translateX(1px) scale(0.99) rotateY(-0.5deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0) scale(1) rotateY(0deg);
+            filter: blur(0px);
+          }
+        }
+        
+        @keyframes cardExit {
+          0% {
+            opacity: 1;
+            transform: translateX(0) scale(1) rotateY(0deg);
+            filter: blur(0px);
+          }
+          50% {
+            transform: translateX(-20px) scale(0.98) rotateY(3deg);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-40px) scale(0.9) rotateY(5deg);
+            filter: blur(6px);
+          }
+        }
+      `}</style>
     </div>
   );
 }
