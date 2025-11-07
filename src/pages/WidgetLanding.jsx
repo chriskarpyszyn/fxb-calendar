@@ -42,6 +42,15 @@ export default function WidgetLanding() {
       route: `/timer/${selectedChannel}`,
       icon: '⏱️',
       color: 'text-cyan-400'
+    },
+    {
+      name: 'Stream Timer',
+      description: 'Controllable countdown timer managed from admin portal',
+      behavior: 'Set duration, start/stop/pause, and adjust time during stream. Managed through admin dashboard.',
+      size: 'Recommended: 400px × 200px',
+      route: '/widget-timer',
+      icon: '⏰',
+      color: 'text-yellow-400'
     }
   ];
 

@@ -8,7 +8,7 @@ export default function AdminDashboard({ onLogout }) {
   const [deletingId, setDeletingId] = useState(null);
   const [expandedVoters, setExpandedVoters] = useState(new Set());
   const [resettingVotes, setResettingVotes] = useState(false);
-  const [activeTab, setActiveTab] = useState('ideas'); // 'ideas', 'surveys', 'schedule', 'channels'
+  const [activeTab, setActiveTab] = useState('ideas'); // 'ideas', 'surveys', 'schedule', 'channels', 'widgets'
   
   // Survey results state
   const [surveyResponses, setSurveyResponses] = useState([]);
@@ -29,6 +29,14 @@ export default function AdminDashboard({ onLogout }) {
   const [resettingPasswordFor, setResettingPasswordFor] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [deletingChannel, setDeletingChannel] = useState(null);
+
+  // Widget timer state
+  const [timerState, setTimerState] = useState(null);
+  const [timerLoading, setTimerLoading] = useState(false);
+  const [timerError, setTimerError] = useState('');
+  const [timerHours, setTimerHours] = useState(0);
+  const [timerMinutes, setTimerMinutes] = useState(0);
+  const [updatingTimer, setUpdatingTimer] = useState(false);
 
   // Fetch ideas from API
   const fetchIdeas = useCallback(async () => {
@@ -480,6 +488,169 @@ export default function AdminDashboard({ onLogout }) {
     }
   };
 
+  // Fetch widget timer state
+  const fetchTimerState = useCallback(async () => {
+    try {
+      setTimerLoading(true);
+      setTimerError('');
+      const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        onLogout();
+        return;
+      }
+
+      const response = await fetch('/api/admin?action=get-widget-timer', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setTimerState(data);
+        // Update input fields with current duration
+        if (data.duration) {
+          const totalMinutes = Math.floor(data.duration / (60 * 1000));
+          setTimerHours(Math.floor(totalMinutes / 60));
+          setTimerMinutes(totalMinutes % 60);
+        }
+        setTimerError('');
+      } else {
+        if (response.status === 401) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        setTimerError(data.error || 'Failed to load timer state');
+      }
+    } catch (err) {
+      console.error('Error fetching timer state:', err);
+      setTimerError('Failed to load timer state');
+    } finally {
+      setTimerLoading(false);
+    }
+  }, [onLogout]);
+
+  // Set timer duration
+  const setTimer = async (startImmediately = false) => {
+    if (timerHours < 0 || timerMinutes < 0) {
+      setTimerError('Hours and minutes must be non-negative');
+      return;
+    }
+
+    if (timerHours === 0 && timerMinutes === 0) {
+      setTimerError('Duration must be greater than 0');
+      return;
+    }
+
+    try {
+      setUpdatingTimer(true);
+      setTimerError('');
+      const token = localStorage.getItem('adminToken');
+      
+      const response = await fetch('/api/admin?action=set-widget-timer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'set-widget-timer',
+          hours: timerHours,
+          minutes: timerMinutes,
+          startImmediately: startImmediately
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        await fetchTimerState();
+        if (startImmediately) {
+          alert('Timer set and started successfully');
+        } else {
+          alert('Timer set successfully');
+        }
+      } else {
+        if (response.status === 401) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        setTimerError(data.error || 'Failed to set timer');
+      }
+    } catch (err) {
+      console.error('Error setting timer:', err);
+      setTimerError('Failed to set timer');
+    } finally {
+      setUpdatingTimer(false);
+    }
+  };
+
+  // Update timer (start/stop/pause/resume/adjust)
+  const updateTimer = async (action, adjustMinutes = null) => {
+    try {
+      setUpdatingTimer(true);
+      setTimerError('');
+      const token = localStorage.getItem('adminToken');
+      
+      const body = { action };
+      if (adjustMinutes !== null) {
+        body.adjustMinutes = adjustMinutes;
+      }
+      
+      const response = await fetch('/api/admin?action=update-widget-timer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        await fetchTimerState();
+        const messages = {
+          start: 'Timer started',
+          stop: 'Timer stopped',
+          pause: 'Timer paused',
+          resume: 'Timer resumed',
+          adjust: `Timer adjusted by ${adjustMinutes > 0 ? '+' : ''}${adjustMinutes} minutes`
+        };
+        alert(messages[action] || 'Timer updated');
+      } else {
+        if (response.status === 401) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminExpiresAt');
+          onLogout();
+          return;
+        }
+        setTimerError(data.error || 'Failed to update timer');
+      }
+    } catch (err) {
+      console.error('Error updating timer:', err);
+      setTimerError('Failed to update timer');
+    } finally {
+      setUpdatingTimer(false);
+    }
+  };
+
+  // Format milliseconds to HH:MM:SS
+  const formatTime = (ms) => {
+    if (ms <= 0) return '00:00:00';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   // Check if session is still valid
   useEffect(() => {
     const expiresAt = localStorage.getItem('adminExpiresAt');
@@ -495,7 +666,22 @@ export default function AdminDashboard({ onLogout }) {
     if (activeTab === 'channels') {
       fetchChannels();
     }
-  }, [onLogout, fetchIdeas, fetchSurveys, fetchChannels, activeTab]);
+    
+    let interval = null;
+    if (activeTab === 'widgets') {
+      fetchTimerState();
+      // Set up interval to refresh timer state every second when on widgets tab
+      interval = setInterval(() => {
+        fetchTimerState();
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [onLogout, fetchIdeas, fetchSurveys, fetchChannels, fetchTimerState, activeTab]);
 
   return (
     <div className="min-h-screen bg-retro-bg retro-grid scanline p-2">
@@ -583,6 +769,19 @@ export default function AdminDashboard({ onLogout }) {
               }`}
             >
               Channels
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('widgets');
+                fetchTimerState();
+              }}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                activeTab === 'widgets'
+                  ? 'bg-retro-cyan text-retro-bg'
+                  : 'bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg'
+              }`}
+            >
+              Widgets
             </button>
           </div>
         </div>
@@ -750,6 +949,195 @@ export default function AdminDashboard({ onLogout }) {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'widgets' && (
+          <div className="retro-container p-3 retro-glow">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="retro-title text-xl font-bold text-retro-cyan">
+                WIDGET MANAGEMENT
+              </h2>
+              <button
+                onClick={fetchTimerState}
+                disabled={timerLoading}
+                className="px-3 py-1 bg-retro-cyan text-retro-bg font-semibold rounded hover:bg-retro-cyan/80 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {timerLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+
+            {timerError && (
+              <div className="bg-red-900/20 border-2 border-red-500 rounded-lg p-3 mb-3">
+                <p className="text-red-300">{timerError}</p>
+              </div>
+            )}
+
+            {/* Stream Timer Widget */}
+            <div className="retro-card p-4 border-2 border-retro-cyan mb-4">
+              <h3 className="text-lg font-bold text-retro-text mb-4">Stream Timer Widget</h3>
+              
+              {/* Current Timer Display */}
+              {timerState && timerState.duration > 0 && (
+                <div className="mb-4 p-3 bg-retro-surface rounded">
+                  <div className="text-sm text-retro-muted mb-1">Current Timer:</div>
+                  <div className="text-3xl font-mono font-bold text-retro-cyan">
+                    {formatTime(timerState.remainingTime)}
+                  </div>
+                  <div className="text-xs text-retro-muted mt-1">
+                    Status: {timerState.isRunning ? 'Running' : 'Paused/Stopped'}
+                  </div>
+                </div>
+              )}
+
+              {/* Set Duration */}
+              <div className="mb-4">
+                <h4 className="text-md font-semibold text-retro-text mb-2">Set Duration</h4>
+                <div className="flex gap-3 items-center">
+                  <div>
+                    <label className="block text-retro-text text-sm font-semibold mb-1">
+                      Hours
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={timerHours}
+                      onChange={(e) => setTimerHours(parseInt(e.target.value) || 0)}
+                      className="w-20 px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                      disabled={updatingTimer}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-retro-text text-sm font-semibold mb-1">
+                      Minutes
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={timerMinutes}
+                      onChange={(e) => setTimerMinutes(parseInt(e.target.value) || 0)}
+                      className="w-20 px-3 py-2 bg-retro-bg border-2 border-retro-cyan rounded text-retro-text"
+                      disabled={updatingTimer}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 pt-6">
+                    <button
+                      onClick={() => setTimer(false)}
+                      disabled={updatingTimer || (timerHours === 0 && timerMinutes === 0)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Set Duration
+                    </button>
+                    <button
+                      onClick={() => setTimer(true)}
+                      disabled={updatingTimer || (timerHours === 0 && timerMinutes === 0)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Set & Start
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timer Controls */}
+              {timerState && timerState.duration > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-md font-semibold text-retro-text mb-2">Timer Controls</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {timerState.isRunning ? (
+                      <>
+                        <button
+                          onClick={() => updateTimer('pause')}
+                          disabled={updatingTimer}
+                          className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Pause
+                        </button>
+                        <button
+                          onClick={() => updateTimer('stop')}
+                          disabled={updatingTimer}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Stop
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => updateTimer('start')}
+                          disabled={updatingTimer}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Start
+                        </button>
+                        {timerState.pausedAt !== null && (
+                          <button
+                            onClick={() => updateTimer('resume')}
+                            disabled={updatingTimer}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Resume
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Adjust Time */}
+              {timerState && timerState.duration > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-md font-semibold text-retro-text mb-2">Adjust Time</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => updateTimer('adjust', 10)}
+                      disabled={updatingTimer}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      +10 min
+                    </button>
+                    <button
+                      onClick={() => updateTimer('adjust', 30)}
+                      disabled={updatingTimer}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      +30 min
+                    </button>
+                    <button
+                      onClick={() => updateTimer('adjust', 60)}
+                      disabled={updatingTimer}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      +1 hour
+                    </button>
+                    <button
+                      onClick={() => updateTimer('adjust', -10)}
+                      disabled={updatingTimer}
+                      className="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      -10 min
+                    </button>
+                    <button
+                      onClick={() => updateTimer('adjust', -30)}
+                      disabled={updatingTimer}
+                      className="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      -30 min
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Widget URL */}
+              <div className="mt-4 p-3 bg-retro-surface rounded">
+                <div className="text-sm text-retro-muted mb-1">Widget URL for OBS:</div>
+                <div className="text-xs font-mono text-retro-text break-all">
+                  {window.location.origin}/widget-timer
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

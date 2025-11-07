@@ -10,6 +10,7 @@ import ChannelScheduleAdmin from './pages/ChannelScheduleAdmin';
 import WidgetLanding from './pages/WidgetLanding';
 import StreamOverlay from './components/StreamOverlay';
 import TimerOverlay from './components/TimerOverlay';
+import StreamTimerWidget from './components/StreamTimerWidget';
 import './App.css';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
         <Route path="/widgets/:channelName" element={<WidgetLanding />} />
         <Route path="/widget/:channelName" element={<StreamOverlay />} />
         <Route path="/timer/:channelName" element={<TimerOverlay />} />
+        <Route path="/widget-timer" element={<StreamTimerWidget />} />
       </Routes>
     </Router>
   );
