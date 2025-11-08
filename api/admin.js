@@ -1491,6 +1491,479 @@ async function handleDeleteChannel(req, res) {
   }
 }
 
+// Handle get-widget-timer (admin auth required)
+async function handleGetWidgetTimer(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Invalid or expired session' 
+    });
+  }
+
+  const channel = 'itsflannelbeard';
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Get timer state from Redis
+    const duration = await redis.get(`widget:timer:${channel}:duration`);
+    const startTime = await redis.get(`widget:timer:${channel}:startTime`);
+    const pausedAt = await redis.get(`widget:timer:${channel}:pausedAt`);
+    const isRunning = await redis.get(`widget:timer:${channel}:isRunning`);
+    
+    const durationMs = duration ? parseInt(duration) : 0;
+    const startTimeMs = startTime ? parseInt(startTime) : null;
+    const pausedAtMs = pausedAt ? parseInt(pausedAt) : null;
+    const isRunningBool = isRunning === 'true';
+    
+    let remainingTime = 0;
+    
+    if (isRunningBool && startTimeMs) {
+      // Timer is running - calculate remaining time
+      const now = Date.now();
+      const elapsed = now - startTimeMs;
+      remainingTime = Math.max(0, durationMs - elapsed);
+    } else if (pausedAtMs !== null) {
+      // Timer is paused - use paused value
+      remainingTime = Math.max(0, pausedAtMs);
+    } else {
+      // Timer not started yet - use full duration
+      remainingTime = durationMs;
+    }
+    
+    return res.status(200).json({
+      success: true,
+      duration: durationMs,
+      remainingTime: remainingTime,
+      startTime: startTimeMs,
+      pausedAt: pausedAtMs,
+      isRunning: isRunningBool && remainingTime > 0
+    });
+    
+  } catch (error) {
+    console.error('Error getting widget timer:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get timer state',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle get-widget-timer-public (public endpoint, no auth required)
+async function handleGetWidgetTimerPublic(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  const channel = 'itsflannelbeard';
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Get timer state from Redis
+    const duration = await redis.get(`widget:timer:${channel}:duration`);
+    const startTime = await redis.get(`widget:timer:${channel}:startTime`);
+    const pausedAt = await redis.get(`widget:timer:${channel}:pausedAt`);
+    const isRunning = await redis.get(`widget:timer:${channel}:isRunning`);
+    
+    // If no timer is set, return default state
+    if (!duration) {
+      return res.status(200).json({
+        success: true,
+        remainingTime: 0,
+        isRunning: false,
+        formattedTime: '00:00:00',
+        isExpired: false
+      });
+    }
+    
+    const durationMs = parseInt(duration) || 0;
+    const isRunningBool = isRunning === 'true';
+    const pausedAtMs = pausedAt ? parseInt(pausedAt) : null;
+    const startTimeMs = startTime ? parseInt(startTime) : null;
+    
+    let remainingTime = 0;
+    
+    if (isRunningBool && startTimeMs) {
+      // Timer is running - calculate remaining time
+      const now = Date.now();
+      const elapsed = now - startTimeMs;
+      remainingTime = Math.max(0, durationMs - elapsed);
+    } else if (pausedAtMs !== null) {
+      // Timer is paused - use paused value
+      remainingTime = Math.max(0, pausedAtMs);
+    } else {
+      // Timer not started yet - use full duration
+      remainingTime = durationMs;
+    }
+    
+    const isExpired = remainingTime <= 0;
+    
+    // Format milliseconds to HH:MM:SS
+    const totalSeconds = Math.floor(remainingTime / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    return res.status(200).json({
+      success: true,
+      remainingTime: remainingTime,
+      isRunning: isRunningBool && !isExpired,
+      formattedTime: formattedTime,
+      isExpired: isExpired
+    });
+    
+  } catch (error) {
+    console.error('Error getting widget timer:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get timer state',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle set-widget-timer (admin auth required)
+async function handleSetWidgetTimer(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Invalid or expired session' 
+    });
+  }
+
+  const { hours, minutes, startImmediately } = req.body;
+  
+  if (hours === undefined || minutes === undefined) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'hours and minutes are required' 
+    });
+  }
+  
+  const hoursNum = parseInt(hours) || 0;
+  const minutesNum = parseInt(minutes) || 0;
+  
+  if (hoursNum < 0 || minutesNum < 0) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'hours and minutes must be non-negative' 
+    });
+  }
+  
+  const durationMs = (hoursNum * 60 + minutesNum) * 60 * 1000;
+  
+  if (durationMs <= 0) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'Duration must be greater than 0' 
+    });
+  }
+
+  const channel = 'itsflannelbeard';
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Set duration
+    await redis.set(`widget:timer:${channel}:duration`, durationMs.toString());
+    
+    if (startImmediately) {
+      // Start timer immediately
+      const now = Date.now();
+      await redis.set(`widget:timer:${channel}:startTime`, now.toString());
+      await redis.del(`widget:timer:${channel}:pausedAt`);
+      await redis.set(`widget:timer:${channel}:isRunning`, 'true');
+    } else {
+      // Reset timer state
+      await redis.del(`widget:timer:${channel}:startTime`);
+      await redis.del(`widget:timer:${channel}:pausedAt`);
+      await redis.set(`widget:timer:${channel}:isRunning`, 'false');
+    }
+    
+    console.log('Widget timer set:', { durationMs, startImmediately });
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Timer set successfully',
+      duration: durationMs,
+      startImmediately: startImmediately || false
+    });
+    
+  } catch (error) {
+    console.error('Error setting widget timer:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to set timer',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
+// Handle update-widget-timer (admin auth required)
+async function handleUpdateWidgetTimer(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  // Verify admin session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!verifySessionToken(token)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Invalid or expired session' 
+    });
+  }
+
+  const { action, adjustMinutes } = req.body;
+  
+  if (!action || !['start', 'stop', 'pause', 'resume', 'adjust'].includes(action)) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'action must be one of: start, stop, pause, resume, adjust' 
+    });
+  }
+
+  const channel = 'itsflannelbeard';
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Get current state
+    const duration = await redis.get(`widget:timer:${channel}:duration`);
+    const startTime = await redis.get(`widget:timer:${channel}:startTime`);
+    const pausedAt = await redis.get(`widget:timer:${channel}:pausedAt`);
+    const isRunning = await redis.get(`widget:timer:${channel}:isRunning`);
+    
+    if (!duration) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Timer not set. Please set duration first.' 
+      });
+    }
+    
+    const durationMs = parseInt(duration);
+    const startTimeMs = startTime ? parseInt(startTime) : null;
+    const pausedAtMs = pausedAt ? parseInt(pausedAt) : null;
+    const isRunningBool = isRunning === 'true';
+    const now = Date.now();
+    
+    if (action === 'start') {
+      // Start timer from current remaining time
+      let remainingTime = durationMs;
+      
+      if (pausedAtMs !== null) {
+        remainingTime = pausedAtMs;
+      } else if (startTimeMs) {
+        // Calculate remaining time if it was running before
+        const elapsed = now - startTimeMs;
+        remainingTime = Math.max(0, durationMs - elapsed);
+      }
+      
+      // Update duration to remaining time and start
+      const newStartTime = now;
+      await redis.set(`widget:timer:${channel}:duration`, remainingTime.toString());
+      await redis.set(`widget:timer:${channel}:startTime`, newStartTime.toString());
+      await redis.del(`widget:timer:${channel}:pausedAt`);
+      await redis.set(`widget:timer:${channel}:isRunning`, 'true');
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Timer started',
+        duration: remainingTime
+      });
+      
+    } else if (action === 'stop') {
+      // Stop and reset timer
+      await redis.del(`widget:timer:${channel}:startTime`);
+      await redis.del(`widget:timer:${channel}:pausedAt`);
+      await redis.set(`widget:timer:${channel}:isRunning`, 'false');
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Timer stopped'
+      });
+      
+    } else if (action === 'pause') {
+      if (!isRunningBool || !startTimeMs) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Timer is not running' 
+        });
+      }
+      
+      // Calculate remaining time and pause
+      const elapsed = now - startTimeMs;
+      const remainingTime = Math.max(0, durationMs - elapsed);
+      
+      await redis.del(`widget:timer:${channel}:startTime`);
+      await redis.set(`widget:timer:${channel}:pausedAt`, remainingTime.toString());
+      await redis.set(`widget:timer:${channel}:isRunning`, 'false');
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Timer paused',
+        remainingTime: remainingTime
+      });
+      
+    } else if (action === 'resume') {
+      if (isRunningBool) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Timer is already running' 
+        });
+      }
+      
+      if (pausedAtMs === null) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Timer is not paused' 
+        });
+      }
+      
+      // Resume from paused time
+      const remainingTime = pausedAtMs;
+      const newStartTime = now;
+      
+      await redis.set(`widget:timer:${channel}:duration`, remainingTime.toString());
+      await redis.set(`widget:timer:${channel}:startTime`, newStartTime.toString());
+      await redis.del(`widget:timer:${channel}:pausedAt`);
+      await redis.set(`widget:timer:${channel}:isRunning`, 'true');
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Timer resumed',
+        duration: remainingTime
+      });
+      
+    } else if (action === 'adjust') {
+      if (adjustMinutes === undefined) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'adjustMinutes is required for adjust action' 
+        });
+      }
+      
+      const adjustMs = parseInt(adjustMinutes) * 60 * 1000;
+      
+      // Calculate current remaining time
+      let currentRemaining = durationMs;
+      
+      if (isRunningBool && startTimeMs) {
+        const elapsed = now - startTimeMs;
+        currentRemaining = Math.max(0, durationMs - elapsed);
+      } else if (pausedAtMs !== null) {
+        currentRemaining = pausedAtMs;
+      }
+      
+      // Adjust remaining time
+      const newRemaining = Math.max(0, currentRemaining + adjustMs);
+      
+      if (isRunningBool && startTimeMs) {
+        // Update duration and adjust start time to maintain remaining time
+        const newStartTime = now - (newRemaining - currentRemaining);
+        await redis.set(`widget:timer:${channel}:duration`, newRemaining.toString());
+        await redis.set(`widget:timer:${channel}:startTime`, newStartTime.toString());
+      } else {
+        // Update duration or pausedAt
+        await redis.set(`widget:timer:${channel}:duration`, newRemaining.toString());
+        if (pausedAtMs !== null) {
+          await redis.set(`widget:timer:${channel}:pausedAt`, newRemaining.toString());
+        }
+      }
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Timer adjusted',
+        remainingTime: newRemaining,
+        adjustment: adjustMinutes
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error updating widget timer:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update timer',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
 // Main handler
 module.exports = async function handler(req, res) {
   // Get action from query parameter (for GET) or body (for POST/DELETE)
@@ -1543,10 +2016,18 @@ module.exports = async function handler(req, res) {
       return handleUpdateChannelPassword(req, res);
     case 'delete-channel':
       return handleDeleteChannel(req, res);
+    case 'get-widget-timer':
+      return handleGetWidgetTimer(req, res);
+    case 'set-widget-timer':
+      return handleSetWidgetTimer(req, res);
+    case 'update-widget-timer':
+      return handleUpdateWidgetTimer(req, res);
+    case 'get-widget-timer-public':
+      return handleGetWidgetTimerPublic(req, res);
     default:
       return res.status(400).json({
         success: false,
-        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes, get-24hour-schedule, add-24hour-slot, update-24hour-slot, delete-24hour-slot, update-24hour-metadata, update-24hour-categories, create-channel, list-channels, update-channel-password, delete-channel`
+        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes, get-24hour-schedule, add-24hour-slot, update-24hour-slot, delete-24hour-slot, update-24hour-metadata, update-24hour-categories, create-channel, list-channels, update-channel-password, delete-channel, get-widget-timer, set-widget-timer, update-widget-timer, get-widget-timer-public`
       });
   }
 };

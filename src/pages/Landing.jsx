@@ -20,7 +20,7 @@ export default function Landing() {
         </div>
 
         {/* Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Monthly Calendar Card */}
           <Link
             to="/calendar"
@@ -65,6 +65,22 @@ export default function Landing() {
               </h2>
               <p className="retro-text text-retro-muted text-sm">
                 Tell us what you want to see more of!
+              </p>
+            </div>
+          </Link>
+
+          {/* OBS Widgets Card */}
+          <Link
+            to="/widgets"
+            className="block retro-container p-6 retro-glow hover:shadow-glow transition-all duration-200 hover:scale-[1.02]"
+          >
+            <div className="text-center">
+              <div className="text-4xl mb-3">🎬</div>
+              <h2 className="retro-title text-lg font-bold text-retro-cyan mb-2">
+                OBS Widgets
+              </h2>
+              <p className="retro-text text-retro-muted text-sm">
+                Get overlay widgets for your stream
               </p>
             </div>
           </Link>
