@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import '../App.css';
 
 const channels = [
-  { name: 'jaeell', displayName: 'jaeell' },
-  { name: 'hanlapeno', displayName: 'hanlapeno' },
-  { name: 'russkiace', displayName: 'russkiace' },
-  { name: 'bigduckkief', displayName: 'bigduckkief' },
+  { name: 'jaeell', displayName: 'jaeell', donationUrl: 'https://www.extra-life.org/participants/556533' },
+  { name: 'hanlapeno', displayName: 'hanlapeno', donationUrl: 'https://www.extra-life.org/participants/561915' },
+  { name: 'russkiace', displayName: 'russkiace', donationUrl: 'https://www.extra-life.org/participants/556407' },
+  { name: 'bigduckkief', displayName: 'bigduckkief', donationUrl: 'https://www.extra-life.org/participants/Kiefer-Delorme' },
 ];
 
 export default function Multistream() {
@@ -75,17 +75,20 @@ export default function Multistream() {
                   </div>
                 )}
               </div>
+
+              {/* Donation Link */}
+              <div className="bg-retro-surface border-t-2 border-retro-border p-3 sm:p-4 text-center">
+                <a
+                  href={channel.donationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block retro-text text-retro-cyan hover:text-retro-accent underline transition-colors duration-200 text-sm sm:text-base font-bold"
+                >
+                  💚 Donate to {channel.displayName}
+                </a>
+              </div>
             </div>
           ))}
-        </div>
-
-        {/* Footer Info */}
-        <div className="mt-6 text-center">
-          <div className="retro-container p-4 retro-glow">
-            <p className="retro-text text-retro-muted text-xs sm:text-sm">
-              All streams are embedded from Twitch. Make sure to enable autoplay if prompted.
-            </p>
-          </div>
         </div>
       </div>
     </div>
