@@ -53,10 +53,18 @@ export default function Multistream() {
               className="retro-container retro-glow overflow-hidden"
             >
               {/* Channel Header */}
-              <div className="bg-retro-surface border-b-2 border-retro-border p-3 sm:p-4">
+              <div className="bg-retro-surface border-b-2 border-retro-border p-3 sm:p-4 flex items-center justify-between">
                 <h2 className="retro-title text-sm sm:text-base md:text-lg text-retro-cyan">
                   {channel.displayName}
                 </h2>
+                <a
+                  href={channel.donationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="retro-text text-retro-cyan hover:text-retro-accent underline transition-colors duration-200 text-xs sm:text-sm"
+                >
+                  Donate
+                </a>
               </div>
 
               {/* Twitch Embed */}
@@ -74,18 +82,6 @@ export default function Multistream() {
                     <p className="retro-text text-retro-muted">Loading stream...</p>
                   </div>
                 )}
-              </div>
-
-              {/* Donation Link */}
-              <div className="bg-retro-surface border-t-2 border-retro-border p-3 sm:p-4 text-center">
-                <a
-                  href={channel.donationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block retro-text text-retro-cyan hover:text-retro-accent underline transition-colors duration-200 text-sm sm:text-base font-bold"
-                >
-                  💚 Donate to {channel.displayName}
-                </a>
               </div>
             </div>
           ))}
