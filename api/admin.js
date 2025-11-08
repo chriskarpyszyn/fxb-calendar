@@ -1572,6 +1572,93 @@ async function handleGetWidgetTimer(req, res) {
   }
 }
 
+// Handle get-widget-timer-public (public endpoint, no auth required)
+async function handleGetWidgetTimerPublic(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed' 
+    });
+  }
+
+  const channel = 'itsflannelbeard';
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+    
+    // Get timer state from Redis
+    const duration = await redis.get(`widget:timer:${channel}:duration`);
+    const startTime = await redis.get(`widget:timer:${channel}:startTime`);
+    const pausedAt = await redis.get(`widget:timer:${channel}:pausedAt`);
+    const isRunning = await redis.get(`widget:timer:${channel}:isRunning`);
+    
+    // If no timer is set, return default state
+    if (!duration) {
+      return res.status(200).json({
+        success: true,
+        remainingTime: 0,
+        isRunning: false,
+        formattedTime: '00:00:00',
+        isExpired: false
+      });
+    }
+    
+    const durationMs = parseInt(duration) || 0;
+    const isRunningBool = isRunning === 'true';
+    const pausedAtMs = pausedAt ? parseInt(pausedAt) : null;
+    const startTimeMs = startTime ? parseInt(startTime) : null;
+    
+    let remainingTime = 0;
+    
+    if (isRunningBool && startTimeMs) {
+      // Timer is running - calculate remaining time
+      const now = Date.now();
+      const elapsed = now - startTimeMs;
+      remainingTime = Math.max(0, durationMs - elapsed);
+    } else if (pausedAtMs !== null) {
+      // Timer is paused - use paused value
+      remainingTime = Math.max(0, pausedAtMs);
+    } else {
+      // Timer not started yet - use full duration
+      remainingTime = durationMs;
+    }
+    
+    const isExpired = remainingTime <= 0;
+    
+    // Format milliseconds to HH:MM:SS
+    const totalSeconds = Math.floor(remainingTime / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    return res.status(200).json({
+      success: true,
+      remainingTime: remainingTime,
+      isRunning: isRunningBool && !isExpired,
+      formattedTime: formattedTime,
+      isExpired: isExpired
+    });
+    
+  } catch (error) {
+    console.error('Error getting widget timer:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get timer state',
+      details: error.message
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
 // Handle set-widget-timer (admin auth required)
 async function handleSetWidgetTimer(req, res) {
   if (req.method !== 'POST') {
@@ -1935,10 +2022,12 @@ module.exports = async function handler(req, res) {
       return handleSetWidgetTimer(req, res);
     case 'update-widget-timer':
       return handleUpdateWidgetTimer(req, res);
+    case 'get-widget-timer-public':
+      return handleGetWidgetTimerPublic(req, res);
     default:
       return res.status(400).json({
         success: false,
-        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes, get-24hour-schedule, add-24hour-slot, update-24hour-slot, delete-24hour-slot, update-24hour-metadata, update-24hour-categories, create-channel, list-channels, update-channel-password, delete-channel, get-widget-timer, set-widget-timer, update-widget-timer`
+        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes, get-24hour-schedule, add-24hour-slot, update-24hour-slot, delete-24hour-slot, update-24hour-metadata, update-24hour-categories, create-channel, list-channels, update-channel-password, delete-channel, get-widget-timer, set-widget-timer, update-widget-timer, get-widget-timer-public`
       });
   }
 };

@@ -9,7 +9,7 @@ export default function StreamTimerWidget() {
   useEffect(() => {
     const fetchTimer = async () => {
       try {
-        const response = await fetch('/api/get-widget-timer');
+        const response = await fetch('/api/admin?action=get-widget-timer-public');
         if (!response.ok) {
           throw new Error('Failed to load timer');
         }
