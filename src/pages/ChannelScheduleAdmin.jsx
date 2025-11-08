@@ -8,7 +8,6 @@ export default function ChannelScheduleAdmin() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [sessionToken, setSessionToken] = useState(null);
   const normalizedChannel = channelName?.toLowerCase().trim();
 
   // Check if user is already authenticated
@@ -38,7 +37,6 @@ export default function ChannelScheduleAdmin() {
       }
 
       setIsAuthenticated(true);
-      setSessionToken(token);
       setCheckingAuth(false);
     };
 
@@ -47,7 +45,6 @@ export default function ChannelScheduleAdmin() {
 
   const handleLogin = (chanName, token) => {
     setIsAuthenticated(true);
-    setSessionToken(token);
     localStorage.setItem('currentChannel', chanName);
   };
 
@@ -58,7 +55,6 @@ export default function ChannelScheduleAdmin() {
     }
     localStorage.removeItem('currentChannel');
     setIsAuthenticated(false);
-    setSessionToken(null);
   };
 
   // Show loading while checking authentication
