@@ -30,10 +30,17 @@ export default function Multistream() {
         <div className="text-center mb-6 sm:mb-8 md:mb-12">
           <div className="retro-container p-6 retro-glow mb-4">
             <h1 className="retro-title text-lg sm:text-xl md:text-2xl lg:text-3xl mb-2 leading-tight">
-              MULTISTREAM VIEWER
+              TRACTION REC EXTRA LIFE
             </h1>
             <p className="retro-text text-retro-muted text-sm sm:text-base">
-              Watch all streams simultaneously
+              <a 
+                href="https://www.extra-life.org/teams/72119" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-retro-cyan hover:text-retro-accent underline transition-colors duration-200"
+              >
+                https://www.extra-life.org/teams/72119
+              </a>
             </p>
           </div>
         </div>
