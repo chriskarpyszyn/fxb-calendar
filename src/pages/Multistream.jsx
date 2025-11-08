@@ -9,13 +9,18 @@ const channels = [
 ];
 
 export default function Multistream() {
-  const [parentDomain, setParentDomain] = useState('localhost');
+  const [parentDomain, setParentDomain] = useState(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    // Ensure we're on the client side
+    setIsClient(true);
     // Set the parent domain for Twitch embed
     // Twitch requires the parent parameter to match the domain hosting the embed
-    const hostname = window.location.hostname;
-    setParentDomain(hostname || 'localhost');
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      setParentDomain(hostname || 'localhost');
+    }
   }, []);
 
   return (
@@ -49,13 +54,19 @@ export default function Multistream() {
 
               {/* Twitch Embed */}
               <div className="relative" style={{ paddingBottom: '56.25%' }}>
-                <iframe
-                  src={`https://player.twitch.tv/?channel=${channel.name}&parent=${parentDomain}&muted=false`}
-                  allowFullScreen
-                  className="absolute top-0 left-0 w-full h-full border-0"
-                  title={`${channel.displayName} Stream`}
-                  allow="autoplay; fullscreen"
-                />
+                {isClient && parentDomain ? (
+                  <iframe
+                    src={`https://player.twitch.tv/?channel=${channel.name}&parent=${parentDomain}&muted=false`}
+                    allowFullScreen
+                    className="absolute top-0 left-0 w-full h-full border-0"
+                    title={`${channel.displayName} Stream`}
+                    allow="autoplay; fullscreen"
+                  />
+                ) : (
+                  <div className="absolute top-0 left-0 w-full h-full border-0 bg-retro-surface flex items-center justify-center">
+                    <p className="retro-text text-retro-muted">Loading stream...</p>
+                  </div>
+                )}
               </div>
             </div>
           ))}
