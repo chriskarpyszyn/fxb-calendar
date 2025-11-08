@@ -41,7 +41,7 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
   });
 
   // Helper to get auth token (admin or channel-specific)
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     // Try admin token first
     const adminToken = localStorage.getItem('adminToken');
     if (adminToken) return adminToken;
@@ -49,7 +49,7 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
     // Try channel-specific token
     const channelToken = localStorage.getItem(`channelToken_${normalizedChannel}`);
     return channelToken;
-  };
+  }, [normalizedChannel]);
 
   // Fetch schedule from API
   const fetchSchedule = useCallback(async () => {
@@ -105,7 +105,7 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
     } finally {
       setLoading(false);
     }
-  }, [onLogout, normalizedChannel]);
+  }, [onLogout, normalizedChannel, getAuthToken]);
 
   // Add new slot
   const addSlot = async () => {
@@ -469,7 +469,7 @@ export default function AdminSchedule24Hour({ channelName, onLogout }) {
     }
 
     fetchSchedule();
-  }, [onLogout, fetchSchedule, normalizedChannel]);
+  }, [onLogout, fetchSchedule, normalizedChannel, getAuthToken]);
 
   // Get unique categories from slots
   const getAvailableCategories = () => {
