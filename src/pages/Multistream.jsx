@@ -6,6 +6,7 @@ const channels = [
   { name: 'hanlapeno', displayName: 'hanlapeno', donationUrl: 'https://www.extra-life.org/participants/561915' },
   { name: 'russkiace', displayName: 'russkiace', donationUrl: 'https://www.extra-life.org/participants/556407' },
   { name: 'bigduckkief', displayName: 'bigduckkief', donationUrl: 'https://www.extra-life.org/participants/Kiefer-Delorme' },
+  { name: 'itsflannelbeard', displayName: 'itsflannelbeard', donationUrl: 'https://www.extra-life.org/teams/72119' },
 ];
 
 export default function Multistream() {
