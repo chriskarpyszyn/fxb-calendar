@@ -12,6 +12,7 @@ import StreamOverlay from './components/StreamOverlay';
 import TimerOverlay from './components/TimerOverlay';
 import StreamTimerWidget from './components/StreamTimerWidget';
 import Multistream from './pages/Multistream';
+import Kanban from './pages/Kanban';
 import './App.css';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
         <Route path="/timer/:channelName" element={<TimerOverlay />} />
         <Route path="/widget-timer" element={<StreamTimerWidget />} />
         <Route path="/multistream" element={<Multistream />} />
+        <Route path="/kanban" element={<Kanban />} />
       </Routes>
     </Router>
   );

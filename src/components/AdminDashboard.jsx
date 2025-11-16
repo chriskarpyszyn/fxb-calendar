@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminSchedule24Hour from './AdminSchedule24Hour';
 
 export default function AdminDashboard({ onLogout }) {
+  const navigate = useNavigate();
   const [ideas, setIdeas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const [expandedVoters, setExpandedVoters] = useState(new Set());
   const [resettingVotes, setResettingVotes] = useState(false);
-  const [activeTab, setActiveTab] = useState('ideas'); // 'ideas', 'surveys', 'schedule', 'channels', 'widgets'
+  const [activeTab, setActiveTab] = useState('ideas'); // 'ideas', 'surveys', 'schedule', 'channels', 'widgets', 'kanban'
   
   // Survey results state
   const [surveyResponses, setSurveyResponses] = useState([]);
@@ -782,6 +784,12 @@ export default function AdminDashboard({ onLogout }) {
               }`}
             >
               Widgets
+            </button>
+            <button
+              onClick={() => navigate('/kanban')}
+              className="px-4 py-2 rounded font-semibold transition-all duration-200 bg-retro-bg text-retro-cyan border border-retro-cyan hover:bg-retro-cyan hover:text-retro-bg"
+            >
+              Kanban
             </button>
           </div>
         </div>
