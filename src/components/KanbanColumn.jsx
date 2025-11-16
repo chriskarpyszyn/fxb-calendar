@@ -7,25 +7,79 @@ export default function KanbanColumn({
   isEditable, 
   onItemDrop, 
   onItemDelete,
-  onItemAdd 
+  onItemAdd,
+  onItemEdit
 }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   const handleDragOver = (e) => {
     if (!isEditable) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    
+    // Find which item element we're hovering over
+    const sortedItems = [...items].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const elements = e.currentTarget.querySelectorAll('[data-item-id]');
+    const y = e.clientY;
+    
+    let targetIndex = sortedItems.length;
+    
+    // Check each item element to see if we're above its midpoint
+    elements.forEach((el, idx) => {
+      const rect = el.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      if (y < midpoint && idx < targetIndex) {
+        targetIndex = idx;
+      }
+    });
+    
+    setDragOverIndex(targetIndex);
+  };
+
+  const handleDragLeave = (e) => {
+    if (!isEditable) return;
+    // Only clear if we're actually leaving the drop zone
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverIndex(null);
+    }
   };
 
   const handleDrop = (e) => {
     if (!isEditable) return;
     e.preventDefault();
-    const itemId = e.dataTransfer.getData('text/plain');
-    if (itemId && onItemDrop) {
-      onItemDrop(itemId, columnName);
+    setDragOverIndex(null);
+    
+    try {
+      const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
+      const itemId = dragData.id || e.dataTransfer.getData('text/plain');
+      const sourceColumn = dragData.column;
+      const sourceOrder = dragData.order || 0;
+      
+      if (itemId && onItemDrop) {
+        const sortedItems = [...items].sort((a, b) => (a.order || 0) - (b.order || 0));
+        let targetOrder = sortedItems.length;
+        
+        // If dropping in same column, calculate position
+        if (sourceColumn === columnName && dragOverIndex !== null) {
+          targetOrder = dragOverIndex;
+          // Adjust if dragging down (need to account for removed item)
+          if (sourceOrder < targetOrder) {
+            targetOrder = targetOrder - 1;
+          }
+        }
+        
+        onItemDrop(itemId, columnName, targetOrder, sourceColumn);
+      }
+    } catch (err) {
+      // Fallback to simple drop
+      const itemId = e.dataTransfer.getData('text/plain');
+      if (itemId && onItemDrop) {
+        onItemDrop(itemId, columnName);
+      }
     }
   };
 
@@ -62,17 +116,28 @@ export default function KanbanColumn({
 
       <div
         onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className="min-h-[400px] space-y-2"
       >
-        {sortedItems.map((item) => (
-          <KanbanItem
-            key={item.id}
-            item={item}
-            isEditable={isEditable}
-            onDelete={onItemDelete}
-          />
+        {sortedItems.map((item, index) => (
+          <React.Fragment key={item.id}>
+            {dragOverIndex === index && isEditable && (
+              <div className="h-2 bg-retro-cyan border-2 border-dashed border-retro-cyan rounded mb-2" />
+            )}
+            <div data-item-id={item.id}>
+              <KanbanItem
+                item={item}
+                isEditable={isEditable}
+                onDelete={onItemDelete}
+                onEdit={onItemEdit}
+              />
+            </div>
+          </React.Fragment>
         ))}
+        {dragOverIndex === sortedItems.length && isEditable && (
+          <div className="h-2 bg-retro-cyan border-2 border-dashed border-retro-cyan rounded mb-2" />
+        )}
 
         {isEditable && (
           <div>

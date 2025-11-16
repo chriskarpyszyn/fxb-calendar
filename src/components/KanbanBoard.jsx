@@ -36,37 +36,97 @@ export default function KanbanBoard({ isEditable }) {
     return items.filter(item => item.column === columnName);
   };
 
-  const handleItemDrop = async (itemId, targetColumn) => {
+  const handleItemDrop = async (itemId, targetColumn, targetOrder, sourceColumn) => {
     if (!isEditable) return;
 
     const item = items.find(i => i.id === itemId);
-    if (!item || item.column === targetColumn) return;
+    if (!item) return;
+
+    const isSameColumn = sourceColumn === targetColumn;
+    const isReordering = isSameColumn && targetOrder !== undefined;
 
     // Optimistic update
-    const updatedItems = items.map(i => {
-      if (i.id === itemId) {
-        const newItem = {
-          ...i,
-          column: targetColumn
-        };
-        // Set finishedAt if moving to Done, clear if moving away
-        if (targetColumn === 'Done') {
-          newItem.finishedAt = new Date().toISOString();
-        } else {
-          newItem.finishedAt = null;
-        }
-        return newItem;
+    let updatedItems = [...items];
+    
+    if (isReordering) {
+      // Reordering within same column
+      const columnItems = updatedItems
+        .filter(i => i.column === targetColumn)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      // Find current position
+      const currentIndex = columnItems.findIndex(i => i.id === itemId);
+      if (currentIndex === -1) return;
+      
+      // Remove the dragged item
+      const [removedItem] = columnItems.splice(currentIndex, 1);
+      
+      // Calculate new index (adjust if dragging down)
+      let newIndex = targetOrder;
+      if (currentIndex < targetOrder) {
+        newIndex = targetOrder - 1;
       }
-      return i;
-    });
+      
+      // Clamp to valid range
+      newIndex = Math.max(0, Math.min(newIndex, columnItems.length));
+      
+      // Insert at new position
+      columnItems.splice(newIndex, 0, removedItem);
+      
+      // Reassign orders sequentially
+      columnItems.forEach((colItem, idx) => {
+        const fullItem = updatedItems.find(i => i.id === colItem.id);
+        if (fullItem) {
+          fullItem.order = idx;
+        }
+      });
+    } else {
+      // Moving between columns
+      updatedItems = updatedItems.map(i => {
+        if (i.id === itemId) {
+          const newItem = {
+            ...i,
+            column: targetColumn
+          };
+          // Set finishedAt if moving to Done, clear if moving away
+          if (targetColumn === 'Done') {
+            newItem.finishedAt = new Date().toISOString();
+          } else {
+            newItem.finishedAt = null;
+          }
+          return newItem;
+        }
+        return i;
+      });
+    }
+    
     setItems(updatedItems);
 
     try {
       const token = localStorage.getItem('adminToken');
-      const targetColumnItems = updatedItems.filter(i => i.column === targetColumn && i.id !== itemId);
-      const maxOrder = targetColumnItems.length > 0 
-        ? Math.max(...targetColumnItems.map(i => i.order || 0))
-        : -1;
+      
+      let requestBody = {
+        action: 'kanban',
+        id: itemId
+      };
+
+      if (isReordering) {
+        // For reordering, send the new order position
+        // The API will handle reordering other items
+        const columnItems = updatedItems
+          .filter(i => i.column === targetColumn)
+          .sort((a, b) => (a.order || 0) - (b.order || 0));
+        const movedItem = columnItems.find(i => i.id === itemId);
+        requestBody.order = movedItem ? movedItem.order : targetOrder;
+      } else {
+        // Moving to different column
+        const targetColumnItems = updatedItems.filter(i => i.column === targetColumn && i.id !== itemId);
+        const maxOrder = targetColumnItems.length > 0 
+          ? Math.max(...targetColumnItems.map(i => i.order || 0))
+          : -1;
+        requestBody.column = targetColumn;
+        requestBody.order = targetOrder !== undefined ? targetOrder : maxOrder + 1;
+      }
 
       const response = await fetch('/api/admin?action=kanban', {
         method: 'PUT',
@@ -74,12 +134,7 @@ export default function KanbanBoard({ isEditable }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          action: 'kanban',
-          id: itemId,
-          column: targetColumn,
-          order: maxOrder + 1
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json();
@@ -157,6 +212,37 @@ export default function KanbanBoard({ isEditable }) {
     }
   };
 
+  const handleItemEdit = async (itemId, title, description) => {
+    if (!isEditable) return;
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch('/api/admin?action=kanban', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'kanban',
+          id: itemId,
+          title,
+          description
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        await fetchItems();
+      } else {
+        throw new Error(data.error || 'Failed to update item');
+      }
+    } catch (err) {
+      console.error('Error updating item:', err);
+      throw err;
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -191,6 +277,7 @@ export default function KanbanBoard({ isEditable }) {
           onItemDrop={handleItemDrop}
           onItemDelete={handleItemDelete}
           onItemAdd={handleItemAdd}
+          onItemEdit={handleItemEdit}
         />
       ))}
     </div>
