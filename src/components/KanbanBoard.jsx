@@ -12,7 +12,7 @@ export default function KanbanBoard({ isEditable }) {
     try {
       setLoading(true);
       setError('');
-      const response = await fetch('/api/kanban');
+      const response = await fetch('/api/admin?action=kanban');
       const data = await response.json();
       
       if (data.success) {
@@ -68,13 +68,14 @@ export default function KanbanBoard({ isEditable }) {
         ? Math.max(...targetColumnItems.map(i => i.order || 0))
         : -1;
 
-      const response = await fetch('/api/kanban', {
+      const response = await fetch('/api/admin?action=kanban', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          action: 'kanban',
           id: itemId,
           column: targetColumn,
           order: maxOrder + 1
@@ -104,13 +105,13 @@ export default function KanbanBoard({ isEditable }) {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/kanban', {
+      const response = await fetch('/api/admin?action=kanban', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ id: itemId })
+        body: JSON.stringify({ action: 'kanban', id: itemId })
       });
 
       const data = await response.json();
@@ -130,13 +131,14 @@ export default function KanbanBoard({ isEditable }) {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/kanban', {
+      const response = await fetch('/api/admin?action=kanban', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          action: 'kanban',
           title,
           description,
           column

@@ -1964,6 +1964,254 @@ async function handleUpdateWidgetTimer(req, res) {
   }
 }
 
+// Kanban Board handlers
+const KANBAN_REDIS_KEY = 'kanban:typing-stars:items';
+const KANBAN_VALID_COLUMNS = ['Ideas', 'Bugs', 'Features', 'In Progress', 'Done'];
+
+// Helper to verify admin token for kanban
+function verifyKanbanAdminToken(req) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null;
+  return verifySessionToken(token);
+}
+
+// Handle kanban - routes based on HTTP method
+async function handleKanban(req, res) {
+  // GET is public, others require auth
+  if (req.method !== 'GET') {
+    if (!verifyKanbanAdminToken(req)) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Unauthorized - Invalid or expired session' 
+      });
+    }
+  }
+
+  let redis;
+  
+  try {
+    redis = await getRedisClient();
+
+    if (req.method === 'GET') {
+      // GET - Public read access
+      const itemsJson = await redis.get(KANBAN_REDIS_KEY);
+      
+      if (!itemsJson) {
+        return res.status(200).json({
+          success: true,
+          items: []
+        });
+      }
+      
+      const items = JSON.parse(itemsJson);
+      return res.status(200).json({
+        success: true,
+        items: items
+      });
+    } else if (req.method === 'POST') {
+      // POST - Create new item
+      const { title, description, column } = req.body;
+
+      if (!title || !title.trim()) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Title is required' 
+        });
+      }
+
+      if (!column || !KANBAN_VALID_COLUMNS.includes(column)) {
+        return res.status(400).json({ 
+          success: false,
+          error: `Column must be one of: ${KANBAN_VALID_COLUMNS.join(', ')}`
+        });
+      }
+
+      // Get existing items
+      const itemsJson = await redis.get(KANBAN_REDIS_KEY);
+      const items = itemsJson ? JSON.parse(itemsJson) : [];
+      
+      // Find max order in the target column
+      const columnItems = items.filter(item => item.column === column);
+      const maxOrder = columnItems.length > 0 
+        ? Math.max(...columnItems.map(item => item.order || 0))
+        : -1;
+      
+      // Create new item
+      const newItem = {
+        id: `kanban-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        title: title.trim(),
+        description: description ? description.trim() : '',
+        column: column,
+        createdAt: new Date().toISOString(),
+        finishedAt: column === 'Done' ? new Date().toISOString() : null,
+        order: maxOrder + 1
+      };
+      
+      items.push(newItem);
+      
+      // Save back to Redis
+      await redis.set(KANBAN_REDIS_KEY, JSON.stringify(items));
+      
+      return res.status(200).json({
+        success: true,
+        item: newItem
+      });
+    } else if (req.method === 'PUT') {
+      // PUT - Update item
+      const { id, title, description, column, order } = req.body;
+
+      if (!id) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Item ID is required' 
+        });
+      }
+
+      if (column && !KANBAN_VALID_COLUMNS.includes(column)) {
+        return res.status(400).json({ 
+          success: false,
+          error: `Column must be one of: ${KANBAN_VALID_COLUMNS.join(', ')}`
+        });
+      }
+
+      // Get existing items
+      const itemsJson = await redis.get(KANBAN_REDIS_KEY);
+      if (!itemsJson) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Item not found' 
+        });
+      }
+      
+      const items = JSON.parse(itemsJson);
+      const itemIndex = items.findIndex(item => item.id === id);
+      
+      if (itemIndex === -1) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Item not found' 
+        });
+      }
+      
+      const item = items[itemIndex];
+      const oldColumn = item.column;
+      
+      // Update item
+      if (title !== undefined) item.title = title.trim();
+      if (description !== undefined) item.description = description ? description.trim() : '';
+      if (column !== undefined) {
+        item.column = column;
+        // Update finishedAt based on column
+        if (column === 'Done' && !item.finishedAt) {
+          item.finishedAt = new Date().toISOString();
+        } else if (column !== 'Done' && item.finishedAt) {
+          item.finishedAt = null;
+        }
+      }
+      if (order !== undefined) item.order = order;
+      
+      // If column changed, reorder items in both old and new columns
+      if (column && column !== oldColumn) {
+        // Remove from old column ordering
+        const oldColumnItems = items.filter(i => i.column === oldColumn && i.id !== id);
+        oldColumnItems.forEach((oldItem, idx) => {
+          oldItem.order = idx;
+        });
+        
+        // Add to new column with proper ordering
+        const newColumnItems = items.filter(i => i.column === column && i.id !== id);
+        if (order !== undefined) {
+          item.order = order;
+        } else {
+          const maxOrder = newColumnItems.length > 0 
+            ? Math.max(...newColumnItems.map(i => i.order || 0))
+            : -1;
+          item.order = maxOrder + 1;
+        }
+      } else if (order !== undefined) {
+        // Just reordering within same column
+        const columnItems = items.filter(i => i.column === item.column && i.id !== id);
+        columnItems.forEach((colItem, idx) => {
+          if (idx >= order) {
+            colItem.order = idx + 1;
+          } else {
+            colItem.order = idx;
+          }
+        });
+      }
+      
+      // Save back to Redis
+      await redis.set(KANBAN_REDIS_KEY, JSON.stringify(items));
+      
+      return res.status(200).json({
+        success: true,
+        item: item
+      });
+    } else if (req.method === 'DELETE') {
+      // DELETE - Delete item
+      const { id } = req.body;
+
+      if (!id) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Item ID is required' 
+        });
+      }
+
+      // Get existing items
+      const itemsJson = await redis.get(KANBAN_REDIS_KEY);
+      if (!itemsJson) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Item not found' 
+        });
+      }
+      
+      const items = JSON.parse(itemsJson);
+      const itemIndex = items.findIndex(item => item.id === id);
+      
+      if (itemIndex === -1) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Item not found' 
+        });
+      }
+      
+      // Remove item
+      items.splice(itemIndex, 1);
+      
+      // Save back to Redis
+      await redis.set(KANBAN_REDIS_KEY, JSON.stringify(items));
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Item deleted successfully'
+      });
+    } else {
+      return res.status(405).json({ 
+        success: false,
+        error: 'Method not allowed' 
+      });
+    }
+  } catch (error) {
+    console.error('Error in kanban handler:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
+  } finally {
+    if (redis) {
+      try {
+        await redis.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting from Redis:', err);
+      }
+    }
+  }
+}
+
 // Main handler
 module.exports = async function handler(req, res) {
   // Get action from query parameter (for GET) or body (for POST/DELETE)
@@ -2024,10 +2272,12 @@ module.exports = async function handler(req, res) {
       return handleUpdateWidgetTimer(req, res);
     case 'get-widget-timer-public':
       return handleGetWidgetTimerPublic(req, res);
+    case 'kanban':
+      return handleKanban(req, res);
     default:
       return res.status(400).json({
         success: false,
-        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes, get-24hour-schedule, add-24hour-slot, update-24hour-slot, delete-24hour-slot, update-24hour-metadata, update-24hour-categories, create-channel, list-channels, update-channel-password, delete-channel, get-widget-timer, set-widget-timer, update-widget-timer, get-widget-timer-public`
+        error: `Unknown action: ${action}. Valid actions: auth, get-ideas, get-surveys, delete-idea, delete-survey, reset-votes, get-24hour-schedule, add-24hour-slot, update-24hour-slot, delete-24hour-slot, update-24hour-metadata, update-24hour-categories, create-channel, list-channels, update-channel-password, delete-channel, get-widget-timer, set-widget-timer, update-widget-timer, get-widget-timer-public, kanban`
       });
   }
 };
