@@ -8,9 +8,11 @@ export default function KanbanBoard({ isEditable }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchItems = async () => {
+  const fetchItems = async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError('');
       const response = await fetch('/api/admin?action=kanban');
       const data = await response.json();
@@ -24,12 +26,14 @@ export default function KanbanBoard({ isEditable }) {
       console.error('Error fetching kanban items:', err);
       setError('Failed to load items');
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchItems();
+    fetchItems(true); // Only show loading on initial load
   }, []);
 
   const getItemsForColumn = (columnName) => {
@@ -142,13 +146,13 @@ export default function KanbanBoard({ isEditable }) {
         throw new Error(data.error || 'Failed to update item');
       }
 
-      // Refresh to get correct ordering
-      await fetchItems();
+      // Silently refresh to sync with server (no loading spinner)
+      await fetchItems(false);
     } catch (err) {
       console.error('Error updating item:', err);
       alert('Failed to move item. Please try again.');
-      // Revert optimistic update
-      await fetchItems();
+      // Revert optimistic update silently
+      await fetchItems(false);
     }
   };
 
@@ -171,12 +175,17 @@ export default function KanbanBoard({ isEditable }) {
 
       const data = await response.json();
       if (data.success) {
-        setItems(items.filter(item => item.id !== itemId));
+        // Optimistic update - remove item immediately
+        setItems(prevItems => prevItems.filter(item => item.id !== itemId));
+        // Silently refresh to ensure sync (no loading spinner)
+        fetchItems(false).catch(err => console.error('Background refresh failed:', err));
       } else {
         throw new Error(data.error || 'Failed to delete item');
       }
     } catch (err) {
       console.error('Error deleting item:', err);
+      // Revert on error
+      await fetchItems(false);
       alert('Failed to delete item. Please try again.');
     }
   };
@@ -202,7 +211,10 @@ export default function KanbanBoard({ isEditable }) {
 
       const data = await response.json();
       if (data.success) {
-        await fetchItems();
+        // Optimistically add the new item
+        setItems(prevItems => [...prevItems, data.item]);
+        // Silently refresh to ensure sync (no loading spinner)
+        fetchItems(false).catch(err => console.error('Background refresh failed:', err));
       } else {
         throw new Error(data.error || 'Failed to add item');
       }
@@ -214,6 +226,15 @@ export default function KanbanBoard({ isEditable }) {
 
   const handleItemEdit = async (itemId, title, description) => {
     if (!isEditable) return;
+
+    // Optimistic update
+    setItems(prevItems => 
+      prevItems.map(item => 
+        item.id === itemId 
+          ? { ...item, title, description }
+          : item
+      )
+    );
 
     try {
       const token = localStorage.getItem('adminToken');
@@ -233,12 +254,15 @@ export default function KanbanBoard({ isEditable }) {
 
       const data = await response.json();
       if (data.success) {
-        await fetchItems();
+        // Silently refresh to ensure sync (no loading spinner)
+        fetchItems(false).catch(err => console.error('Background refresh failed:', err));
       } else {
         throw new Error(data.error || 'Failed to update item');
       }
     } catch (err) {
       console.error('Error updating item:', err);
+      // Revert on error
+      await fetchItems(false);
       throw err;
     }
   };
@@ -257,7 +281,7 @@ export default function KanbanBoard({ isEditable }) {
       <div className="text-center py-8 bg-red-900/20 border-2 border-red-500 rounded-lg p-4">
         <p className="text-red-300 mb-2">{error}</p>
         <button
-          onClick={fetchItems}
+          onClick={() => fetchItems(true)}
           className="retro-button hover:scale-105 active:scale-95"
         >
           Try Again
