@@ -11,6 +11,7 @@ import WidgetLanding from './pages/WidgetLanding';
 import StreamOverlay from './components/StreamOverlay';
 import TimerOverlay from './components/TimerOverlay';
 import StreamTimerWidget from './components/StreamTimerWidget';
+import OverlayBackground from './components/OverlayBackground';
 import Multistream from './pages/Multistream';
 import Kanban from './pages/Kanban';
 import './App.css';
@@ -32,6 +33,7 @@ function App() {
         <Route path="/widget/:channelName" element={<StreamOverlay />} />
         <Route path="/timer/:channelName" element={<TimerOverlay />} />
         <Route path="/widget-timer" element={<StreamTimerWidget />} />
+        <Route path="/overlay-background" element={<OverlayBackground />} />
         <Route path="/multistream" element={<Multistream />} />
         <Route path="/kanban" element={<Kanban />} />
       </Routes>
