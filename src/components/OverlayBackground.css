@@ -6,15 +6,5 @@
   height: 100vh;
   z-index: -1;
   pointer-events: none;
-}
-
-.overlay-background.minimal {
-  background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
-}
-
-/* Ensure canvas fills container */
-canvas.overlay-background {
   display: block;
-  width: 100%;
-  height: 100%;
 }

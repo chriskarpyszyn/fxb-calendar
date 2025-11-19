@@ -51,6 +51,15 @@ export default function WidgetLanding() {
       route: '/widget-timer',
       icon: '⏰',
       color: 'text-yellow-400'
+    },
+    {
+      name: 'Nebula Background',
+      description: 'Animated space nebula background with twinkling stars',
+      behavior: 'Swirling nebula clouds with twinkling stars. Place at the bottom layer of your scene for an animated background.',
+      size: 'Recommended: 1920px × 1080px',
+      route: '/overlay-background',
+      icon: '🌌',
+      color: 'text-purple-400'
     }
   ];
 
@@ -188,6 +197,16 @@ export default function WidgetLanding() {
               <span>Position and resize the widget as needed in your scene</span>
             </li>
           </ol>
+
+          <div className="mt-6 p-4 bg-purple-900/20 border-2 border-purple-400 rounded">
+            <p className="text-purple-400 font-bold mb-2">🌌 Nebula Background Note:</p>
+            <p className="text-retro-text text-sm font-mono">
+              For the Nebula Background, <strong>UNCHECK</strong> "Shutdown source when not visible"
+              and place it at the <strong>bottom layer</strong> of your scene (below all other sources).
+              You can customize colors and intensity by adding query parameters like
+              <code className="text-purple-400">?color=EC4899&intensity=70</code>
+            </p>
+          </div>
         </div>
 
         {/* Back Link */}
