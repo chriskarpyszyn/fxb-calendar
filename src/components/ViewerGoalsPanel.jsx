@@ -11,7 +11,7 @@ export default function ViewerGoalsPanel({ channelName }) {
   useEffect(() => {
     const fetchGoals = async () => {
       try {
-        const response = await fetch(`/api/get-viewer-goals?channelName=${encodeURIComponent(channelName)}`);
+        const response = await fetch(`/api/data?type=viewer-goals&channelName=${encodeURIComponent(channelName)}`);
         if (response.ok) {
           const data = await response.json();
           setGoalsData(data);

@@ -15,7 +15,7 @@ export default function TimerOverlay() {
   useEffect(() => {
     const loadSchedule = async () => {
       try {
-        const response = await fetch(`/api/get-24hour-schedule?channelName=${encodeURIComponent(normalizedChannel)}`);
+        const response = await fetch(`/api/data?type=schedule&channelName=${encodeURIComponent(normalizedChannel)}`);
         if (!response.ok) {
           throw new Error('Failed to load schedule');
         }

@@ -223,6 +223,148 @@ function getHeader(req, headerName) {
   return null;
 }
 
+// Viewer event processing (subscribe, follow, cheer)
+const { storeViewerEvent, updateGoal } = require('./redis-helper');
+
+// Process subscribe event
+async function processSubscribe(event) {
+  try {
+    const channelName = event.broadcaster_user_login || event.broadcaster_user_name;
+    const username = event.user_name || event.user_login;
+    const isGift = event.is_gift || false;
+    const tier = event.tier || '1000';
+    
+    if (!channelName || !username) {
+      console.warn('Missing required fields in subscribe event:', event);
+      return { success: false, error: 'Missing required fields' };
+    }
+
+    // Store last subscriber
+    await storeViewerEvent(channelName, 'lastSubscriber', {
+      username,
+      isGift,
+      tier,
+      userId: event.user_id
+    });
+
+    // Update sub goal
+    const subGoalKey = `twitch:channel:${channelName.toLowerCase()}:subGoal`;
+    const { getRedisClient } = require('./redis-helper');
+    const redis = await getRedisClient();
+    try {
+      const existing = await redis.get(subGoalKey);
+      const current = existing ? JSON.parse(existing).current || 0 : 0;
+      await updateGoal(channelName, 'subGoal', current + 1);
+    } finally {
+      await redis.disconnect();
+    }
+
+    console.log(`Subscribe event processed: ${username} subscribed to ${channelName}`);
+    return { success: true, username, channelName };
+  } catch (error) {
+    console.error('Error processing subscribe event:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Process follow event
+async function processFollow(event) {
+  try {
+    const channelName = event.broadcaster_user_login || event.broadcaster_user_name;
+    const username = event.user_name || event.user_login;
+    
+    if (!channelName || !username) {
+      console.warn('Missing required fields in follow event:', event);
+      return { success: false, error: 'Missing required fields' };
+    }
+
+    // Store last follower
+    await storeViewerEvent(channelName, 'lastFollower', {
+      username,
+      userId: event.user_id,
+      followedAt: event.followed_at
+    });
+
+    // Update follower goal
+    const followerGoalKey = `twitch:channel:${channelName.toLowerCase()}:followerGoal`;
+    const { getRedisClient } = require('./redis-helper');
+    const redis = await getRedisClient();
+    try {
+      const existing = await redis.get(followerGoalKey);
+      const current = existing ? JSON.parse(existing).current || 0 : 0;
+      await updateGoal(channelName, 'followerGoal', current + 1);
+    } finally {
+      await redis.disconnect();
+    }
+
+    console.log(`Follow event processed: ${username} followed ${channelName}`);
+    return { success: true, username, channelName };
+  } catch (error) {
+    console.error('Error processing follow event:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Process cheer event
+async function processCheer(event) {
+  try {
+    const channelName = event.broadcaster_user_login || event.broadcaster_user_name;
+    const username = event.user_name || event.user_login;
+    const bits = parseInt(event.bits || 0, 10);
+    
+    if (!channelName || !username || bits <= 0) {
+      console.warn('Missing or invalid fields in cheer event:', event);
+      return { success: false, error: 'Missing or invalid fields' };
+    }
+
+    // Store last cheerer (only if this is a significant cheer)
+    const { getRedisClient } = require('./redis-helper');
+    const redis = await getRedisClient();
+    try {
+      const lastCheererKey = `twitch:channel:${channelName.toLowerCase()}:lastCheerer`;
+      const existing = await redis.get(lastCheererKey);
+      
+      // Only update if this cheer has more bits than the last one, or if no last cheer exists
+      if (!existing || bits >= JSON.parse(existing).bits) {
+        await storeViewerEvent(channelName, 'lastCheerer', {
+          username,
+          bits,
+          userId: event.user_id
+        });
+      }
+    } finally {
+      await redis.disconnect();
+    }
+
+    console.log(`Cheer event processed: ${username} cheered ${bits} bits to ${channelName}`);
+    return { success: true, username, bits, channelName };
+  } catch (error) {
+    console.error('Error processing cheer event:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Handle viewer events (routes to appropriate handler)
+async function handleViewerEvent(eventType, event) {
+  switch (eventType) {
+    case 'channel.subscribe':
+    case 'channel.subscription.message':
+      const subscribeResult = await processSubscribe(event);
+      return { handled: true, ...subscribeResult };
+      
+    case 'channel.follow':
+      const followResult = await processFollow(event);
+      return { handled: true, ...followResult };
+      
+    case 'channel.cheer':
+      const cheerResult = await processCheer(event);
+      return { handled: true, ...cheerResult };
+      
+    default:
+      return { handled: false };
+  }
+}
+
 module.exports = async function handler(req, res) {
   const startTime = Date.now();
   
@@ -310,7 +452,7 @@ module.exports = async function handler(req, res) {
       hasEvent: !!event
     });
 
-    // Only handle channel point redemptions
+    // Handle channel point redemptions (voting)
     if (eventType === 'channel.channel_points_custom_reward_redemption.add') {
       console.log('[EventSub Webhook] Processing channel point redemption:', {
         userId: event?.user_id,
@@ -348,6 +490,34 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ 
           error: 'Failed to process vote',
           details: result.error
+        });
+      }
+    }
+    
+    // Handle viewer events (subscribe, follow, cheer)
+    const viewerEventResult = await handleViewerEvent(eventType, event);
+    if (viewerEventResult.handled) {
+      const duration = Date.now() - startTime;
+      if (viewerEventResult.success) {
+        console.log('[EventSub Webhook] Viewer event processed successfully:', {
+          eventType,
+          result: viewerEventResult.result,
+          duration: `${duration}ms`
+        });
+        return res.status(200).json({
+          message: 'Event processed successfully',
+          eventType,
+          result: viewerEventResult.result
+        });
+      } else {
+        console.warn('[EventSub Webhook] Viewer event processing failed:', {
+          eventType,
+          error: viewerEventResult.error,
+          duration: `${duration}ms`
+        });
+        return res.status(400).json({
+          error: 'Failed to process event',
+          details: viewerEventResult.error
         });
       }
     }

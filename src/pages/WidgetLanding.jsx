@@ -10,7 +10,7 @@ export default function WidgetLanding() {
 
   // Load all channels
   useEffect(() => {
-    fetch('/api/get-channels')
+    fetch('/api/data?type=channels')
       .then(response => response.json())
       .then(data => {
         if (data.success) {

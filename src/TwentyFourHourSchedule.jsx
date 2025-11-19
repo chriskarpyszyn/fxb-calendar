@@ -16,7 +16,7 @@ export default function TwentyFourHourSchedule() {
 
   // Load schedule data from API
   useEffect(() => {
-    fetch(`/api/get-24hour-schedule?channelName=${encodeURIComponent(normalizedChannel)}`)
+    fetch(`/api/data?type=schedule&channelName=${encodeURIComponent(normalizedChannel)}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to load 24-hour schedule');
@@ -45,7 +45,7 @@ export default function TwentyFourHourSchedule() {
 
   // Load all channels
   useEffect(() => {
-    fetch('/api/get-channels')
+    fetch('/api/data?type=channels')
       .then(response => response.json())
       .then(data => {
         if (data.success) {

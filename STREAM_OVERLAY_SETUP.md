@@ -22,6 +22,7 @@ For example:
 - `http://localhost:3000/overlay/itsflannelbeard`
 - `https://yourdomain.com/overlay/itsflannelbeard`
 
+
 ## Using in OBS Studio
 
 ### Step 1: Add Browser Source
@@ -125,7 +126,7 @@ Each widget component can be customized:
 ### Widgets Not Updating
 
 1. Verify API endpoints are accessible:
-   - `/api/get-viewer-goals?channelName=...`
+   - `/api/data?type=viewer-goals&channelName=...`
    - `/api/admin?action=kanban`
    - `/api/admin?action=get-widget-timer-public`
 

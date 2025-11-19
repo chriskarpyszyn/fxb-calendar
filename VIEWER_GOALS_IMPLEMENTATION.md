@@ -31,9 +31,10 @@ twitch:channel:{channelName}:checkIns:{username}
 ### API Endpoints
 
 #### Get Viewer Goals
-- **Endpoint**: `/api/get-viewer-goals`
+- **Endpoint**: `/api/data?type=viewer-goals`
 - **Method**: GET
 - **Query Parameters**:
+  - `type=viewer-goals` (required)
   - `channelName` (optional, defaults to 'itsflannelbeard')
 - **Response**:
   ```json
@@ -78,9 +79,11 @@ twitch:channel:{channelName}:checkIns:{username}
   ```
 
 #### EventSub Webhook Handler
-- **Endpoint**: `/api/twitch-viewer-events`
+- **Endpoint**: `/api/twitch-eventsub`
 - **Method**: POST
-- **Purpose**: Receives Twitch EventSub webhooks for subscriber, follower, and cheer events
+- **Purpose**: Receives Twitch EventSub webhooks for voting, subscriber, follower, and cheer events
+
+**Note**: This endpoint handles both voting events and viewer events (subscribe, follow, cheer).
 
 ## Setting Up Twitch EventSub Subscriptions
 
@@ -103,11 +106,11 @@ You need to subscribe to the following event types:
 #### Option 1: Using Twitch CLI
 
 ```bash
-twitch event subscribe channel.subscribe --broadcaster-id YOUR_BROADCASTER_ID --webhook-secret YOUR_SECRET --callback-url https://yourdomain.com/api/twitch-viewer-events
+twitch event subscribe channel.subscribe --broadcaster-id YOUR_BROADCASTER_ID --webhook-secret YOUR_SECRET --callback-url https://yourdomain.com/api/twitch-eventsub
 
-twitch event subscribe channel.follow --broadcaster-id YOUR_BROADCASTER_ID --webhook-secret YOUR_SECRET --callback-url https://yourdomain.com/api/twitch-viewer-events
+twitch event subscribe channel.follow --broadcaster-id YOUR_BROADCASTER_ID --webhook-secret YOUR_SECRET --callback-url https://yourdomain.com/api/twitch-eventsub
 
-twitch event subscribe channel.cheer --broadcaster-id YOUR_BROADCASTER_ID --webhook-secret YOUR_SECRET --callback-url https://yourdomain.com/api/twitch-viewer-events
+twitch event subscribe channel.cheer --broadcaster-id YOUR_BROADCASTER_ID --webhook-secret YOUR_SECRET --callback-url https://yourdomain.com/api/twitch-eventsub
 ```
 
 #### Option 2: Using API Directly
@@ -130,17 +133,17 @@ REDIS_URL=your_redis_url
 ### Subscriber Event Flow
 
 1. User subscribes to channel
-2. Twitch sends EventSub webhook to `/api/twitch-viewer-events`
+2. Twitch sends EventSub webhook to `/api/twitch-eventsub`
 3. Handler processes event and stores in Redis:
    - Updates `lastSubscriber` key
    - Increments `subGoal.current`
-4. Overlay fetches data from `/api/get-viewer-goals` every 5 seconds
+4. Overlay fetches data from `/api/data?type=viewer-goals` every 5 seconds
 5. Widget displays latest subscriber
 
 ### Follower Event Flow
 
 1. User follows channel
-2. Twitch sends EventSub webhook to `/api/twitch-viewer-events`
+2. Twitch sends EventSub webhook to `/api/twitch-eventsub`
 3. Handler processes event and stores in Redis:
    - Updates `lastFollower` key
    - Increments `followerGoal.current`
@@ -241,7 +244,7 @@ redis-cli SET 'twitch:channel:itsflannelbeard:subGoal' '{"current":0,"target":10
 
 3. **Verify Data**:
    ```bash
-   curl http://localhost:3000/api/get-viewer-goals?channelName=itsflannelbeard
+   curl http://localhost:3000/api/data?type=viewer-goals&channelName=itsflannelbeard
    ```
 
 ### Using Mock Data
