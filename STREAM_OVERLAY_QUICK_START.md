@@ -119,7 +119,7 @@ Position: (1580, 140) - Right side
 URL: http://localhost:3000/widget-border?width=400&height=300&style=cyber
 Width: 400
 Height: 300
-Position: Exactly over camera (20, 740)
+Position: Exactly over camera (300, 640)
 Layer: Above camera source
 ```
 
@@ -172,15 +172,11 @@ Layer: Above game capture
 ║         │    GAME WINDOW              │              │ Last Sub │ ║
 ║         │    360,120                  │              │──────────│ ║
 ║         │    1200x700                 │              │ Streaks  │ ║
-║         │                             │              │──────────│ ║
-║         │                             │              │Leaderboard║
-║         └─────────────────────────────┘              │──────────│ ║
-║                                                       │  Goals   │ ║
-║  ┌─────────────┐                                     └──────────┘ ║
-║  │  CAMERA     │                                                  ║
-║  │  20,740     │                                                  ║
-║  │  400x300    │                                                  ║
-║  └─────────────┘                                                  ║
+║         │  ┌─────────────┐            │              │──────────│ ║
+║         │  │  CAMERA     │            │              │Leaderboard║
+║         └──│  300,640    │────────────┘              │──────────│ ║
+║            │  400x300    │  (Overlapping)            │  Goals   │ ║
+║            └─────────────┘                            └──────────┘ ║
 ║                                                                    ║
 ║                     [Animated Background]                         ║
 ╚═══════════════════════════════════════════════════════════════════╝

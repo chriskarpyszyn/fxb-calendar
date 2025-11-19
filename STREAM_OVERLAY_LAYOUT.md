@@ -8,19 +8,18 @@ This document outlines the comprehensive stream overlay layout for a 16:9 aspect
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  TIMER (Top Left)          KANBAN TASK (Top Center)             │
-│  200x80                    500x80                                │
+│  200x80                    500x100                               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                   │
 │                     MAIN CONTENT AREA                            │
 │                   (Game/Windows with Borders)                    │
 │                         1200x700                                 │
 │                                                                   │
-│                                                                   │
-│    ┌──────────────────┐                                         │
-│    │   CAMERA          │                   VIEWER GOALS          │
-│    │   (Bottom Left)   │                   (Right Side)          │
-│    │   400x300         │                   300x800               │
-│    └──────────────────┘                                         │
+│         ┌──────────────────┐                                     │
+│         │   CAMERA          │              VIEWER GOALS          │
+│         │ (Overlapping)     │              (Right Side)          │
+│         │   400x300         │              300x900               │
+│         └──────────────────┘                                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                    BACKGROUND (Full 1920x1080)                   │
 └─────────────────────────────────────────────────────────────────┘
@@ -99,17 +98,20 @@ Position: Top-center
 
 ---
 
-### 5. Camera Feed (Bottom Left)
-- **Position**: (20, 740)
+### 5. Camera Feed (Bottom Left, Overlapping Game Window)
+- **Position**: (300, 640)
 - **Size**: 400x300
 - **Z-Index**: 50
 - **Features**:
   - Webcam capture
   - Chroma key if needed
   - Dynamic border overlay
+  - Overlaps bottom-left corner of game window (~180px overlap)
 
 **OBS Setup**: Video Capture Device + Border Overlay
 **Border**: See Dynamic Borders section below
+
+**Note**: Camera is positioned to overlap the game window for a modern, professional streaming layout. Adjust overlap amount by changing Y position (lower = more overlap).
 
 ---
 
