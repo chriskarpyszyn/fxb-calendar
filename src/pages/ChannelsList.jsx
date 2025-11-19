@@ -47,7 +47,7 @@ export default function ChannelsList() {
   const fetchChannels = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/get-channels');
+      const response = await fetch('/api/data?type=channels');
       const data = await response.json();
       
       if (data.success) {

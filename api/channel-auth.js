@@ -3,7 +3,21 @@
 
 const bcrypt = require('bcrypt');
 const { createClient } = require('redis');
-const { createSessionToken } = require('./admin-utils');
+const jwt = require('jsonwebtoken');
+
+// JWT secret - use environment variable or fallback
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
+
+// Helper function to create a JWT session token
+function createSessionToken() {
+  const payload = {
+    type: 'admin',
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+  };
+  
+  return jwt.sign(payload, JWT_SECRET);
+}
 
 // Load environment variables for local development
 if (process.env.NODE_ENV !== 'production') {

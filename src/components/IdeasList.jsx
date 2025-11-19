@@ -26,7 +26,7 @@ export default function IdeasList() {
         setLoading(true);
       }
       
-      const response = await fetch('/api/get-ideas');
+      const response = await fetch('/api/data?type=ideas');
       const data = await response.json();
       
       if (data.success) {

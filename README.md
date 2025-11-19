@@ -34,6 +34,8 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 **⚠️ IMPORTANT: This project uses Vercel serverless functions for the API**
 
+**✅ DEPLOYMENT**: This project uses 8 serverless functions (under Vercel Hobby plan's 12-function limit). See [DEPLOYMENT_LIMITS.md](./DEPLOYMENT_LIMITS.md) for details.
+
 ### Prerequisites
 
 1. Install Vercel CLI globally:
